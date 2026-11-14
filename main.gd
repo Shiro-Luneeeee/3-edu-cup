@@ -5,7 +5,6 @@ const STARTING_ENERGY := 3
 const MAX_HEALTH := 20
 const MAX_PROGRESS := 100
 const MAX_HAND_SIZE := 9
-const CARD_NAMES := ["预习", "解题", "深呼吸", "认真听讲", "课间休息", "合作", "熬夜突击", "押题", "调整心态", "通宵"]
 const CARD_COSTS := [0, 0, 0, 1, 1, 1, 2, 2, 2, 3]
 const CARD_SIZE := Vector2(142, 199)
 const SLOT_POSITIONS := [Vector2(183, 334), Vector2(369, 334), Vector2(510, 334), Vector2(658, 334), Vector2(800, 334)]
@@ -22,7 +21,9 @@ var hand_holder: Control
 var card_preview: Control
 var slot_layer: Control
 var selected_card: Control
-var deck_choice_menu: PopupMenu
+var deck_choice_overlay: Control
+var deck_choice_resolving := false
+var pending_effect_draws: Array[int] = []
 var health_fill: ColorRect
 var progress_fill: Panel
 var progress_fill_tween: Tween
@@ -61,6 +62,9 @@ func _ready() -> void:
 	update_values()
 
 func _unhandled_key_input(event: InputEvent) -> void:
+	if deck_choice_overlay != null or deck_choice_resolving:
+		get_viewport().set_input_as_handled()
+		return
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_SPACE:
 		end_turn()
 		get_viewport().set_input_as_handled()
@@ -79,6 +83,11 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	last_j_trigger_msec = now_msec
 	block_random_slot()
 	get_viewport().set_input_as_handled()
+
+func _input(event: InputEvent) -> void:
+	if selected_card != null and event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
+		get_viewport().set_input_as_handled()
+		cancel_selected_card()
 
 func end_turn() -> void:
 	turn += 1
@@ -100,17 +109,19 @@ func draw_card_at_turn_start() -> void:
 	if hand.size() >= MAX_HAND_SIZE:
 		animate_discarded_draw(drawn_card_id)
 		return
-	add_card_to_hand(drawn_card_id)
+	add_card_to_hand(drawn_card_id, true)
 
-func add_card_to_hand(card_id: int) -> void:
+func add_card_to_hand(card_id: int, animate_draw: bool = false) -> void:
 	hand.append(card_id)
 	var new_card := create_card(card_id)
 	new_card.set_meta("hand_index", hand.size() - 1)
 	new_card.set_meta("card_id", card_id)
 	new_card.z_index = hand.size() - 1
 	connect_card_interaction(new_card)
-	new_card.position = Vector2(284, 190)
-	new_card.modulate.a = 0.0
+	new_card.position = Vector2(760, -330) if animate_draw else Vector2(284, 190)
+	new_card.scale = Vector2(0.62, 0.62) if animate_draw else Vector2.ONE
+	new_card.rotation = deg_to_rad(-18.0) if animate_draw else 0.0
+	new_card.modulate.a = 0.75 if animate_draw else 0.0
 	hand_holder.add_child(new_card)
 
 	for card_index in hand_holder.get_child_count():
@@ -118,10 +129,13 @@ func add_card_to_hand(card_id: int) -> void:
 		card.set_meta("hand_index", card_index)
 		card.z_index = card_index
 		var tween := create_tween().set_parallel(true)
-		tween.tween_property(card, "position", get_fan_position(card_index, hand_holder.get_child_count()), 0.38).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-		tween.tween_property(card, "rotation", get_fan_rotation(card_index, hand_holder.get_child_count()), 0.38).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		var duration := 0.58 if card == new_card and animate_draw else 0.38
+		tween.tween_property(card, "position", get_fan_position(card_index, hand_holder.get_child_count()), duration).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		tween.tween_property(card, "rotation", get_fan_rotation(card_index, hand_holder.get_child_count()), duration).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		if card == new_card:
 			tween.tween_property(card, "modulate:a", 1.0, 0.2)
+			if animate_draw:
+				tween.tween_property(card, "scale", Vector2.ONE, duration).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 func animate_discarded_draw(card_id: int) -> void:
 	var discarded_card := create_card(card_id)
@@ -386,7 +400,7 @@ void fragment() {
 	return material
 
 func select_card_from_hand(event: InputEvent, card: Control) -> void:
-	if selected_card != null or not (event is InputEventMouseButton):
+	if deck_choice_resolving or selected_card != null or not (event is InputEventMouseButton):
 		return
 	if event.button_index != MOUSE_BUTTON_LEFT or not event.pressed:
 		return
@@ -476,14 +490,24 @@ func use_selected_card(event: InputEvent, slot: Control) -> void:
 	set_slots_selectable(false)
 	rearrange_remaining_hand()
 	await return_hand_to_player()
+	for drawn_card_id in pending_effect_draws:
+		if hand.size() >= MAX_HAND_SIZE:
+			animate_discarded_draw(drawn_card_id)
+		else:
+			add_card_to_hand(drawn_card_id, true)
+	pending_effect_draws.clear()
 	if card_id == 7:
-		end_turn()
+		if deck.is_empty():
+			end_turn()
+		else:
+			show_deck_choice()
 
 func apply_card_effect(card_id: int, slot: Control) -> void:
 	var multiplier := 2 if int(slot.get_meta("reinforced_until")) >= turn else 1
 	match card_id:
 		0:
-			draw_card_at_turn_start()
+			if not deck.is_empty():
+				pending_effect_draws.append(deck.pop_back())
 		1:
 			progress += 3 * multiplier
 		2:
@@ -500,7 +524,6 @@ func apply_card_effect(card_id: int, slot: Control) -> void:
 			progress += 24 * multiplier
 		7:
 			progress += 13 * multiplier
-			show_deck_choice()
 		8:
 			slot.set_meta("blocked", false)
 			slot.set_meta("blocked_until", 0)
@@ -536,25 +559,99 @@ func update_values() -> void:
 func show_deck_choice() -> void:
 	if deck.is_empty():
 		return
-	if deck_choice_menu == null:
-		deck_choice_menu = PopupMenu.new()
-		deck_choice_menu.id_pressed.connect(choose_card_from_deck)
-		ui.add_child(deck_choice_menu)
-	deck_choice_menu.clear()
+	deck_choice_overlay = Control.new()
+	deck_choice_overlay.name = "DeckChoiceOverlay"
+	deck_choice_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	deck_choice_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	deck_choice_overlay.z_index = 60
+	ui.add_child(deck_choice_overlay)
+
+	var shade := ColorRect.new()
+	shade.color = Color(0.04, 0.03, 0.03, 0.83)
+	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	shade.mouse_filter = Control.MOUSE_FILTER_STOP
+	deck_choice_overlay.add_child(shade)
+
+	var available_cards: Array[int] = []
 	for card_id in 10:
 		if deck.has(card_id):
-			deck_choice_menu.add_item(CARD_NAMES[card_id], card_id)
-	deck_choice_menu.position = Vector2i(460, 170)
-	deck_choice_menu.popup()
+			available_cards.append(card_id)
+	var scroll := ScrollContainer.new()
+	scroll.position = Vector2((ui.size.x - 516.0) / 2.0, (ui.size.y - 550.0) / 2.0)
+	scroll.size = Vector2(516, 550)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	scroll.mouse_filter = Control.MOUSE_FILTER_STOP
+	deck_choice_overlay.add_child(scroll)
+
+	var grid := GridContainer.new()
+	grid.columns = 3
+	grid.custom_minimum_size.x = 486
+	grid.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	grid.add_theme_constant_override("h_separation", 18)
+	grid.add_theme_constant_override("v_separation", 18)
+	scroll.add_child(grid)
+
+	var card_size := Vector2(150, 210)
+	for card_id in available_cards:
+		var entry := Control.new()
+		entry.custom_minimum_size = card_size
+		entry.size = card_size
+		entry.pivot_offset = card_size / 2.0
+		entry.mouse_filter = Control.MOUSE_FILTER_PASS
+		entry.gui_input.connect(on_deck_choice_input.bind(card_id))
+		grid.add_child(entry)
+
+		var art := TextureRect.new()
+		art.texture = card_textures[card_id]
+		art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		art.stretch_mode = TextureRect.STRETCH_SCALE
+		art.size = card_size
+		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		entry.add_child(art)
+
+		var count := deck.count(card_id)
+		if count > 1:
+			var badge := Panel.new()
+			badge.position = Vector2(104, 177)
+			badge.size = Vector2(43, 30)
+			badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			var badge_style := StyleBoxFlat.new()
+			badge_style.bg_color = Color(0.08, 0.07, 0.06, 0.88)
+			badge_style.set_corner_radius_all(5)
+			badge.add_theme_stylebox_override("panel", badge_style)
+			entry.add_child(badge)
+			var count_label := Label.new()
+			count_label.text = "%dx" % count
+			count_label.size = badge.size
+			count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			count_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			count_label.add_theme_font_size_override("font_size", 20)
+			count_label.add_theme_color_override("font_color", Color.WHITE)
+			count_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			badge.add_child(count_label)
+
+func on_deck_choice_input(event: InputEvent, card_id: int) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		get_viewport().set_input_as_handled()
+		choose_card_from_deck(card_id)
 
 func choose_card_from_deck(card_id: int) -> void:
-	if not deck.has(card_id):
+	if deck_choice_overlay == null or not deck.has(card_id):
 		return
+	deck_choice_resolving = true
+	deck_choice_overlay.queue_free()
+	deck_choice_overlay = null
 	deck.erase(card_id)
 	if hand.size() >= MAX_HAND_SIZE:
 		animate_discarded_draw(card_id)
 	else:
-		add_card_to_hand(card_id)
+		add_card_to_hand(card_id, true)
+		await get_tree().create_timer(0.6).timeout
+	end_turn()
+	await get_tree().create_timer(0.6).timeout
+	rearrange_remaining_hand()
+	deck_choice_resolving = false
 
 func rearrange_remaining_hand() -> void:
 	var remaining_cards := hand_holder.get_children()
