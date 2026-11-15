@@ -33,6 +33,7 @@ var hand_move_tween: Tween
 var j_key_held := false
 var last_j_trigger_msec := -1000
 
+@onready var match_music: AudioStreamPlayer = $MatchMusic
 @onready var ui: Control = $HudLayer/UI
 @onready var progress_value_label: Label = $HudLayer/UI/ProgressValueLabel
 @onready var health_value_label: Label = $HudLayer/UI/HealthValueLabel
@@ -52,6 +53,10 @@ var progress_texture := preload("res://images/米色网格便签进度条界面.
 var energy_texture := preload("res://images/复古纸张能量徽章图标.png")
 
 func _ready() -> void:
+	var music_stream := match_music.stream.duplicate() as AudioStreamMP3
+	music_stream.loop = true
+	match_music.stream = music_stream
+	match_music.play()
 	build_deck()
 	draw_starting_hand()
 	build_interface()

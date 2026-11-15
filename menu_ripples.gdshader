@@ -35,7 +35,10 @@ void fragment() {
 	} else {
 		visible_fraction.x = aspect / image_aspect;
 	}
-	vec2 image_uv = (UV + displacement - vec2(0.5)) * visible_fraction + vec2(0.5);
+	// A slow, shallow zoom and drift make the whole illustration breathe.
+	float breath_zoom = 1.014 + 0.007 * sin(TIME * 0.68);
+	vec2 breath_drift = vec2(0.0013 * sin(TIME * 0.31), 0.0010 * cos(TIME * 0.27));
+	vec2 image_uv = ((UV + displacement - vec2(0.5)) / breath_zoom + breath_drift) * visible_fraction + vec2(0.5);
 	vec4 background = texture(background_texture, image_uv);
 	COLOR = vec4(min(background.rgb + vec3(highlight), vec3(1.0)), background.a);
 }

@@ -2,9 +2,14 @@
 
 [ext_resource type="Texture2D" uid="uid://ch5elsqornqq3" path="res://images/阳光下的考试桌面.png" id="1_kikvd"]
 [ext_resource type="Script" uid="uid://ddvv5qaaljh7r" path="res://main.gd" id="2_main"]
+[ext_resource type="AudioStreamMP3" path="res://audio/music/Mateus Asato - The Breakup Song.mp3" id="3_music"]
 
 [node name="Node2D" type="Node2D" unique_id=1330987857]
 script = ExtResource("2_main")
+
+[node name="MatchMusic" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("3_music")
+volume_db = -8.0
 
 [node name="background" type="Sprite2D" parent="." unique_id=1067543927]
 position = Vector2(577.24994, 324.25003)
