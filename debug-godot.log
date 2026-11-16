@@ -1,9 +1,0 @@
-Godot Engine v4.8.dev3.official.51105ccbe - https://godotengine.org
-
-TEST_INIT
-TEST_VERIFY
-SCENE=(res://card.tscn):<PackedScene#-9223372005447825972>
-TEST_LOADED
-TEST_SHOWN
-GRID size=(486.0, 894.0) cards=10 first=(150.0, 210.0) scroll=(516.0, 550.0)
-HAND count=7 nodes=7 gaps=0 turn=2
