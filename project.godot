@@ -22,6 +22,10 @@ window/size/window_height_override=648
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 
+[gui]
+
+theme/custom_font="res://fonts/GameHandwriting.tres"
+
 [input_devices]
 
 joypads/ignore_joypad_on_unfocused_application=true

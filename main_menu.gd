@@ -1,6 +1,7 @@
 extends Control
 
 const LOBBY_SCENE := "res://lobby.tscn"
+const SETTINGS_SCENE := preload("res://settings.tscn")
 const MAX_RIPPLES := 16
 const RIPPLE_LIFETIME := 1.65
 
@@ -15,6 +16,7 @@ const RIPPLE_LIFETIME := 1.65
 var ripple_material: ShaderMaterial
 var ripple_data: Array[Vector4] = []
 var spawn_timer := 0.0
+var settings_overlay: Control
 
 
 func _ready() -> void:
@@ -27,7 +29,7 @@ func _ready() -> void:
 	new_game_button.pressed.connect(func() -> void: get_tree().change_scene_to_file(LOBBY_SCENE))
 	continue_button.pressed.connect(func() -> void: show_notice("目前没有可继续的存档"))
 	gallary_button.pressed.connect(func() -> void: show_notice("画廊正在制作中"))
-	settings_button.pressed.connect(func() -> void: show_notice("设置正在制作中"))
+	settings_button.pressed.connect(open_settings)
 	for index in 5:
 		spawn_ripple(randf_range(0.0, RIPPLE_LIFETIME * 0.8))
 	spawn_timer = randf_range(0.12, 0.30)
@@ -68,3 +70,11 @@ func update_shader_ripples() -> void:
 func show_notice(message: String) -> void:
 	menu_notice.dialog_text = message
 	menu_notice.popup_centered(Vector2i(420, 160))
+
+
+func open_settings() -> void:
+	if is_instance_valid(settings_overlay):
+		return
+	settings_overlay = SETTINGS_SCENE.instantiate() as Control
+	add_child(settings_overlay)
+	settings_overlay.tree_exited.connect(func() -> void: settings_overlay = null)

@@ -1,0 +1,8 @@
+[gd_resource type="FontVariation" load_steps=3 format=3]
+
+[ext_resource type="FontFile" path="res://fonts/IndieFlower-Regular.ttf" id="1_latin"]
+[ext_resource type="FontFile" path="res://fonts/MuYaoHandwriting-Regular.ttf" id="2_chinese"]
+
+[resource]
+fallbacks = [ExtResource("2_chinese")]
+base_font = ExtResource("1_latin")
