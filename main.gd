@@ -1,5 +1,7 @@
 extends Node2D
 
+const LOBBY_SCENE := "res://lobby.tscn"
+const MATCH_MUSIC_NAME := "MatchTransitionMusic"
 const STARTING_HAND_SIZE := 5
 const FINAL_TURN := 8
 const TURN_DRAW_COUNT := 2
@@ -73,10 +75,11 @@ var attack_textures: Array[Texture2D] = [
 ]
 
 func _ready() -> void:
-	var music_stream := match_music.stream.duplicate() as AudioStreamMP3
-	music_stream.loop = true
-	match_music.stream = music_stream
-	match_music.play()
+	if get_tree().root.get_node_or_null(MATCH_MUSIC_NAME) == null:
+		var music_stream := match_music.stream.duplicate() as AudioStreamMP3
+		music_stream.loop = true
+		match_music.stream = music_stream
+		match_music.play()
 	build_deck()
 	draw_starting_hand()
 	build_interface()
@@ -97,6 +100,13 @@ func _ready() -> void:
 	turn_value_label.text = "回合数：%d" % turn
 	update_values()
 	await show_turn_banner()
+
+
+func _exit_tree() -> void:
+	var transition_music := get_tree().root.get_node_or_null(MATCH_MUSIC_NAME) as AudioStreamPlayer
+	if transition_music != null:
+		transition_music.stop()
+		transition_music.queue_free()
 
 func _unhandled_key_input(event: InputEvent) -> void:
 	if game_over or deck_choice_overlay != null or deck_choice_resolving or resolving_attack or showing_turn_banner:
@@ -122,6 +132,10 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	get_viewport().set_input_as_handled()
 
 func _input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE:
+		get_viewport().set_input_as_handled()
+		get_tree().change_scene_to_file(LOBBY_SCENE)
+		return
 	if game_over:
 		return
 	if selected_card != null and event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:

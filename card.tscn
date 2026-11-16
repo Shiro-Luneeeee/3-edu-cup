@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://dj2d60fywh4bp"]
 
-[ext_resource type="Texture2D" uid="uid://ch5elsqornqq3" path="res://images/阳光下的考试桌面.png" id="1_kikvd"]
+[ext_resource type="Texture2D" path="res://images/exam_classroom_pastel.png" id="1_kikvd"]
 [ext_resource type="Script" uid="uid://ddvv5qaaljh7r" path="res://main.gd" id="2_main"]
 [ext_resource type="AudioStreamMP3" path="res://audio/music/Mateus Asato - The Breakup Song.mp3" id="3_music"]
 

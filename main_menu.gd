@@ -2,10 +2,12 @@ extends Control
 
 const LOBBY_SCENE := "res://lobby.tscn"
 const SETTINGS_SCENE := preload("res://settings.tscn")
+const GALLERY_SCENE := preload("res://gallery.tscn")
 const MAX_RIPPLES := 16
 const RIPPLE_LIFETIME := 1.65
 
 @onready var background: ColorRect = $Background
+@onready var flower_glow: ColorRect = $FlowerGlow
 @onready var menu_music: AudioStreamPlayer = $MenuMusic
 @onready var gallary_button: TextureButton = $MenuColumn/GallaryButton
 @onready var continue_button: TextureButton = $MenuColumn/ContinueButton
@@ -14,21 +16,27 @@ const RIPPLE_LIFETIME := 1.65
 @onready var menu_notice: AcceptDialog = $MenuNotice
 
 var ripple_material: ShaderMaterial
+var flower_glow_material: ShaderMaterial
 var ripple_data: Array[Vector4] = []
 var spawn_timer := 0.0
 var settings_overlay: Control
+var gallery_overlay: Control
 
 
 func _ready() -> void:
 	ripple_material = background.material.duplicate() as ShaderMaterial
 	background.material = ripple_material
+	flower_glow_material = flower_glow.material.duplicate() as ShaderMaterial
+	flower_glow.material = flower_glow_material
+	flower_glow_material.set_shader_parameter("reveal_progress", -0.12)
+	create_tween().tween_property(flower_glow_material, "shader_parameter/reveal_progress", 1.12, 3.8).set_delay(0.45).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	var music_stream := menu_music.stream.duplicate() as AudioStreamMP3
 	music_stream.loop = true
 	menu_music.stream = music_stream
 	menu_music.play()
 	new_game_button.pressed.connect(func() -> void: get_tree().change_scene_to_file(LOBBY_SCENE))
 	continue_button.pressed.connect(func() -> void: show_notice("目前没有可继续的存档"))
-	gallary_button.pressed.connect(func() -> void: show_notice("画廊正在制作中"))
+	gallary_button.pressed.connect(open_gallery)
 	settings_button.pressed.connect(open_settings)
 	for index in 5:
 		spawn_ripple(randf_range(0.0, RIPPLE_LIFETIME * 0.8))
@@ -78,3 +86,17 @@ func open_settings() -> void:
 	settings_overlay = SETTINGS_SCENE.instantiate() as Control
 	add_child(settings_overlay)
 	settings_overlay.tree_exited.connect(func() -> void: settings_overlay = null)
+
+
+func open_gallery() -> void:
+	if is_instance_valid(gallery_overlay):
+		return
+	menu_music.stream_paused = true
+	gallery_overlay = GALLERY_SCENE.instantiate() as Control
+	add_child(gallery_overlay)
+	gallery_overlay.tree_exited.connect(resume_menu_after_gallery)
+
+
+func resume_menu_after_gallery() -> void:
+	gallery_overlay = null
+	menu_music.stream_paused = false

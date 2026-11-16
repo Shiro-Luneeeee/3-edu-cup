@@ -10,6 +10,7 @@
 [ext_resource type="Texture2D" uid="uid://trj60yn6i4sx" path="res://images/ui/new_game.png" id="8_new_game"]
 [ext_resource type="Texture2D" uid="uid://c10a31tewk64y" path="res://images/ui/settings.png" id="9_settings"]
 [ext_resource type="Shader" uid="uid://cxbtnjcn6x5w2" path="res://menu_ink_weight.gdshader" id="10_ink_weight"]
+[ext_resource type="Shader" uid="uid://chs1snbeorjc1" path="res://menu_flower_glow.gdshader" id="11_flower_glow"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_ripples"]
 shader = ExtResource("2_shader")
@@ -17,11 +18,20 @@ shader_parameter/background_texture = ExtResource("3_background")
 shader_parameter/image_size = Vector2(1672, 941)
 shader_parameter/ripples = PackedVector4Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
 
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_flower_glow"]
+resource_local_to_scene = true
+shader = ExtResource("11_flower_glow")
+shader_parameter/reveal_progress = 1.12
+shader_parameter/glow_strength = 1.0
+
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_menu_ink_weight"]
 shader = ExtResource("10_ink_weight")
 shader_parameter/spread_px = 5.0
 shader_parameter/extra_opacity = 0.24
-shader_parameter/glow_color = Color(0.988, 0.89, 0.102, 1)
+shader_parameter/glow_pink = Color(0.992, 0.71, 0.784, 1)
+shader_parameter/glow_green = Color(0.788, 0.886, 0.376, 1)
+shader_parameter/glow_yellow = Color(0.992, 0.898, 0.267, 1)
+shader_parameter/color_flow_speed = 0.055
 
 [node name="MainMenu" type="Control" unique_id=1817041366]
 layout_mode = 3
@@ -55,6 +65,16 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 color = Color(0.09, 0.12, 0.24, 0.08)
+
+[node name="FlowerGlow" type="ColorRect" parent="." unique_id=36493568]
+material = SubResource("ShaderMaterial_flower_glow")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
 
 [node name="MenuMusic" type="AudioStreamPlayer" parent="." unique_id=917541278]
 stream = ExtResource("4_music")
@@ -142,7 +162,7 @@ theme_override_colors/font_color = Color(0.12, 0.19, 0.32, 0.9)
 theme_override_colors/font_outline_color = Color(1, 1, 1, 0.8)
 theme_override_constants/outline_size = 3
 theme_override_font_sizes/font_size = 16
-text = "v0.1.2"
+text = "v0.2.1"
 horizontal_alignment = 2
 
 [node name="MenuNotice" type="AcceptDialog" parent="." unique_id=711584323]
