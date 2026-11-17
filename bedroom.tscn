@@ -1,0 +1,42 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://bedroom.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://images/bedroom.png" id="2_background"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_clock"]
+
+[node name="Bedroom" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_script")
+
+[node name="Background" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("2_background")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ClockButton" type="Button" parent="."]
+layout_mode = 0
+focus_mode = 0
+mouse_default_cursor_shape = 2
+flat = true
+theme_override_styles/hover = SubResource("StyleBoxEmpty_clock")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_clock")
+tooltip_text = "牌局准备"
+
+[node name="ClockHighlight" type="Polygon2D" parent="ClockButton"]
+modulate = Color(1, 1, 1, 0)
+color = Color(1, 0.91, 0.67, 0.38)
+antialiased = true
+polygon = PackedVector2Array(4, 66, 8, 55, 19, 49, 18, 40, 25, 36, 33, 39, 44, 16, 50, 8, 63, 3, 81, 1, 101, 2, 119, 6, 130, 14, 137, 39, 143, 42, 150, 37, 158, 40, 158, 48, 167, 56, 170, 68, 168, 82, 162, 91, 144, 83, 156, 105, 163, 126, 167, 148, 162, 172, 152, 192, 135, 205, 145, 224, 141, 229, 136, 227, 122, 209, 95, 220, 77, 220, 56, 216, 42, 207, 26, 228, 20, 227, 19, 222, 32, 201, 23, 195, 12, 179, 5, 157, 3, 136, 8, 114, 17, 94, 28, 80, 11, 88, 6, 83)

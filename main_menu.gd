@@ -1,6 +1,6 @@
 extends Control
 
-const LOBBY_SCENE := "res://lobby.tscn"
+const LOBBY_SCENE := "res://bedroom.tscn"
 const SETTINGS_SCENE := preload("res://settings.tscn")
 const GALLERY_SCENE := preload("res://gallery.tscn")
 const MAX_RIPPLES := 16
