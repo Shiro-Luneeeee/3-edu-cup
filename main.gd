@@ -1,13 +1,16 @@
 extends Node2D
 
 const LOBBY_SCENE := "res://lobby.tscn"
+const BEDROOM_SCENE := "res://bedroom.tscn"
 const MATCH_MUSIC_NAME := "MatchTransitionMusic"
 const STARTING_HAND_SIZE := 5
-const FINAL_TURN := 8
+const FINAL_TURN := 5
 const TURN_DRAW_COUNT := 2
 const STARTING_ENERGY := 3
 const MAX_HEALTH := 20
 const MAX_PROGRESS := 100
+const HEALTH_TRACK_IN_TEXTURE := Rect2(237.0, 291.0, 1794.0, 155.0)
+const PROGRESS_TRACK_IN_TEXTURE := Rect2(390.0, 333.0, 1548.0, 129.0)
 const MAX_HAND_SIZE := 9
 const CARD_COSTS := [0, 0, 0, 1, 1, 1, 2, 2, 2, 3]
 const CARD_SIZE := Vector2(142, 199)
@@ -32,10 +35,12 @@ var deck_choice_resolving := false
 var resolving_attack := false
 var showing_turn_banner := false
 var game_over := false
+var match_settled := false
 var end_button_tween: Tween
 var pending_effect_draws: Array[int] = []
-var health_fill: ColorRect
-var block_fill: ColorRect
+var health_fill: Panel
+var block_fill: Panel
+var health_track_width: float
 var displayed_health: float = MAX_HEALTH
 var displayed_block := 0.0
 var health_display_tween: Tween
@@ -44,7 +49,7 @@ var block_display_target := 0.0
 var progress_fill: Panel
 var progress_fill_tween: Tween
 var raise_tooltip: Panel
-const PROGRESS_FILL_WIDTH := 286.0
+var progress_track_width: float
 var hand_home_position := Vector2(-355, -235)
 var hand_move_tween: Tween
 var j_key_held := false
@@ -134,7 +139,10 @@ func _unhandled_key_input(event: InputEvent) -> void:
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE:
 		get_viewport().set_input_as_handled()
-		get_tree().change_scene_to_file(LOBBY_SCENE)
+		if match_settled:
+			enter_next_round()
+		else:
+			get_tree().change_scene_to_file(LOBBY_SCENE)
 		return
 	if game_over:
 		return
@@ -392,14 +400,9 @@ func create_progress_ui(parent: Control) -> void:
 	meter.z_index = 20
 	meter.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	parent.add_child(meter)
-	progress_fill = Panel.new()
-	progress_fill.position = Vector2(92, 65)
-	progress_fill.size = Vector2(0, 24)
-	progress_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var fill_style := StyleBoxFlat.new()
-	fill_style.bg_color = Color(0.96, 0.64, 0.25, 0.82)
-	fill_style.set_corner_radius_all(8)
-	progress_fill.add_theme_stylebox_override("panel", fill_style)
+	var track := get_meter_track(meter, PROGRESS_TRACK_IN_TEXTURE)
+	progress_track_width = track.size.x
+	progress_fill = make_rounded_meter_fill(Color(0.96, 0.64, 0.25, 0.82), track)
 	meter.add_child(progress_fill)
 
 	progress_value_label.text = "%s / %d" % [format_value(progress), MAX_PROGRESS]
@@ -421,21 +424,34 @@ func create_health_ui(parent: Control) -> void:
 	bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	holder.add_child(bar)
 
-	health_fill = ColorRect.new()
-	health_fill.color = Color("b9363e")
-	health_fill.position = Vector2(31, 43)
-	health_fill.size = Vector2(272 * float(health) / MAX_HEALTH, 28)
-	health_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var track := get_meter_track(bar, HEALTH_TRACK_IN_TEXTURE)
+	health_track_width = track.size.x
+	health_fill = make_rounded_meter_fill(Color("b9363e"), track)
+	health_fill.name = "HealthFill"
 	holder.add_child(health_fill)
 
-	block_fill = ColorRect.new()
-	block_fill.color = Color("438de0")
-	block_fill.position = Vector2(31, 43)
-	block_fill.size = Vector2.ZERO
-	block_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	block_fill = make_rounded_meter_fill(Color("438de0"), track)
+	block_fill.name = "BlockFill"
 	holder.add_child(block_fill)
 
-	health_value_label.text = health_text()
+	refresh_health_display()
+
+func get_meter_track(meter: TextureRect, track_in_texture: Rect2) -> Rect2:
+	var texture_size := meter.texture.get_size()
+	var texture_scale := minf(meter.size.x / texture_size.x, meter.size.y / texture_size.y)
+	var texture_origin := (meter.size - texture_size * texture_scale) * 0.5
+	return Rect2(texture_origin + track_in_texture.position * texture_scale, track_in_texture.size * texture_scale)
+
+func make_rounded_meter_fill(fill_color: Color, track: Rect2) -> Panel:
+	var fill := Panel.new()
+	fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var style := StyleBoxFlat.new()
+	style.bg_color = fill_color
+	style.set_corner_radius_all(roundi(track.size.y * 0.5))
+	fill.add_theme_stylebox_override("panel", style)
+	fill.position = track.position
+	fill.size = Vector2(0.0, track.size.y)
+	return fill
 
 func create_energy_ui(parent: Control) -> void:
 	var holder := Control.new()
@@ -829,12 +845,16 @@ func show_game_over() -> void:
 	overlay.add_child(restart)
 
 func finish_game() -> void:
+	if resolving_attack or showing_turn_banner or deck_choice_resolving:
+		return
 	settle_game(false)
 
 func settle_game(automatic: bool) -> void:
 	if game_over or (not automatic and progress < MAX_PROGRESS):
 		return
 	game_over = true
+	match_settled = true
+	PlayerState.advance_round()
 	set_slots_selectable(false)
 	if card_preview != null:
 		card_preview.hide()
@@ -854,20 +874,24 @@ func settle_game(automatic: bool) -> void:
 	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
 	ui.add_child(overlay)
 	var result := Label.new()
-	result.text = "结算完成\n进度：%s\n心态：%s\n回合数：%d" % [format_value(progress), str(int(health)), turn]
+	result.text = "结算完成\n进度：%s\n心态：%s\n回合数：%d\n精力已回满" % [format_value(progress), str(int(health)), turn]
 	result.size = Vector2(500, 220)
 	result.position = (ui.size - result.size) / 2.0 + Vector2(0, -45)
 	result.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	result.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	result.add_theme_font_size_override("font_size", 34)
 	overlay.add_child(result)
-	var restart := Button.new()
-	restart.text = "重新开始"
-	restart.size = Vector2(190, 54)
-	restart.position = (ui.size - restart.size) / 2.0 + Vector2(0, 130)
-	restart.add_theme_font_size_override("font_size", 24)
-	restart.pressed.connect(func(): get_tree().reload_current_scene())
-	overlay.add_child(restart)
+	var continue_button := Button.new()
+	continue_button.name = "NextRoundButton"
+	continue_button.text = "进入下一轮"
+	continue_button.size = Vector2(210, 54)
+	continue_button.position = (ui.size - continue_button.size) / 2.0 + Vector2(0, 130)
+	continue_button.add_theme_font_size_override("font_size", 24)
+	continue_button.pressed.connect(enter_next_round)
+	overlay.add_child(continue_button)
+
+func enter_next_round() -> void:
+	SceneFade.change_to(BEDROOM_SCENE, -1.0)
 
 func set_end_button_hover(hovered: bool) -> void:
 	if game_over or not end_button.visible:
@@ -897,7 +921,7 @@ func update_values() -> void:
 	if progress_fill != null:
 		if progress_fill_tween and progress_fill_tween.is_running():
 			progress_fill_tween.kill()
-		var target_width := PROGRESS_FILL_WIDTH * clampf(float(progress) / MAX_PROGRESS, 0.0, 1.0)
+		var target_width := progress_track_width * clampf(float(progress) / MAX_PROGRESS, 0.0, 1.0)
 		progress_fill_tween = create_tween()
 		progress_fill_tween.tween_property(progress_fill, "size:x", target_width, 0.35).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 
@@ -925,8 +949,8 @@ func set_displayed_block(value: float) -> void:
 
 func refresh_health_display() -> void:
 	health_value_label.text = health_text()
-	health_fill.size.x = 272.0 * clampf(displayed_health / MAX_HEALTH, 0.0, 1.0)
-	block_fill.size = Vector2(272.0 * clampf(displayed_block / MAX_HEALTH, 0.0, 1.0), 28)
+	health_fill.size.x = health_track_width * clampf(displayed_health / MAX_HEALTH, 0.0, 1.0)
+	block_fill.size.x = health_track_width * clampf(displayed_block / MAX_HEALTH, 0.0, 1.0)
 
 func health_text() -> String:
 	var current := str(int(displayed_health))

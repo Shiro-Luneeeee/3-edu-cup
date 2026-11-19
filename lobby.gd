@@ -20,4 +20,4 @@ func _ready() -> void:
 	start_button.pressed.connect(func() -> void: get_tree().change_scene_to_file(MATCH_SCENE))
 	cards_button.pressed.connect(func() -> void: cards_dialog.popup_centered(Vector2i(620, 460)))
 	rules_button.pressed.connect(func() -> void: rules_dialog.popup_centered(Vector2i(620, 340)))
-	back_button.pressed.connect(func() -> void: get_tree().change_scene_to_file(BEDROOM_SCENE))
+	back_button.pressed.connect(SceneFade.change_to.bind(BEDROOM_SCENE, -1.0))

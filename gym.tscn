@@ -1,0 +1,9 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://map_destination.tscn" id="1_destination"]
+[ext_resource type="Texture2D" path="res://images/playground.png" id="2_background"]
+
+[node name="Gym" instance=ExtResource("1_destination")]
+
+[node name="Background" parent="." index="0"]
+texture = ExtResource("2_background")

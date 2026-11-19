@@ -15,6 +15,12 @@ run/main_scene="res://main_menu.tscn"
 config/features=PackedStringArray("4.8", "Forward Plus")
 config/icon="res://icon.svg"
 
+[autoload]
+
+SceneFade="*res://scene_fade.gd"
+PlayerState="*res://player_state.gd"
+StudyProgress="*res://study_progress.gd"
+
 [display]
 
 window/size/window_width_override=1152

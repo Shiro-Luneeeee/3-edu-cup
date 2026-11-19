@@ -223,7 +223,11 @@ func change_preview(direction: int) -> void:
 
 
 func close_gallery() -> void:
-	queue_free()
+	SceneFade.play_action(queue_free)
+
+
+func set_return_to_bedroom() -> void:
+	$BackButton.text = "← 返回卧室"
 
 
 func _unhandled_key_input(event: InputEvent) -> void:

@@ -1,0 +1,71 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://map.gd" id="1_map"]
+[ext_resource type="Texture2D" path="res://images/map_board.png" id="2_artwork"]
+[ext_resource type="Script" path="res://map_location.gd" id="3_location"]
+[ext_resource type="PackedScene" path="res://gym.tscn" id="4_gym"]
+[ext_resource type="PackedScene" path="res://amusement_park.tscn" id="5_amusement"]
+[ext_resource type="PackedScene" path="res://classroom.tscn" id="6_school"]
+[ext_resource type="PackedScene" path="res://market.tscn" id="7_market"]
+[ext_resource type="PackedScene" path="res://shopping_mall.tscn" id="8_mall"]
+[ext_resource type="PackedScene" path="res://park.tscn" id="9_park"]
+
+[node name="Map" type="ColorRect"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.09, 0.06, 0.14, 1)
+script = ExtResource("1_map")
+
+[node name="Artwork" type="Node2D" parent="."]
+
+[node name="MapImage" type="Sprite2D" parent="Artwork"]
+texture = ExtResource("2_artwork")
+centered = false
+
+[node name="Locations" type="Node2D" parent="Artwork"]
+
+[node name="Gym" type="Polygon2D" parent="Artwork/Locations"]
+self_modulate = Color(1, 1, 1, 0)
+antialiased = true
+polygon = PackedVector2Array(153, 141, 194, 100, 264, 69, 372, 54, 445, 51, 512, 65, 566, 100, 605, 143, 633, 163, 685, 163, 775, 185, 802, 210, 768, 226, 661, 261, 534, 300, 427, 330, 350, 313, 216, 270, 156, 224)
+script = ExtResource("3_location")
+destination_scene = ExtResource("4_gym")
+
+[node name="AmusementPark" type="Polygon2D" parent="Artwork/Locations"]
+self_modulate = Color(1, 1, 1, 0)
+antialiased = true
+polygon = PackedVector2Array(1041, 211, 1091, 164, 1139, 133, 1175, 72, 1189, 49, 1211, 56, 1224, 111, 1261, 137, 1278, 89, 1301, 42, 1348, 14, 1390, 13, 1437, 28, 1468, 64, 1485, 108, 1491, 131, 1526, 105, 1553, 78, 1586, 77, 1608, 101, 1631, 143, 1658, 172, 1671, 199, 1671, 252, 1614, 283, 1520, 321, 1423, 344, 1366, 349, 1270, 322, 1172, 285, 1091, 257)
+script = ExtResource("3_location")
+destination_scene = ExtResource("5_amusement")
+
+[node name="School" type="Polygon2D" parent="Artwork/Locations"]
+self_modulate = Color(1, 1, 1, 0)
+antialiased = true
+polygon = PackedVector2Array(426, 449, 451, 385, 495, 355, 545, 324, 666, 311, 784, 285, 788, 254, 831, 231, 837, 184, 873, 184, 876, 224, 893, 241, 983, 247, 1042, 267, 1082, 303, 1170, 327, 1240, 351, 1286, 386, 1310, 417, 1300, 465, 1263, 500, 1167, 551, 1050, 606, 931, 650, 852, 659, 741, 624, 623, 585, 522, 542, 457, 509)
+script = ExtResource("3_location")
+destination_scene = ExtResource("6_school")
+
+[node name="Kiosk" type="Polygon2D" parent="Artwork/Locations"]
+self_modulate = Color(1, 1, 1, 0)
+antialiased = true
+polygon = PackedVector2Array(30, 384, 103, 365, 223, 342, 287, 353, 318, 382, 321, 406, 344, 437, 350, 481, 378, 506, 397, 529, 380, 555, 348, 585, 204, 591, 92, 586, 47, 556, 20, 517, 18, 476)
+script = ExtResource("3_location")
+destination_scene = ExtResource("7_market")
+
+[node name="ShoppingCenter" type="Polygon2D" parent="Artwork/Locations"]
+self_modulate = Color(1, 1, 1, 0)
+antialiased = true
+polygon = PackedVector2Array(96, 672, 131, 631, 253, 605, 302, 610, 339, 584, 443, 570, 533, 591, 631, 619, 637, 671, 698, 701, 745, 739, 744, 775, 707, 809, 610, 858, 547, 895, 465, 924, 370, 934, 280, 911, 191, 865, 132, 823)
+script = ExtResource("3_location")
+destination_scene = ExtResource("8_mall")
+
+[node name="Park" type="Polygon2D" parent="Artwork/Locations"]
+self_modulate = Color(1, 1, 1, 0)
+antialiased = true
+polygon = PackedVector2Array(829, 801, 855, 752, 916, 706, 1004, 658, 1088, 612, 1179, 558, 1275, 512, 1361, 508, 1430, 525, 1497, 554, 1557, 544, 1622, 560, 1671, 583, 1671, 720, 1622, 795, 1537, 854, 1452, 893, 1280, 933, 1055, 937, 936, 891, 872, 854)
+script = ExtResource("3_location")
+destination_scene = ExtResource("9_park")

@@ -1,6 +1,6 @@
 extends Control
 
-const LOBBY_SCENE := "res://bedroom.tscn"
+const BEDROOM_SCENE := "res://bedroom.tscn"
 const SETTINGS_SCENE := preload("res://settings.tscn")
 const GALLERY_SCENE := preload("res://gallery.tscn")
 const MAX_RIPPLES := 16
@@ -34,7 +34,7 @@ func _ready() -> void:
 	music_stream.loop = true
 	menu_music.stream = music_stream
 	menu_music.play()
-	new_game_button.pressed.connect(func() -> void: get_tree().change_scene_to_file(LOBBY_SCENE))
+	new_game_button.pressed.connect(start_new_game)
 	continue_button.pressed.connect(func() -> void: show_notice("目前没有可继续的存档"))
 	gallary_button.pressed.connect(open_gallery)
 	settings_button.pressed.connect(open_settings)
@@ -42,6 +42,12 @@ func _ready() -> void:
 		spawn_ripple(randf_range(0.0, RIPPLE_LIFETIME * 0.8))
 	spawn_timer = randf_range(0.12, 0.30)
 	update_shader_ripples()
+
+
+func start_new_game() -> void:
+	PlayerState.reset()
+	StudyProgress.reset()
+	SceneFade.change_to(BEDROOM_SCENE)
 
 
 func _process(delta: float) -> void:
