@@ -1,0 +1,272 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://save_page.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://images/save_background.png" id="2_background"]
+
+[sub_resource type="StyleBoxFlat" id="SlotPaper"]
+bg_color = Color(0.988, 0.957, 0.894, 0.92)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.96, 0.83, 0.65, 0.92)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+shadow_color = Color(0.12, 0.17, 0.27, 0.4)
+shadow_size = 8
+
+[node name="SavePage" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_script")
+
+[node name="Background" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("2_background")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="Veil" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.11, 0.15, 0.26, 0.2)
+
+[node name="Title" type="Label" parent="."]
+layout_mode = 1
+offset_left = 55.0
+offset_top = 64.0
+offset_right = 565.0
+offset_bottom = 136.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 0.96, 0.84, 1)
+theme_override_colors/font_outline_color = Color(0.18, 0.22, 0.35, 0.95)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 54
+text = "秋日存档"
+
+[node name="Subtitle" type="Label" parent="."]
+layout_mode = 1
+offset_left = 62.0
+offset_top = 142.0
+offset_right = 570.0
+offset_bottom = 184.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 0.98, 0.92, 1)
+theme_override_colors/font_outline_color = Color(0.18, 0.22, 0.35, 0.92)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 22
+text = "选择一页，留住此刻。"
+
+[node name="Hint" type="Label" parent="."]
+layout_mode = 1
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 60.0
+offset_top = -128.0
+offset_right = 555.0
+offset_bottom = -88.0
+grow_vertical = 0
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 0.98, 0.92, 1)
+theme_override_colors/font_outline_color = Color(0.18, 0.22, 0.35, 0.92)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 17
+text = "最多保留 3 份存档。"
+
+[node name="BackButton" type="Button" parent="."]
+layout_mode = 1
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 60.0
+offset_top = -76.0
+offset_right = 246.0
+offset_bottom = -24.0
+grow_vertical = 0
+theme_override_font_sizes/font_size = 20
+text = "返回卧室"
+
+[node name="SkipButton" type="Button" parent="."]
+layout_mode = 1
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 260.0
+offset_top = -76.0
+offset_right = 476.0
+offset_bottom = -24.0
+grow_vertical = 0
+theme_override_font_sizes/font_size = 20
+text = "不存档退出"
+
+[node name="Slots" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchor_left = 0.53
+anchor_top = 0.13
+anchor_right = 0.96
+anchor_bottom = 0.9
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 13
+
+[node name="Slot1" type="PanelContainer" parent="Slots"]
+custom_minimum_size = Vector2(0, 140)
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("SlotPaper")
+
+[node name="Content" type="MarginContainer" parent="Slots/Slot1"]
+layout_mode = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 11
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 11
+
+[node name="Column" type="VBoxContainer" parent="Slots/Slot1/Content"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="SlotTitle" type="Label" parent="Slots/Slot1/Content/Column"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.22, 0.2, 0.29, 1)
+theme_override_font_sizes/font_size = 22
+text = "存档 01 · 空白"
+
+[node name="Details" type="Label" parent="Slots/Slot1/Content/Column"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_colors/font_color = Color(0.36, 0.31, 0.38, 1)
+theme_override_font_sizes/font_size = 15
+text = "等待写下第一段旅程"
+
+[node name="Actions" type="HBoxContainer" parent="Slots/Slot1/Content/Column"]
+layout_mode = 2
+theme_override_constants/separation = 9
+
+[node name="ActionButton" type="Button" parent="Slots/Slot1/Content/Column/Actions"]
+layout_mode = 2
+custom_minimum_size = Vector2(138, 34)
+theme_override_font_sizes/font_size = 17
+text = "存入"
+
+[node name="DeleteButton" type="Button" parent="Slots/Slot1/Content/Column/Actions"]
+visible = false
+layout_mode = 2
+custom_minimum_size = Vector2(84, 34)
+theme_override_font_sizes/font_size = 17
+text = "删除"
+
+[node name="Slot2" type="PanelContainer" parent="Slots"]
+custom_minimum_size = Vector2(0, 140)
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("SlotPaper")
+
+[node name="Content" type="MarginContainer" parent="Slots/Slot2"]
+layout_mode = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 11
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 11
+
+[node name="Column" type="VBoxContainer" parent="Slots/Slot2/Content"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="SlotTitle" type="Label" parent="Slots/Slot2/Content/Column"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.22, 0.2, 0.29, 1)
+theme_override_font_sizes/font_size = 22
+text = "存档 02 · 空白"
+
+[node name="Details" type="Label" parent="Slots/Slot2/Content/Column"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_colors/font_color = Color(0.36, 0.31, 0.38, 1)
+theme_override_font_sizes/font_size = 15
+text = "等待写下第一段旅程"
+
+[node name="Actions" type="HBoxContainer" parent="Slots/Slot2/Content/Column"]
+layout_mode = 2
+theme_override_constants/separation = 9
+
+[node name="ActionButton" type="Button" parent="Slots/Slot2/Content/Column/Actions"]
+layout_mode = 2
+custom_minimum_size = Vector2(138, 34)
+theme_override_font_sizes/font_size = 17
+text = "存入"
+
+[node name="DeleteButton" type="Button" parent="Slots/Slot2/Content/Column/Actions"]
+visible = false
+layout_mode = 2
+custom_minimum_size = Vector2(84, 34)
+theme_override_font_sizes/font_size = 17
+text = "删除"
+
+[node name="Slot3" type="PanelContainer" parent="Slots"]
+custom_minimum_size = Vector2(0, 140)
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("SlotPaper")
+
+[node name="Content" type="MarginContainer" parent="Slots/Slot3"]
+layout_mode = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 11
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 11
+
+[node name="Column" type="VBoxContainer" parent="Slots/Slot3/Content"]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="SlotTitle" type="Label" parent="Slots/Slot3/Content/Column"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.22, 0.2, 0.29, 1)
+theme_override_font_sizes/font_size = 22
+text = "存档 03 · 空白"
+
+[node name="Details" type="Label" parent="Slots/Slot3/Content/Column"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_colors/font_color = Color(0.36, 0.31, 0.38, 1)
+theme_override_font_sizes/font_size = 15
+text = "等待写下第一段旅程"
+
+[node name="Actions" type="HBoxContainer" parent="Slots/Slot3/Content/Column"]
+layout_mode = 2
+theme_override_constants/separation = 9
+
+[node name="ActionButton" type="Button" parent="Slots/Slot3/Content/Column/Actions"]
+layout_mode = 2
+custom_minimum_size = Vector2(138, 34)
+theme_override_font_sizes/font_size = 17
+text = "存入"
+
+[node name="DeleteButton" type="Button" parent="Slots/Slot3/Content/Column/Actions"]
+visible = false
+layout_mode = 2
+custom_minimum_size = Vector2(84, 34)
+theme_override_font_sizes/font_size = 17
+text = "删除"
+
+[node name="ConfirmDialog" type="ConfirmationDialog" parent="."]
+title = "请确认"
+
+[node name="Notice" type="AcceptDialog" parent="."]
+title = "提示"

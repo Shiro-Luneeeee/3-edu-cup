@@ -4,7 +4,9 @@ const IMAGE_SIZE := Vector2(1672, 941)
 const CLOCK_RECT := Rect2(1000, 300, 175, 230)
 const PHONE_RECT := Rect2(1339, 589, 274, 178)
 const BOOKSHELF_RECT := Rect2(0, 162, 277, 401)
+const GAMEPAD_RECT := Rect2(80, 590, 360, 225)
 const PREPARATION_SCENE := "res://lobby.tscn"
+const GAME_SELECTION_SCENE := "res://game_selection.tscn"
 const SHOP_SCENE := "res://shop.tscn"
 const MAP_SCENE := preload("res://map.tscn")
 const STUDY_SCENE := preload("res://study.tscn")
@@ -31,12 +33,16 @@ const ENERGY_FILL_SHADER := preload("res://energy_bar_fill.gdshader")
 @export_range(0, 100, 1) var physical_strength := 0
 @export_range(1, 1000, 1) var max_energy := 20
 
+@onready var bedroom_music: AudioStreamPlayer = $BedroomMusic
+@onready var exit_button: TextureButton = $ExitButton
 @onready var clock_button: Button = $ClockButton
 @onready var clock_highlight: Polygon2D = $ClockButton/ClockHighlight
 @onready var phone_button: Button = $PhoneButton
 @onready var phone_highlight: Polygon2D = $PhoneButton/PhoneHighlight
 @onready var bookshelf_button: Button = $BookshelfButton
 @onready var bookshelf_highlight: Polygon2D = $BookshelfButton/BookshelfHighlight
+@onready var gamepad_button: Button = $GamepadButton
+@onready var gamepad_highlight: Polygon2D = $GamepadButton/GamepadHighlight
 @onready var round_board: TextureRect = $RoundBoard
 @onready var round_label: Label = $RoundBoard/RoundLabel
 @onready var phone_overlay: ColorRect = $PhoneOverlay
@@ -58,6 +64,10 @@ var energy_material: ShaderMaterial
 var energy_label: Label
 
 func _ready() -> void:
+	var music_stream := bedroom_music.stream.duplicate() as AudioStreamMP3
+	music_stream.loop = true
+	bedroom_music.stream = music_stream
+	bedroom_music.play()
 	PlayerState.initialize(intelligence, emotional_intelligence, physical_strength, max_energy)
 	create_point_board()
 	create_energy_bar()
@@ -66,13 +76,16 @@ func _ready() -> void:
 	connect_highlight(clock_button, clock_highlight)
 	connect_highlight(phone_button, phone_highlight)
 	connect_highlight(bookshelf_button, bookshelf_highlight)
+	connect_highlight(gamepad_button, gamepad_highlight)
 	clock_button.pressed.connect(SceneFade.change_to.bind(PREPARATION_SCENE))
+	gamepad_button.pressed.connect(SceneFade.change_to.bind(GAME_SELECTION_SCENE))
 	phone_button.pressed.connect(phone_overlay.show)
 	bookshelf_button.pressed.connect(open_study)
 	shop_app.pressed.connect(open_shop)
 	power_app.pressed.connect(phone_overlay.hide)
 	gallery_app.pressed.connect(open_gallery)
 	map_app.pressed.connect(open_map)
+	exit_button.pressed.connect(SaveManager.open_save_page)
 	phone_overlay.gui_input.connect(on_phone_overlay_input)
 	update_layout()
 
@@ -90,7 +103,7 @@ func create_energy_bar() -> void:
 	energy_material.set_shader_parameter("track_rect", Vector4(track.position.x, track.position.y, track.size.x, track.size.y))
 	energy_bar.material = energy_material
 	add_child(energy_bar)
-	move_child(energy_bar, 2)
+	move_child(energy_bar, point_board.get_index() + 1)
 
 	energy_label = Label.new()
 	energy_label.name = "EnergyValue"
@@ -142,7 +155,7 @@ func create_point_board() -> void:
 	point_board_material.set_shader_parameter("extra_track_rects", PackedVector4Array([STAT_TRACK_RECTS[1], STAT_TRACK_RECTS[2]]))
 	point_board.material = point_board_material
 	add_child(point_board)
-	move_child(point_board, 1)
+	move_child(point_board, $Background.get_index() + 1)
 
 	var portrait_clip := Control.new()
 	portrait_clip.name = "HeroPortraitClip"
@@ -209,10 +222,15 @@ func open_gallery() -> void:
 
 func show_gallery_overlay() -> void:
 	phone_overlay.hide()
+	bedroom_music.stream_paused = true
 	gallery_overlay = GALLERY_SCENE.instantiate() as Control
 	gallery_overlay.set_return_to_bedroom()
 	add_child(gallery_overlay)
-	gallery_overlay.tree_exited.connect(func() -> void: gallery_overlay = null)
+	gallery_overlay.tree_exited.connect(resume_music_after_gallery)
+
+func resume_music_after_gallery() -> void:
+	gallery_overlay = null
+	bedroom_music.stream_paused = false
 
 func update_layout() -> void:
 	var image_scale := minf(size.x / IMAGE_SIZE.x, size.y / IMAGE_SIZE.y)
@@ -240,6 +258,7 @@ func update_layout() -> void:
 	place_hotspot(clock_button, clock_highlight, CLOCK_RECT, image_origin, image_scale)
 	place_hotspot(phone_button, phone_highlight, PHONE_RECT, image_origin, image_scale)
 	place_hotspot(bookshelf_button, bookshelf_highlight, BOOKSHELF_RECT, image_origin, image_scale)
+	place_hotspot(gamepad_button, gamepad_highlight, GAMEPAD_RECT, image_origin, image_scale)
 
 	var phone_size := phone_image.texture.get_size()
 	var phone_scale := minf(size.x / phone_size.x, size.y / phone_size.y) * 0.88
@@ -270,3 +289,6 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	if phone_overlay.visible and event.is_action_pressed("ui_cancel"):
 		phone_overlay.hide()
 		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("ui_cancel") and not event.is_echo():
+		get_viewport().set_input_as_handled()
+		SaveManager.open_save_page()

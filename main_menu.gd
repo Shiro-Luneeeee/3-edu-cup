@@ -35,7 +35,8 @@ func _ready() -> void:
 	menu_music.stream = music_stream
 	menu_music.play()
 	new_game_button.pressed.connect(start_new_game)
-	continue_button.pressed.connect(func() -> void: show_notice("目前没有可继续的存档"))
+	continue_button.visible = SaveManager.has_any_save()
+	continue_button.pressed.connect(SaveManager.open_load_page)
 	gallary_button.pressed.connect(open_gallery)
 	settings_button.pressed.connect(open_settings)
 	for index in 5:

@@ -17,6 +17,17 @@ func reset() -> void:
 	changed.emit()
 
 
+func make_snapshot() -> Dictionary:
+	return {"total_experience": _total_experience.duplicate()}
+
+
+func restore_snapshot(data: Dictionary) -> void:
+	var values: Array = data.get("total_experience", [])
+	for index in _total_experience.size():
+		_total_experience[index] = maxi(0, int(values[index])) if index < values.size() else 0
+	changed.emit()
+
+
 func perform_action(subject: Subject) -> bool:
 	var intelligence_gain := ACTION_REWARD if subject == Subject.MATH else 0
 	var emotional_gain := ACTION_REWARD if subject == Subject.CHINESE else 0

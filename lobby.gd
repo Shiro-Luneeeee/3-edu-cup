@@ -3,7 +3,6 @@ extends Control
 const MATCH_SCENE := "res://card.tscn"
 const BEDROOM_SCENE := "res://bedroom.tscn"
 
-@onready var lobby_music: AudioStreamPlayer = $LobbyMusic
 @onready var start_button: Button = $LobbyPanel/Margin/Column/StartButton
 @onready var cards_button: Button = $LobbyPanel/Margin/Column/CardsButton
 @onready var rules_button: Button = $LobbyPanel/Margin/Column/RulesButton
@@ -13,10 +12,6 @@ const BEDROOM_SCENE := "res://bedroom.tscn"
 
 
 func _ready() -> void:
-	var music_stream := lobby_music.stream.duplicate() as AudioStreamMP3
-	music_stream.loop = true
-	lobby_music.stream = music_stream
-	lobby_music.play()
 	start_button.pressed.connect(func() -> void: get_tree().change_scene_to_file(MATCH_SCENE))
 	cards_button.pressed.connect(func() -> void: cards_dialog.popup_centered(Vector2i(620, 460)))
 	rules_button.pressed.connect(func() -> void: rules_dialog.popup_centered(Vector2i(620, 340)))

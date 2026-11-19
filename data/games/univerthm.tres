@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="GameEntry" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://game_entry.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://images/univerthm_cover.png" id="2_cover"]
+
+[resource]
+script = ExtResource("1_script")
+id = "univerthm"
+title = "Univerthm"
+description = "一款音乐节奏游戏。听见宇宙，看见旋律。这是制作组的另一款游戏。"
+short_description = "听见宇宙，看见旋律。这是制作组的另一款游戏。"
+energy_cost = 5
+effect_description = "情商 +10"
+price = 90
+reward_stat = "emotional_intelligence"
+play_story = "你戴上耳机，跟着第一声鼓点轻轻敲击。起初，你总会抢在旋律前面；多听了几遍后，指尖终于和节拍落在同一处。曲终时，你摘下耳机，心情也跟着明亮了一点。"
+cover = ExtResource("2_cover")

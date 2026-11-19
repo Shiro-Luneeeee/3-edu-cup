@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="GameEntry" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://game_entry.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://images/phantom_sonnet_cover.png" id="2_cover"]
+
+[resource]
+script = ExtResource("1_script")
+id = "phantom_sonnet"
+title = "影之诗Phantom Sonnet"
+description = "一部暗黑武侠动作游戏。被禁的诗篇在江湖流传，吟诵者接连消失。你将化身追索残音的少女，穿过机关密布的旧城，以疾如骤雨的连招与刀剑问路，找出诗句背后的阴谋，也写下自己的终章。"
+short_description = "禁诗传世，吟诵者相继消失。持刃追索残音，在刀光中改写命运。"
+energy_cost = 5
+effect_description = "体魄 +10"
+price = 140
+reward_stat = "physical_strength"
+play_story = "你握着手柄，走进诗句与刀光交错的旧城。几次迎面而来的攻击让你手忙脚乱，但你逐渐学会观察破绽，再稳稳地挥出下一剑。放下手柄时，肩膀有些酸，心里却仍记得那场干净利落的胜利。"
+cover = ExtResource("2_cover")

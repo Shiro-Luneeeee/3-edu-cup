@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3]
+[gd_scene load_steps=18 format=3]
 
 [ext_resource type="Script" path="res://bedroom.gd" id="1_script"]
 [ext_resource type="Texture2D" path="res://images/bedroom.png" id="2_background"]
@@ -13,6 +13,8 @@
 [ext_resource type="Texture2D" path="res://images/shop.png" id="11_shop"]
 [ext_resource type="Script" path="res://phone_app_icon.gd" id="12_app_motion"]
 [ext_resource type="Texture2D" path="res://images/ui/turn.png" id="13_round_board"]
+[ext_resource type="AudioStreamMP3" path="res://audio/music/Mateus Asato - Kawaii.mp3" id="14_music"]
+[ext_resource type="Texture2D" path="res://images/ui/save_exit_arrow.png" id="15_exit_arrow"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_hotspot"]
 
@@ -30,6 +32,10 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_script")
+
+[node name="BedroomMusic" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("14_music")
+volume_db = -8.0
 
 [node name="Background" type="TextureRect" parent="."]
 layout_mode = 1
@@ -88,6 +94,21 @@ color = Color(1, 0.91, 0.67, 0.38)
 antialiased = true
 polygon = PackedVector2Array(0, 25, 65, 3, 120, 11, 121, 32, 183, 32, 185, 51, 215, 51, 217, 58, 242, 58, 242, 69, 271, 69, 276, 257, 258, 262, 244, 274, 239, 290, 245, 371, 214, 396, 214, 353, 183, 351, 183, 315, 177, 301, 98, 292, 0, 288)
 
+[node name="GamepadButton" type="Button" parent="."]
+layout_mode = 0
+focus_mode = 0
+mouse_default_cursor_shape = 2
+flat = true
+theme_override_styles/hover = SubResource("StyleBoxEmpty_hotspot")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_hotspot")
+tooltip_text = "游戏选择"
+
+[node name="GamepadHighlight" type="Polygon2D" parent="GamepadButton"]
+modulate = Color(1, 1, 1, 0)
+color = Color(1, 0.91, 0.67, 0.38)
+antialiased = true
+polygon = PackedVector2Array(7, 155, 18, 93, 42, 59, 91, 31, 139, 20, 209, 13, 265, 23, 311, 49, 342, 82, 356, 112, 351, 144, 330, 159, 291, 165, 262, 143, 229, 128, 194, 135, 163, 171, 123, 203, 91, 217, 51, 218, 20, 205, 3, 187)
+
 [node name="RoundBoard" type="TextureRect" parent="."]
 layout_mode = 0
 offset_left = 1498.0
@@ -110,6 +131,22 @@ theme_override_font_sizes/font_size = 58
 text = "1"
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="ExitButton" type="TextureButton" parent="."]
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 14.0
+offset_top = -104.0
+offset_right = 118.0
+offset_bottom = -10.0
+grow_vertical = 0
+mouse_default_cursor_shape = 2
+focus_mode = 0
+texture_normal = ExtResource("15_exit_arrow")
+ignore_texture_size = true
+stretch_mode = 5
 
 [node name="PhoneOverlay" type="ColorRect" parent="."]
 visible = false

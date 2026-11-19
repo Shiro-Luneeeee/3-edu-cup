@@ -6,13 +6,40 @@ const NOTE_PATH := "res://images/ui/note.png"
 const BEDROOM_SCENE := "res://bedroom.tscn"
 const CATEGORIES := ["推荐", "学习", "娱乐", "其他"]
 const CATEGORY_ICONS := ["★", "▤", "♫", "···"]
+const PRODUCTS := [
+	{"name": "红色头绳", "description": "一抹鲜亮的红，系住今天的好心情。", "category": 3, "image": "res://images/shop_items/shop-red-hair-ribbon.png", "price": 30, "effects": {"emotional_intelligence": 2}},
+	{"name": "五千年高考三千年模拟", "description": "厚厚的题目，适合慢慢啃。", "category": 1, "image": "res://images/shop_items/shop-5000-years-gaokao-3000-years-mock.png", "price": 70, "effects": {"intelligence": 5}},
+	{"name": "飞鸟集", "description": "一册轻盈的诗，留给课余片刻。", "category": 2, "image": "res://images/shop_items/shop-stray-birds-book.png", "price": 45, "effects": {"emotional_intelligence": 3}},
+	{"name": "芝士小黄油拿铁", "description": "芝士奶香与黄油香交融的拿铁。", "category": 3, "image": "res://images/shop_items/shop-cheese-butter-latte.png", "price": 18, "repeatable": true, "effects": {"current_energy": 4}},
+	{"name": "糯米果味抹茶米酒", "description": "果香、抹茶与糯米米酒的奇妙组合。", "category": 3, "image": "res://images/shop_items/shop-fruity-matcha-rice-wine.png", "price": 25, "repeatable": true, "effects": {"current_energy": 2, "emotional_intelligence": 1}},
+	{"name": "五万年高考三万年模拟", "description": "比上一册更厚，翻开就是新挑战。", "category": 1, "image": "res://images/shop_items/shop-50000-years-gaokao-30000-years-mock.png", "price": 120, "effects": {"intelligence": 9}},
+	{"name": "未寄出的信", "description": "@稻叶粽子的作品集，写给未来，也留给此刻。\n\n# 若要由你来讨论爱的话，你会说什么？\n\n", "category": 2, "image": "res://images/shop_items/shop-unsent-letter-book.png", "price": 55, "effects": {"emotional_intelligence": 5}},
+	{"name": "Linux Debian 发行版", "description": "一套自由的操作系统，给好奇心留出折腾的空间。", "category": 1, "image": "res://images/shop_items/shop-debian-linux.png", "price": 80, "effects": {"intelligence": 4, "upgrade_points": 2}},
+	{"name": "神经网络可解释性从入门到入土", "description": "从一层层参数里，试着看懂机器为什么这样回答。", "category": 1, "image": "res://images/shop_items/shop-neural-network-interpretability-book.png", "price": 90, "effects": {"intelligence": 6}},
+	{"name": "茉莉雪芽铁观音", "description": "一袋带着茉莉花香的茶，热水一冲，慢慢回甘。", "category": 3, "image": "res://images/shop_items/shop-jasmine-tea.png", "price": 22, "repeatable": true, "effects": {"current_energy": 3}},
+	{"name": "多舛的生命", "description": "一本写给曲折人生的书，翻过低谷，也翻到新的页。", "category": 2, "image": "res://images/shop_items/shop-many-turns-of-life-book.png", "price": 55, "effects": {"emotional_intelligence": 4}},
+	{"name": "Telecaster 电吉他", "description": "数摇的灵魂，硬摇的内核", "category": 2, "image": "res://images/shop_items/shop-telecaster-guitar.png", "price": 240, "effects": {"physical_strength": 3, "emotional_intelligence": 4}},
+	{"name": "月之暗面", "description": "把夜色和月光收进唱片里，留给安静听歌的时刻。", "category": 2, "image": "res://images/shop_items/shop-dark-side-of-moon-album.png", "price": 85, "effects": {"emotional_intelligence": 3, "max_energy": 1}},
+	{"name": "和自己年纪一样大的老单反", "description": "一台与你同龄的老单反，用胶片慢慢记录今天。", "category": 2, "image": "res://images/shop_items/shop-old-slr-camera.png", "price": 160, "effects": {"intelligence": 2, "emotional_intelligence": 3}},
+]
 
 var board: TextureRect
 var page_layer: TextureRect
+var catalogue: Control
+var catalogue_scroll: ScrollContainer
+var list_layer: Control
+var preview_layer: Control
+var balance_label: Label
+var purchase_button: Button
+var purchase_message: Label
 var category_buttons: Array[TextureButton] = []
 var category_labels: Array[Label] = []
 var category_icons: Array[Label] = []
 var selected_index := 0
+var selected_product_index := -1
+var visible_products: Array[int] = []
+var product_buttons: Array[Button] = []
+var product_textures: Array[Texture2D] = []
 var layout_scale := 1.0
 var layout_origin := Vector2.ZERO
 
@@ -86,6 +113,10 @@ func _ready() -> void:
 	page_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	page_layer.z_index = 3
 	add_child(page_layer)
+	for product in PRODUCTS:
+		product_textures.append(load_png_texture(product["image"]))
+	create_catalogue()
+	PlayerState.changed.connect(update_purchase_display)
 
 	var back_button := Button.new()
 	back_button.name = "BackButton"
@@ -128,6 +159,9 @@ func update_layout() -> void:
 		category_icons[index].add_theme_font_size_override("font_size", maxi(1, roundi(25.0 * layout_scale)))
 	page_layer.position = layout_origin + Vector2(262.0, 45.0) * layout_scale
 	page_layer.size = Vector2(1396.0, 810.0) * layout_scale
+	if catalogue != null:
+		catalogue.position = layout_origin
+		catalogue.scale = Vector2.ONE * layout_scale
 	var back_button := get_node_or_null("BackButton") as Button
 	if back_button != null:
 		back_button.position = layout_origin + Vector2(1580.0, 48.0) * layout_scale
@@ -147,6 +181,183 @@ func select_category(index: int) -> void:
 		var tween := create_tween().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		tween.tween_property(button, "scale", target_scale, 0.16)
 		tween.parallel().tween_property(button, "modulate", target_modulate, 0.16)
+	refresh_catalogue()
+
+
+func create_catalogue() -> void:
+	catalogue = Control.new()
+	catalogue.name = "Catalogue"
+	catalogue.size = BOARD_SIZE
+	catalogue.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	catalogue.z_index = 4
+	add_child(catalogue)
+	catalogue.add_child(make_catalog_label("商品简介", Vector2(328, 100), Vector2(410, 46), 31, Color("624675")))
+	catalogue.add_child(make_catalog_label("商品一览", Vector2(860, 100), Vector2(500, 46), 31, Color("624675")))
+	balance_label = make_catalog_label("", Vector2(1350, 108), Vector2(220, 36), 22, Color("624675"))
+	balance_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	catalogue.add_child(balance_label)
+	var divider := ColorRect.new()
+	divider.position = Vector2(816, 135)
+	divider.size = Vector2(2, 650)
+	divider.color = Color("dec6d5")
+	divider.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	catalogue.add_child(divider)
+	catalogue_scroll = ScrollContainer.new()
+	catalogue_scroll.name = "ProductScroll"
+	catalogue_scroll.position = Vector2(850, 147)
+	catalogue_scroll.size = Vector2(720, 645)
+	catalogue_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	catalogue.add_child(catalogue_scroll)
+	list_layer = Control.new()
+	list_layer.custom_minimum_size = Vector2(700, 645)
+	list_layer.size = Vector2(700, 645)
+	list_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	catalogue_scroll.add_child(list_layer)
+	preview_layer = Control.new()
+	preview_layer.position = Vector2(320, 148)
+	preview_layer.size = Vector2(465, 640)
+	preview_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	catalogue.add_child(preview_layer)
+
+
+func refresh_catalogue() -> void:
+	if list_layer == null:
+		return
+	for child in list_layer.get_children():
+		list_layer.remove_child(child)
+		child.queue_free()
+	product_buttons.clear()
+	visible_products.clear()
+	for index in PRODUCTS.size():
+		if selected_index == 0 or PRODUCTS[index]["category"] == selected_index:
+			visible_products.append(index)
+	list_layer.custom_minimum_size = Vector2(700, maxi(645, ceili(visible_products.size() / 2.0) * 165))
+	list_layer.size = list_layer.custom_minimum_size
+	catalogue_scroll.scroll_vertical = 0
+	for row in visible_products.size():
+		var product_index := visible_products[row]
+		var product: Dictionary = PRODUCTS[product_index]
+		var button := Button.new()
+		button.name = "Product%d" % product_index
+		button.position = Vector2((row % 2) * 355, (row / 2) * 165)
+		button.size = Vector2(335, 150)
+		button.clip_contents = true
+		button.focus_mode = Control.FOCUS_NONE
+		button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		button.pressed.connect(select_product.bind(product_index))
+		list_layer.add_child(button)
+		product_buttons.append(button)
+		var icon := make_fitted_texture(product_textures[product_index], Rect2(13, 12, 124, 124))
+		button.add_child(icon)
+		var name_label := make_catalog_label(product["name"], Vector2(143, 31), Vector2(180, 90), 21, Color("604374"))
+		name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		button.add_child(name_label)
+		var price_label := make_catalog_label("%d 金" % product["price"], Vector2(148, 119), Vector2(160, 28), 17, Color("946b53"))
+		button.add_child(price_label)
+	if not visible_products.is_empty():
+		select_product(visible_products[0])
+
+
+func select_product(index: int) -> void:
+	selected_product_index = index
+	for row in product_buttons.size():
+		var button := product_buttons[row]
+		var selected := visible_products[row] == index
+		button.add_theme_stylebox_override("normal", make_row_style(selected))
+		button.add_theme_stylebox_override("hover", make_row_style(true))
+		button.add_theme_stylebox_override("pressed", make_row_style(true))
+	for child in preview_layer.get_children():
+		preview_layer.remove_child(child)
+		child.queue_free()
+	var product: Dictionary = PRODUCTS[index]
+	var image := make_fitted_texture(product_textures[index], Rect2(45, 14, 370, 285))
+	preview_layer.add_child(image)
+	var title := make_catalog_label(product["name"], Vector2(25, 307), Vector2(420, 70), 28, Color("604374"))
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	preview_layer.add_child(title)
+	var description := make_catalog_label(product["description"], Vector2(28, 390), Vector2(415, 123), 19, Color("8a7188"))
+	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	preview_layer.add_child(description)
+	var effect_label := make_catalog_label("效果：%s" % effect_text(product["effects"]), Vector2(28, 514), Vector2(420, 48), 20, Color("674b86"))
+	effect_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	preview_layer.add_child(effect_label)
+	var cost_label := make_catalog_label("花费：%d 金" % product["price"], Vector2(28, 573), Vector2(220, 36), 21, Color("946b53"))
+	preview_layer.add_child(cost_label)
+	purchase_message = make_catalog_label("", Vector2(28, 609), Vector2(250, 28), 16, Color("a65166"))
+	preview_layer.add_child(purchase_message)
+	purchase_button = Button.new()
+	purchase_button.text = "购买"
+	purchase_button.position = Vector2(284, 582)
+	purchase_button.size = Vector2(155, 50)
+	purchase_button.focus_mode = Control.FOCUS_NONE
+	purchase_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	purchase_button.add_theme_font_size_override("font_size", 22)
+	purchase_button.pressed.connect(buy_selected_product)
+	preview_layer.add_child(purchase_button)
+	update_purchase_display()
+
+
+func effect_text(effects: Dictionary) -> String:
+	var names := {"intelligence": "智商", "emotional_intelligence": "情商", "physical_strength": "体魄", "upgrade_points": "升级点", "max_energy": "精力上限", "current_energy": "精力"}
+	var parts: Array[String] = []
+	for key in names:
+		if effects.has(key):
+			parts.append("%s +%d" % [names[key], effects[key]])
+	return "、".join(parts)
+
+
+func update_purchase_display() -> void:
+	if balance_label == null or purchase_button == null or selected_product_index < 0:
+		return
+	balance_label.text = "余额：%d 金" % PlayerState.money
+	var product: Dictionary = PRODUCTS[selected_product_index]
+	var owned: bool = not product.get("repeatable", false) and PlayerState.owned_products.has(product["image"])
+	purchase_button.disabled = owned or PlayerState.money < product["price"]
+	purchase_button.text = "已拥有" if owned else ("金钱不足" if purchase_button.disabled else "购买")
+
+
+func buy_selected_product() -> void:
+	if selected_product_index < 0:
+		return
+	var product: Dictionary = PRODUCTS[selected_product_index]
+	if PlayerState.try_buy_product(product["image"], product["price"], product.get("repeatable", false), product["effects"]):
+		purchase_message.text = "购买成功，效果已生效"
+	else:
+		purchase_message.text = "无法购买"
+
+
+func make_fitted_texture(texture: Texture2D, box: Rect2) -> TextureRect:
+	var image := TextureRect.new()
+	image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	image.stretch_mode = TextureRect.STRETCH_SCALE
+	image.texture = texture
+	var texture_size := texture.get_size()
+	var fit_scale := minf(box.size.x / texture_size.x, box.size.y / texture_size.y)
+	image.size = texture_size * fit_scale
+	image.position = box.position + (box.size - image.size) * 0.5
+	image.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return image
+
+
+func make_catalog_label(value: String, at: Vector2, dimensions: Vector2, font_size: int, tint: Color) -> Label:
+	var label := Label.new()
+	label.text = value
+	label.position = at
+	label.size = dimensions
+	label.add_theme_font_size_override("font_size", font_size)
+	label.add_theme_color_override("font_color", tint)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return label
+
+
+func make_row_style(selected: bool) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.91, 0.82, 0.96, 0.58) if selected else Color(1, 1, 1, 0.24)
+	style.border_color = Color(0.68, 0.52, 0.73, 0.55) if selected else Color(0.79, 0.70, 0.79, 0.38)
+	style.set_border_width_all(2 if selected else 1)
+	style.set_corner_radius_all(11)
+	return style
 
 
 func _unhandled_input(event: InputEvent) -> void:

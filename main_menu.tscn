@@ -4,7 +4,7 @@
 [ext_resource type="Shader" uid="uid://bclcdu2vj21cb" path="res://menu_ripples.gdshader" id="2_shader"]
 [ext_resource type="Texture2D" uid="uid://c1tjsdn2j26ti" path="res://images/main_menu_background.png" id="3_background"]
 [ext_resource type="AudioStream" uid="uid://c4rtxwcn0t0fh" path="res://audio/music/Mateus Asato - Kyoto’s Jam.mp3" id="4_music"]
-[ext_resource type="Texture2D" uid="uid://c2lyyikhaqxh1" path="res://images/ui/title.png" id="5_title"]
+[ext_resource type="Texture2D" path="res://images/ui/summer_title.png" id="5_title"]
 [ext_resource type="Texture2D" uid="uid://c5k1nfkt5688b" path="res://images/ui/gallary.png" id="6_gallary"]
 [ext_resource type="Texture2D" uid="uid://bg283kfb6dvkw" path="res://images/ui/continue.png" id="7_continue"]
 [ext_resource type="Texture2D" uid="uid://trj60yn6i4sx" path="res://images/ui/new_game.png" id="8_new_game"]
@@ -32,6 +32,11 @@ shader_parameter/glow_pink = Color(0.992, 0.71, 0.784, 1)
 shader_parameter/glow_green = Color(0.788, 0.886, 0.376, 1)
 shader_parameter/glow_yellow = Color(0.992, 0.898, 0.267, 1)
 shader_parameter/color_flow_speed = 0.055
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_title"]
+shader = ExtResource("10_ink_weight")
+shader_parameter/breath_scale = 0.012
+shader_parameter/breath_rise = 0.01
 
 [node name="MainMenu" type="Control" unique_id=1817041366]
 layout_mode = 3
@@ -81,6 +86,7 @@ stream = ExtResource("4_music")
 volume_db = -8.0
 
 [node name="GameTitle" type="TextureRect" parent="." unique_id=1964484770]
+material = SubResource("ShaderMaterial_title")
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.12
@@ -106,6 +112,7 @@ grow_vertical = 2
 theme_override_constants/separation = 6
 
 [node name="ContinueButton" type="TextureButton" parent="MenuColumn" unique_id=656227289]
+visible = false
 material = SubResource("ShaderMaterial_menu_ink_weight")
 custom_minimum_size = Vector2(0, 78)
 layout_mode = 2
