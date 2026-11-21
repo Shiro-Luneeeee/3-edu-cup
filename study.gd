@@ -1,7 +1,7 @@
 extends ColorRect
 
 const SUBJECT_NAMES := ["语文", "数学", "英语"]
-const SUBJECT_REWARDS := ["情商", "智力", "升级点"]
+const SUBJECT_REWARDS := ["情商经验", "智商经验", "升级点"]
 
 @onready var board: TextureRect = $StudyBoard
 @onready var close_button: Button = $StudyBoard/CloseButton
@@ -80,7 +80,7 @@ func update_action_availability() -> void:
 	confirm_button.disabled = not can_act
 	confirm_button.modulate = Color.WHITE if can_act else Color("aaa1ae")
 	var prefix := "精力" if can_act else "精力不足"
-	energy_cost_label.text = "%s %d/%d   ·   消耗 %d" % [prefix, energy, PlayerState.max_energy, cost]
+	energy_cost_label.text = "%s %s   ·   消耗 %d" % [prefix, PlayerState.energy_text(), cost]
 	energy_cost_label.add_theme_color_override("font_color", Color("594375") if can_act else Color("963e51"))
 
 

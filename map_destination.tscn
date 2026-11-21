@@ -1,6 +1,7 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://map_destination.gd" id="1_destination"]
+[ext_resource type="PackedScene" path="res://player_hud.tscn" id="2_hud"]
 
 [node name="MapDestination" type="ColorRect"]
 layout_mode = 3
@@ -22,3 +23,6 @@ grow_vertical = 2
 mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
+
+[node name="PlayerHud" parent="." instance=ExtResource("2_hud")]
+layout_mode = 1

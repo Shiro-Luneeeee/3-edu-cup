@@ -1,28 +1,46 @@
 extends Node2D
 
+signal card_choice_made(choice: int)
+
 const LOBBY_SCENE := "res://lobby.tscn"
 const BEDROOM_SCENE := "res://bedroom.tscn"
+const DRAFT_SCENE := "res://deck_draft.tscn"
+const CardCatalog := preload("res://card_catalog.gd")
+const CardFace := preload("res://card_face.gd")
+const MatchRewards := preload("res://match_rewards.gd")
+const MATCH_REWARDS_SCENE := preload("res://match_rewards.tscn")
 const MATCH_MUSIC_NAME := "MatchTransitionMusic"
 const STARTING_HAND_SIZE := 5
 const FINAL_TURN := 5
 const TURN_DRAW_COUNT := 2
 const STARTING_ENERGY := 3
-const MAX_HEALTH := 20
 const MAX_PROGRESS := 100
 const HEALTH_TRACK_IN_TEXTURE := Rect2(237.0, 291.0, 1794.0, 155.0)
 const PROGRESS_TRACK_IN_TEXTURE := Rect2(390.0, 333.0, 1548.0, 129.0)
 const MAX_HAND_SIZE := 9
-const CARD_COSTS := [0, 0, 0, 1, 1, 1, 2, 2, 2, 3]
 const CARD_SIZE := Vector2(142, 199)
 const SLOT_POSITIONS := [Vector2(183, 334), Vector2(369, 334), Vector2(510, 334), Vector2(658, 334), Vector2(800, 334)]
 const SLOT_SIZES := [Vector2(172, 180), Vector2(130, 180), Vector2(132, 180), Vector2(142, 180), Vector2(170, 180)]
 # The first slot's hit area extends left of the printed border.
 const SLOT_CORNER_OFFSETS := [Vector2(44, 0), Vector2(0, 0), Vector2(0, 0), Vector2(0, 0), Vector2(0, 0)]
 
-var deck: Array = []
-var hand: Array = []
+class DelayedPlay:
+	var card_id: int
+	var slot: Control
+	var multiplier: float
+
+	func _init(id: int, origin: Control, effect_multiplier: float) -> void:
+		card_id = id
+		slot = origin
+		multiplier = effect_multiplier
+
+var deck: Array[int] = []
+var discard_pile: Array[int] = []
+var hand: Array[int] = []
+var delayed_plays: Array[DelayedPlay] = []
 var energy := STARTING_ENERGY
-var health: float = MAX_HEALTH
+var max_health := PlayerState.max_health
+var health := float(max_health)
 var progress := 0.0
 var block := 0.0
 var turn := 1
@@ -31,20 +49,20 @@ var card_preview: Control
 var slot_layer: Control
 var selected_card: Control
 var deck_choice_overlay: Control
-var deck_choice_resolving := false
+var card_effect_resolving := false
 var resolving_attack := false
 var showing_turn_banner := false
 var game_over := false
 var match_settled := false
+var match_rewards: MatchRewards
 var end_button_tween: Tween
-var pending_effect_draws: Array[int] = []
 var health_fill: Panel
 var block_fill: Panel
 var health_track_width: float
-var displayed_health: float = MAX_HEALTH
+var displayed_health := float(max_health)
 var displayed_block := 0.0
 var health_display_tween: Tween
-var health_display_target: float = MAX_HEALTH
+var health_display_target := float(max_health)
 var block_display_target := 0.0
 var progress_fill: Panel
 var progress_fill_tween: Tween
@@ -63,13 +81,6 @@ var last_j_trigger_msec := -1000
 @onready var turn_value_label: Label = $HudLayer/UI/TurnValueLabel
 @onready var end_button: Button = $HudLayer/UI/end
 
-var card_textures: Array[Texture2D] = [
-	preload("res://images/card/0.png"), preload("res://images/card/1.png"),
-	preload("res://images/card/2.png"), preload("res://images/card/3.png"),
-	preload("res://images/card/4.png"), preload("res://images/card/5.png"),
-	preload("res://images/card/6.png"), preload("res://images/card/7.png"),
-	preload("res://images/card/8.png"), preload("res://images/card/9.png")
-]
 var health_texture := preload("res://images/金色月桂叶游戏生命条.png")
 var progress_texture := preload("res://images/米色网格便签进度条界面.png")
 var energy_texture := preload("res://images/复古纸张能量徽章图标.png")
@@ -80,6 +91,9 @@ var attack_textures: Array[Texture2D] = [
 ]
 
 func _ready() -> void:
+	if not PlayerState.has_starter_deck():
+		get_tree().change_scene_to_file.call_deferred(DRAFT_SCENE)
+		return
 	if get_tree().root.get_node_or_null(MATCH_MUSIC_NAME) == null:
 		var music_stream := match_music.stream.duplicate() as AudioStreamMP3
 		music_stream.loop = true
@@ -114,7 +128,7 @@ func _exit_tree() -> void:
 		transition_music.queue_free()
 
 func _unhandled_key_input(event: InputEvent) -> void:
-	if game_over or deck_choice_overlay != null or deck_choice_resolving or resolving_attack or showing_turn_banner:
+	if game_over or card_effect_resolving or resolving_attack or showing_turn_banner:
 		get_viewport().set_input_as_handled()
 		return
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_SPACE:
@@ -151,7 +165,7 @@ func _input(event: InputEvent) -> void:
 		cancel_selected_card()
 
 func end_turn() -> void:
-	if game_over or resolving_attack or showing_turn_banner:
+	if game_over or card_effect_resolving or resolving_attack or showing_turn_banner:
 		return
 	if turn >= FINAL_TURN:
 		settle_game(true)
@@ -170,15 +184,10 @@ func end_turn() -> void:
 	await show_turn_banner()
 	if game_over:
 		return
-	for draw_index in TURN_DRAW_COUNT:
-		if deck.is_empty():
-			break
-		draw_card_at_turn_start()
-		await get_tree().create_timer(0.6).timeout
-		if game_over:
-			return
+	var finish_after_start := await resolve_delayed_plays()
 	if game_over:
 		return
+	await draw_cards(TURN_DRAW_COUNT)
 	await resolve_attack(randi_range(0, attack_textures.size() - 1))
 	if game_over:
 		return
@@ -189,6 +198,8 @@ func end_turn() -> void:
 	if health_display_tween and health_display_tween.is_running():
 		await health_display_tween.finished
 	resolving_attack = false
+	if finish_after_start:
+		end_turn.call_deferred()
 
 func show_turn_banner() -> void:
 	showing_turn_banner = true
@@ -259,11 +270,13 @@ func resolve_attack(attack_id: int) -> void:
 func discard_random_hand_card() -> void:
 	if hand.is_empty():
 		return
-	var index := randi_range(0, hand.size() - 1)
+	discard_hand_card(randi_range(0, hand.size() - 1))
+
+func discard_hand_card(index: int, animate_layout: bool = true) -> void:
 	var card: Control = hand_holder.get_child(index)
 	if card_preview.visible:
 		card_preview.hide()
-	hand.remove_at(index)
+	discard_pile.append(hand.pop_at(index))
 	card.get_node("HoverArea").mouse_filter = Control.MOUSE_FILTER_IGNORE
 	card.reparent(ui, true)
 	card.z_index = 45
@@ -273,6 +286,8 @@ func discard_random_hand_card() -> void:
 	discard_tween.tween_property(card, "scale", Vector2(0.55, 0.55), 0.6)
 	discard_tween.tween_property(card, "modulate:a", 0.0, 0.6).set_delay(0.12)
 	discard_tween.chain().tween_callback(card.queue_free)
+	if not animate_layout:
+		return
 	for card_index in hand_holder.get_child_count():
 		var remaining: Control = hand_holder.get_child(card_index)
 		remaining.set_meta("hand_index", card_index)
@@ -281,11 +296,23 @@ func discard_random_hand_card() -> void:
 		layout_tween.tween_property(remaining, "position", get_fan_position(card_index, hand.size()), 0.35).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 		layout_tween.tween_property(remaining, "rotation", get_fan_rotation(card_index, hand.size()), 0.35).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 
-func draw_card_at_turn_start() -> void:
+func refill_draw_pile() -> bool:
 	if deck.is_empty():
-		return
-	var drawn_card_id: int = deck.pop_back()
+		deck.assign(discard_pile)
+		discard_pile.clear()
+		deck.shuffle()
+	return not deck.is_empty()
+
+func draw_cards(amount: int) -> void:
+	for draw_index in amount:
+		if not refill_draw_pile():
+			return
+		give_drawn_card(deck.pop_back())
+		await get_tree().create_timer(0.6).timeout
+
+func give_drawn_card(drawn_card_id: int) -> void:
 	if hand.size() >= MAX_HAND_SIZE:
+		discard_pile.append(drawn_card_id)
 		animate_discarded_draw(drawn_card_id)
 		return
 	add_card_to_hand(drawn_card_id, true)
@@ -365,20 +392,19 @@ func is_slot_blocked(slot: Control) -> bool:
 func can_use_slot(slot: Control) -> bool:
 	if bool(slot.get_meta("used")):
 		return false
-	if selected_card != null and int(selected_card.get_meta("card_id")) == 8:
+	if selected_card != null and PlayerState.card_base_id(int(selected_card.get_meta("card_id"))) == 8:
 		return is_slot_blocked(slot)
 	return not is_slot_blocked(slot)
 
 func build_deck() -> void:
-	deck.clear()
-	for copy_index in 3:
-		for card_id in 10:
-			deck.append(card_id)
+	deck.assign(PlayerState.card_deck)
 	deck.shuffle()
 
 func draw_starting_hand() -> void:
 	hand.clear()
 	for card_index in STARTING_HAND_SIZE:
+		if not refill_draw_pile():
+			break
 		hand.append(deck.pop_back())
 
 func build_interface() -> void:
@@ -488,7 +514,6 @@ func create_hand_ui(parent: Control) -> void:
 		card.set_meta("hand_index", card_index)
 		card.set_meta("card_id", hand[card_index])
 		card.z_index = card_index
-		var hover_area: Control = card.get_node("HoverArea")
 		connect_card_interaction(card)
 		hand_holder.add_child(card)
 
@@ -522,9 +547,9 @@ func create_card(card_id: int) -> Control:
 	card_root.pivot_offset = CARD_SIZE / 2.0
 	card_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
-	var art := TextureRect.new()
+	var art := CardFace.new()
 	art.name = "CardArt"
-	art.texture = card_textures[card_id]
+	art.set_card(card_id)
 	art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	art.stretch_mode = TextureRect.STRETCH_SCALE
 	art.size = CARD_SIZE
@@ -555,6 +580,7 @@ func create_card_slots(parent: Control) -> void:
 		slot.set_meta("blocked", false)
 		slot.set_meta("blocked_until", 0)
 		slot.set_meta("reinforced_until", 0)
+		slot.set_meta("delayed_until", 0)
 		slot.set_meta("used", false)
 		slot.gui_input.connect(use_selected_card.bind(slot))
 		slot_layer.add_child(slot)
@@ -594,6 +620,20 @@ func create_card_slots(parent: Control) -> void:
 		raise_icon.hide()
 		slot.add_child(raise_icon)
 
+		var delay_mark := Label.new()
+		delay_mark.name = "DelayMark"
+		delay_mark.text = "延迟"
+		delay_mark.position = Vector2(slot.size.x - 51.0, -22.0)
+		delay_mark.size = Vector2(52.0, 29.0)
+		delay_mark.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		delay_mark.add_theme_font_size_override("font_size", 21)
+		delay_mark.add_theme_color_override("font_color", Color("f0d7ff"))
+		delay_mark.add_theme_color_override("font_outline_color", Color("4b2d6d"))
+		delay_mark.add_theme_constant_override("outline_size", 5)
+		delay_mark.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		delay_mark.hide()
+		slot.add_child(delay_mark)
+
 func create_raise_tooltip(parent: Control) -> void:
 	raise_tooltip = Panel.new()
 	raise_tooltip.size = Vector2(274, 82)
@@ -609,7 +649,7 @@ func create_raise_tooltip(parent: Control) -> void:
 	var description := Label.new()
 	description.position = Vector2(11, 9)
 	description.size = Vector2(252, 65)
-	description.text = "强化：此槽卡牌数值效果 ×1.5\n持续两回合"
+	description.name = "Description"
 	description.add_theme_font_size_override("font_size", 17)
 	description.add_theme_color_override("font_color", Color.WHITE)
 	description.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -619,6 +659,8 @@ func create_raise_tooltip(parent: Control) -> void:
 func show_raise_tooltip(icon: TextureRect) -> void:
 	if raise_tooltip == null or not icon.visible:
 		return
+	var remaining := int(icon.get_parent().get_meta("reinforced_until")) - turn + 1
+	raise_tooltip.get_node("Description").text = "强化：此槽卡牌数值效果 ×1.5\n剩余 %d 回合" % remaining
 	raise_tooltip.position = icon.global_position - ui.global_position + Vector2(56, -88)
 	raise_tooltip.show()
 
@@ -641,11 +683,12 @@ void fragment() {
 	return material
 
 func select_card_from_hand(event: InputEvent, card: Control) -> void:
-	if game_over or showing_turn_banner or resolving_attack or deck_choice_resolving or selected_card != null or not (event is InputEventMouseButton):
+	if game_over or showing_turn_banner or resolving_attack or card_effect_resolving or selected_card != null or not (event is InputEventMouseButton):
 		return
 	if event.button_index != MOUSE_BUTTON_LEFT or not event.pressed:
 		return
-	if energy < CARD_COSTS[int(card.get_meta("card_id"))]:
+	var card_id: int = card.get_meta("card_id")
+	if energy < PlayerState.card_cost(card_id):
 		return
 	selected_card = card
 	if not has_usable_slot():
@@ -675,6 +718,8 @@ func reset_used_slots() -> void:
 		slot.set_meta("used", false)
 		if not is_slot_blocked(slot):
 			slot.get_node("BlockMark").hide()
+		if int(slot.get_meta("delayed_until")) < turn:
+			slot.get_node("DelayMark").hide()
 		if int(slot.get_meta("reinforced_until")) > 0 and int(slot.get_meta("reinforced_until")) < turn:
 			slot.set_meta("reinforced_until", 0)
 			animate_raise_expiry(slot)
@@ -682,12 +727,63 @@ func reset_used_slots() -> void:
 
 func animate_raise_expiry(slot: Control) -> void:
 	var icon: TextureRect = slot.get_node("RaiseIcon")
+	stop_slot_status_animation(slot, icon)
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var tween := create_tween().set_parallel(true)
-	slot.set_meta("raise_expiry_tween", tween)
+	var tween := icon.create_tween().set_parallel(true)
+	icon.set_meta("status_tween", tween)
 	tween.tween_property(icon, "modulate:a", 0.0, 0.55).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	tween.tween_property(icon, "scale", Vector2(1.35, 1.35), 0.55).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tween.chain().tween_callback(icon.hide)
+
+func stop_slot_status_animation(slot: Control, marker: Control) -> void:
+	if marker.has_meta("status_tween"):
+		var tween: Tween = marker.get_meta("status_tween")
+		tween.kill()
+		marker.remove_meta("status_tween")
+	var pulse := slot.get_node_or_null(NodePath("%sPulse" % marker.name))
+	if pulse != null:
+		slot.remove_child(pulse)
+		pulse.queue_free()
+
+func animate_slot_status(slot: Control, marker: Control, color: Color, pulse_count: int = 1) -> void:
+	stop_slot_status_animation(slot, marker)
+	marker.pivot_offset = marker.size * 0.5
+	marker.modulate.a = 1.0
+	marker.scale = Vector2.ONE * 1.4
+	marker.show()
+
+	var pulse := Control.new()
+	pulse.name = "%sPulse" % marker.name
+	pulse.position = slot.size * 0.5
+	pulse.z_index = 15
+	pulse.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	slot.add_child(pulse)
+
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(color, 0.12)
+	style.border_color = color.lightened(0.2)
+	style.shadow_color = Color(color, 0.55)
+	style.shadow_size = 8
+	style.set_border_width_all(3)
+	style.set_corner_radius_all(80)
+
+	var tween := marker.create_tween().set_parallel(true)
+	marker.set_meta("status_tween", tween)
+	tween.tween_property(marker, "scale", Vector2.ONE, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	for pulse_index in pulse_count:
+		var ring := Panel.new()
+		ring.size = Vector2.ONE * minf(slot.size.x, slot.size.y) * 0.72
+		ring.pivot_offset = ring.size * 0.5
+		ring.position = -ring.pivot_offset
+		ring.scale = Vector2.ONE * 0.42
+		ring.modulate.a = 0.0
+		ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		ring.add_theme_stylebox_override("panel", style)
+		pulse.add_child(ring)
+		var delay := pulse_index * 0.13
+		tween.tween_property(ring, "scale", Vector2.ONE * 1.42, 0.40).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT).set_delay(delay)
+		tween.tween_property(ring, "modulate:a", 0.0, 0.40).from(1.0).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN).set_delay(delay)
+	tween.finished.connect(pulse.queue_free)
 
 func return_hand_to_player() -> void:
 	hand_move_tween = create_tween()
@@ -725,7 +821,7 @@ func set_slots_selectable(enabled: bool) -> void:
 			glow.hide()
 
 func use_selected_card(event: InputEvent, slot: Control) -> void:
-	if game_over or selected_card == null or not (event is InputEventMouseButton):
+	if game_over or card_effect_resolving or resolving_attack or selected_card == null or not (event is InputEventMouseButton):
 		return
 	if event.button_index != MOUSE_BUTTON_LEFT or not event.pressed:
 		return
@@ -734,70 +830,138 @@ func use_selected_card(event: InputEvent, slot: Control) -> void:
 
 	var used_card := selected_card
 	var card_id: int = used_card.get_meta("card_id")
-	energy -= CARD_COSTS[card_id]
+	var multiplier := 1.5 if int(slot.get_meta("reinforced_until")) >= turn else 1.0
+	var is_delayed := int(slot.get_meta("delayed_until")) >= turn
+	card_effect_resolving = true
+	energy -= PlayerState.card_cost(card_id)
 	hand.remove_at(int(used_card.get_meta("hand_index")))
-	hand_holder.remove_child(used_card)
-	used_card.queue_free()
 	slot.set_meta("used", true)
 	selected_card = null
-	apply_card_effect(card_id, slot)
 	set_slots_selectable(false)
-	if game_over:
-		return
+	if is_delayed:
+		delayed_plays.append(DelayedPlay.new(card_id, slot, multiplier))
+	update_values()
+	await animate_card_play(used_card, slot)
 	rearrange_remaining_hand()
 	await return_hand_to_player()
-	if game_over:
-		return
-	for drawn_card_id in pending_effect_draws:
-		if hand.size() >= MAX_HAND_SIZE:
-			animate_discarded_draw(drawn_card_id)
-		else:
-			add_card_to_hand(drawn_card_id, true)
-	pending_effect_draws.clear()
-	if card_id == 7:
-		if deck.is_empty():
-			end_turn()
-		else:
-			show_deck_choice()
+	var finish_turn := false
+	if not is_delayed:
+		finish_turn = await resolve_play(card_id, slot, multiplier, 1)
+	card_effect_resolving = false
+	if finish_turn and not game_over:
+		end_turn()
 
-func apply_card_effect(card_id: int, slot: Control) -> void:
-	var multiplier := 1.5 if int(slot.get_meta("reinforced_until")) >= turn else 1.0
-	match card_id:
+func animate_card_play(card: Control, slot: Control) -> void:
+	# The hand is hidden during slot selection. Launch from its visible resting position.
+	var start := hand_home_position + card.position
+	var center := slot.global_position - ui.global_position + slot.size * 0.5
+	var destination := center - card.pivot_offset
+	var landing_scale := minf(slot.size.x / card.size.x, slot.size.y / card.size.y) * 0.88
+	card.reparent(ui, false)
+	card.position = start
+	card.z_index = 25
+	card.modulate.a = 0.0
+	card.get_node("HoverArea").mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	var flight := create_tween().set_parallel(true).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	flight.tween_method(func(weight: float) -> void:
+		card.position = start.lerp(destination, weight) + Vector2.UP * sin(weight * PI) * 44.0
+	, 0.0, 1.0, 0.28)
+	flight.tween_property(card, "rotation", 0.0, 0.28)
+	flight.tween_property(card, "scale", Vector2.ONE * landing_scale, 0.28)
+	flight.tween_property(card, "modulate:a", 1.0, 0.08)
+	await flight.finished
+
+	var impact := Panel.new()
+	impact.name = "CardPlayImpact"
+	impact.size = card.size * landing_scale + Vector2(16.0, 16.0)
+	impact.pivot_offset = impact.size * 0.5
+	impact.position = center - impact.pivot_offset
+	impact.scale = Vector2.ONE * 0.88
+	impact.z_index = 24
+	impact.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(1.0, 0.82, 0.47, 0.20)
+	style.border_color = Color("ffe5a6")
+	style.shadow_color = Color(1.0, 0.70, 0.28, 0.58)
+	style.shadow_size = 12
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(12)
+	impact.add_theme_stylebox_override("panel", style)
+	ui.add_child(impact)
+
+	var settle := create_tween().set_parallel(true).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	settle.tween_property(impact, "scale", Vector2.ONE * 1.24, 0.26)
+	settle.tween_property(impact, "modulate:a", 0.0, 0.22).set_delay(0.04)
+	settle.tween_property(card, "scale", Vector2.ONE * landing_scale * 0.9, 0.16).set_delay(0.08)
+	settle.tween_property(card, "modulate:a", 0.0, 0.16).set_delay(0.08)
+	settle.chain().tween_callback(card.queue_free)
+	settle.tween_callback(impact.queue_free)
+
+func resolve_delayed_plays() -> bool:
+	var due_plays := delayed_plays.duplicate()
+	delayed_plays.clear()
+	var finish_turn := false
+	for play in due_plays:
+		if game_over:
+			break
+		var ends_turn := await resolve_play(play.card_id, play.slot, play.multiplier, 2)
+		finish_turn = finish_turn or ends_turn
+	return finish_turn
+
+func resolve_play(card_id: int, slot: Control, multiplier: float, repetitions: int) -> bool:
+	var finish_turn := false
+	for repetition in repetitions:
+		var ends_turn := await apply_card_effect(card_id, slot, multiplier)
+		finish_turn = finish_turn or ends_turn
+		if game_over:
+			break
+	if not CardCatalog.exhausts_on_play(PlayerState.card_base_id(card_id)):
+		discard_pile.append(card_id)
+	return finish_turn
+
+func apply_card_effect(card_id: int, slot: Control, multiplier: float) -> bool:
+	var values := PlayerState.card_numbers(card_id)
+	match PlayerState.card_base_id(card_id):
 		0:
-			if not deck.is_empty():
-				pending_effect_draws.append(deck.pop_back())
+			await draw_cards(roundi(int(values["draw"]) * multiplier))
 		1:
-			progress += 3 * multiplier
+			progress += int(values["progress"]) * multiplier
 		2:
-			block += 3 * multiplier
+			block += int(values["block"]) * multiplier
 		3:
-			progress += 6 * multiplier
+			progress += int(values["progress"]) * multiplier
 		4:
-			health = minf(MAX_HEALTH, health + 4 * multiplier)
-			block += 3 * multiplier
+			health = minf(max_health, health + int(values["heal"]) * multiplier)
+			block += int(values["block"]) * multiplier
 		5:
-			slot.set_meta("reinforced_until", turn + 1)
+			slot.set_meta("reinforced_until", turn + int(values["duration"]) - 1)
 			var icon: TextureRect = slot.get_node("RaiseIcon")
-			if slot.has_meta("raise_expiry_tween"):
-				var expiry_tween: Tween = slot.get_meta("raise_expiry_tween")
-				if is_instance_valid(expiry_tween):
-					expiry_tween.kill()
-			icon.modulate.a = 1.0
-			icon.scale = Vector2.ONE
 			icon.mouse_filter = Control.MOUSE_FILTER_PASS
-			icon.show()
+			animate_slot_status(slot, icon, Color("dda334"))
 		6:
-			consume_health(4 * multiplier)
+			var health_change := int(values["health_change"]) * multiplier
+			if health_change < 0.0:
+				consume_health(-health_change)
+			else:
+				health = minf(max_health, health + health_change)
 			if not game_over:
-				progress += 24 * multiplier
+				progress += int(values["progress"]) * multiplier
 		7:
-			progress += 13 * multiplier
+			progress += int(values["progress"]) * multiplier
+			update_values()
+			for pick in int(values["pick"]):
+				if not refill_draw_pile():
+					break
+				var chosen := await request_card_choice(deck, false)
+				deck.erase(chosen)
+				give_drawn_card(chosen)
+				await get_tree().create_timer(0.6).timeout
+			return true
 		8:
-			slot.set_meta("blocked", false)
-			slot.set_meta("blocked_until", 0)
-			slot.get_node("BlockMark").hide()
-			health = minf(MAX_HEALTH, health + 4 * multiplier)
-			block += 3 * multiplier
+			unblock_slot(slot)
+			health = minf(max_health, health + int(values["heal"]) * multiplier)
+			block += int(values["block"]) * multiplier
 		9:
 			var targets: Array[Control] = []
 			for target: Control in slot_layer.get_children():
@@ -805,10 +969,68 @@ func apply_card_effect(card_id: int, slot: Control) -> void:
 					targets.append(target)
 			if not targets.is_empty():
 				var target: Control = targets.pick_random()
-				target.set_meta("blocked_until", turn + 1)
-				target.get_node("BlockMark").show()
-			progress += 36 * multiplier
+				target.set_meta("blocked_until", turn + int(values["duration"]) - 1)
+				animate_slot_status(target, target.get_node("BlockMark"), Color("da625b"))
+			progress += int(values["progress"]) * multiplier
+		10:
+			health = minf(max_health, health + int(values["heal"]) * multiplier)
+		11:
+			progress += int(values["progress"]) * multiplier
+		12:
+			var requested := int(values["discard"])
+			if hand.size() >= requested:
+				await choose_and_discard_cards(requested)
+				await draw_cards(roundi(int(values["draw"]) * multiplier))
+		13:
+			progress += int(values["progress"]) * multiplier
+			update_values()
+			await draw_cards(roundi(int(values["draw"]) * multiplier))
+			await choose_and_discard_cards(int(values["discard"]))
+		14:
+			slot.set_meta("delayed_until", turn + int(values["duration"]) - 1)
+			animate_slot_status(slot, slot.get_node("DelayMark"), Color("9c61e6"), 2)
+		15:
+			health = minf(max_health, health + int(values["heal"]) * multiplier)
+			update_values()
+			await draw_cards(roundi(int(values["draw"]) * multiplier))
+		16:
+			progress += int(values["progress"]) * multiplier
+			block += int(values["block"]) * multiplier
+			update_values()
+			await draw_cards(roundi(int(values["draw"]) * multiplier))
+		17:
+			for target: Control in slot_layer.get_children():
+				if is_slot_blocked(target):
+					block += int(values["block"]) * multiplier
+					unblock_slot(target)
+		18:
+			progress += int(values["progress"]) * multiplier
+			update_values()
+			await draw_cards(roundi(int(values["draw"]) * multiplier))
+		19:
+			health = minf(max_health, int(values["health_set"]))
+		20:
+			if not hand.is_empty():
+				while not hand.is_empty():
+					discard_hand_card(hand.size() - 1, false)
+				await get_tree().create_timer(0.55).timeout
+			await draw_cards(roundi(int(values["draw"]) * multiplier))
 	update_values()
+	return false
+
+func choose_and_discard_cards(amount: int) -> void:
+	for pick in mini(amount, hand.size()):
+		var index := await request_card_choice(hand, true)
+		discard_hand_card(index)
+		await get_tree().create_timer(0.4).timeout
+
+func unblock_slot(slot: Control) -> void:
+	slot.set_meta("blocked", false)
+	slot.set_meta("blocked_until", 0)
+	var marker: Label = slot.get_node("BlockMark")
+	stop_slot_status_animation(slot, marker)
+	marker.scale = Vector2.ONE
+	marker.hide()
 
 func consume_health(amount: float) -> void:
 	var absorbed := minf(block, maxf(amount, 0.0))
@@ -845,7 +1067,7 @@ func show_game_over() -> void:
 	overlay.add_child(restart)
 
 func finish_game() -> void:
-	if resolving_attack or showing_turn_banner or deck_choice_resolving:
+	if resolving_attack or showing_turn_banner or card_effect_resolving:
 		return
 	settle_game(false)
 
@@ -854,7 +1076,6 @@ func settle_game(automatic: bool) -> void:
 		return
 	game_over = true
 	match_settled = true
-	PlayerState.advance_round()
 	set_slots_selectable(false)
 	if card_preview != null:
 		card_preview.hide()
@@ -866,32 +1087,19 @@ func settle_game(automatic: bool) -> void:
 		end_button_tween.tween_property(end_button, "scale", Vector2.ONE, 0.12).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		await end_button_tween.finished
 	end_button.hide()
-	var overlay := ColorRect.new()
-	overlay.name = "ResultOverlay"
-	overlay.color = Color(0.04, 0.03, 0.05, 0.9)
-	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	overlay.z_index = 100
-	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-	ui.add_child(overlay)
-	var result := Label.new()
-	result.text = "结算完成\n进度：%s\n心态：%s\n回合数：%d\n精力已回满" % [format_value(progress), str(int(health)), turn]
-	result.size = Vector2(500, 220)
-	result.position = (ui.size - result.size) / 2.0 + Vector2(0, -45)
-	result.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	result.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	result.add_theme_font_size_override("font_size", 34)
-	overlay.add_child(result)
-	var continue_button := Button.new()
-	continue_button.name = "NextRoundButton"
-	continue_button.text = "进入下一轮"
-	continue_button.size = Vector2(210, 54)
-	continue_button.position = (ui.size - continue_button.size) / 2.0 + Vector2(0, 130)
-	continue_button.add_theme_font_size_override("font_size", 24)
-	continue_button.pressed.connect(enter_next_round)
-	overlay.add_child(continue_button)
+	match_rewards = MATCH_REWARDS_SCENE.instantiate() as MatchRewards
+	match_rewards.summary = "进度 %s / %d    ·    心态 %s    ·    回合 %d    ·    下一轮回满精力" % [
+		format_value(progress), MAX_PROGRESS, format_value(health), turn,
+	]
+	match_rewards.continue_requested.connect(enter_next_round)
+	ui.add_child(match_rewards)
 
 func enter_next_round() -> void:
-	SceneFade.change_to(BEDROOM_SCENE, -1.0)
+	if not is_instance_valid(match_rewards) or not match_rewards.reward_claimed or SceneFade.curtain.visible:
+		return
+	PlayerState.advance_round()
+	PlayerState.apply_next_round_energy_bonus()
+	SceneFade.change_to(BEDROOM_SCENE, -1.0, PlayerState.round_number)
 
 func set_end_button_hover(hovered: bool) -> void:
 	if game_over or not end_button.visible:
@@ -949,25 +1157,23 @@ func set_displayed_block(value: float) -> void:
 
 func refresh_health_display() -> void:
 	health_value_label.text = health_text()
-	health_fill.size.x = health_track_width * clampf(displayed_health / MAX_HEALTH, 0.0, 1.0)
-	block_fill.size.x = health_track_width * clampf(displayed_block / MAX_HEALTH, 0.0, 1.0)
+	health_fill.size.x = health_track_width * clampf(displayed_health / max_health, 0.0, 1.0)
+	block_fill.size.x = health_track_width * clampf(displayed_block / max_health, 0.0, 1.0)
 
 func health_text() -> String:
 	var current := str(int(displayed_health))
 	if displayed_block >= 0.25:
 		current += "+" + format_value(displayed_block)
-	return "%s/%d" % [current, MAX_HEALTH]
+	return "%s/%d" % [current, max_health]
 
 func format_value(value: float) -> String:
 	if is_equal_approx(value, roundf(value)):
 		return str(int(roundf(value)))
 	return str(snappedf(value, 0.5))
 
-func show_deck_choice() -> void:
-	if deck.is_empty():
-		return
+func request_card_choice(cards: Array[int], from_hand: bool) -> int:
 	deck_choice_overlay = Control.new()
-	deck_choice_overlay.name = "DeckChoiceOverlay"
+	deck_choice_overlay.name = "HandDiscardOverlay" if from_hand else "DeckChoiceOverlay"
 	deck_choice_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	deck_choice_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
 	deck_choice_overlay.z_index = 60
@@ -979,16 +1185,30 @@ func show_deck_choice() -> void:
 	shade.mouse_filter = Control.MOUSE_FILTER_STOP
 	deck_choice_overlay.add_child(shade)
 
-	var available_cards: Array[int] = []
-	for card_id in 10:
-		if deck.has(card_id):
-			available_cards.append(card_id)
+	var title := Label.new()
+	title.text = "选择一张手牌弃置" if from_hand else "选择一张牌加入手牌"
+	title.size = Vector2(ui.size.x, 44.0)
+	title.position = Vector2(0.0, 16.0)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 28)
+	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	deck_choice_overlay.add_child(title)
+
+	var options: Array[int] = []
+	if from_hand:
+		for index in cards.size():
+			options.append(index)
+	else:
+		for card_id in cards:
+			if not options.has(card_id):
+				options.append(card_id)
+		options.sort()
 	var card_size := Vector2(185, 260)
 	var grid_width := card_size.x * 3.0 + 36.0
 	var scroll_width := grid_width + 40.0
 	var scroll := ScrollContainer.new()
-	scroll.position = Vector2((ui.size.x - scroll_width) / 2.0, (ui.size.y - 550.0) / 2.0)
-	scroll.size = Vector2(scroll_width, 550)
+	scroll.position = Vector2((ui.size.x - scroll_width) / 2.0, 64.0)
+	scroll.size = Vector2(scroll_width, ui.size.y - 84.0)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	scroll.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -1002,24 +1222,27 @@ func show_deck_choice() -> void:
 	grid.add_theme_constant_override("v_separation", 18)
 	scroll.add_child(grid)
 
-	for card_id in available_cards:
+	for option in options:
+		var card_id := cards[option] if from_hand else option
 		var entry := Control.new()
 		entry.custom_minimum_size = card_size
 		entry.size = card_size
 		entry.pivot_offset = card_size / 2.0
 		entry.mouse_filter = Control.MOUSE_FILTER_PASS
-		entry.gui_input.connect(on_deck_choice_input.bind(card_id))
+		entry.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		entry.set_meta("choice", option)
+		entry.gui_input.connect(on_card_choice_input.bind(option))
 		grid.add_child(entry)
 
-		var art := TextureRect.new()
-		art.texture = card_textures[card_id]
+		var art := CardFace.new()
+		art.set_card(card_id)
 		art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		art.stretch_mode = TextureRect.STRETCH_SCALE
 		art.size = card_size
 		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		entry.add_child(art)
 
-		var count := deck.count(card_id)
+		var count := 1 if from_hand else cards.count(card_id)
 		if count > 1:
 			var badge := Panel.new()
 			badge.position = card_size - Vector2(46, 33)
@@ -1040,27 +1263,16 @@ func show_deck_choice() -> void:
 			count_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			badge.add_child(count_label)
 
-func on_deck_choice_input(event: InputEvent, card_id: int) -> void:
-	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		get_viewport().set_input_as_handled()
-		choose_card_from_deck(card_id)
-
-func choose_card_from_deck(card_id: int) -> void:
-	if deck_choice_overlay == null or not deck.has(card_id):
-		return
-	deck_choice_resolving = true
+	var choice: int = await card_choice_made
+	deck_choice_overlay.hide()
 	deck_choice_overlay.queue_free()
 	deck_choice_overlay = null
-	deck.erase(card_id)
-	if hand.size() >= MAX_HAND_SIZE:
-		animate_discarded_draw(card_id)
-	else:
-		add_card_to_hand(card_id, true)
-		await get_tree().create_timer(0.6).timeout
-	end_turn()
-	await get_tree().create_timer(0.6).timeout
-	rearrange_remaining_hand()
-	deck_choice_resolving = false
+	return choice
+
+func on_card_choice_input(event: InputEvent, choice: int) -> void:
+	if deck_choice_overlay != null and event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		get_viewport().set_input_as_handled()
+		card_choice_made.emit(choice)
 
 func rearrange_remaining_hand() -> void:
 	var remaining_cards := hand_holder.get_children()
@@ -1086,9 +1298,8 @@ func create_card_preview(parent: Control) -> void:
 	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	card_preview.add_child(shade)
 
-	var detail_card := TextureRect.new()
+	var detail_card := CardFace.new()
 	detail_card.name = "DetailCard"
-	detail_card.texture = card_textures[0]
 	detail_card.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	detail_card.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	detail_card.set_anchors_preset(Control.PRESET_CENTER)
@@ -1098,13 +1309,13 @@ func create_card_preview(parent: Control) -> void:
 	card_preview.add_child(detail_card)
 
 func show_card_preview(card: Control) -> void:
-	if selected_card != null or card.get_parent() != hand_holder:
+	if game_over or card_effect_resolving or resolving_attack or selected_card != null or card.get_parent() != hand_holder:
 		return
 	card.z_index = 10
 	var tween := create_tween().set_parallel(true)
 	tween.tween_property(card, "scale", Vector2(1.25, 1.25), 0.16).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	card_preview.show()
-	card_preview.get_node("DetailCard").texture = card_textures[int(card.get_meta("card_id"))]
+	card_preview.get_node("DetailCard").set_card(int(card.get_meta("card_id")))
 
 func hide_card_preview(card: Control) -> void:
 	card.z_index = int(card.get_meta("hand_index"))

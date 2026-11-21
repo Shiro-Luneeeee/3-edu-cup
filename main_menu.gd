@@ -46,9 +46,11 @@ func _ready() -> void:
 
 
 func start_new_game() -> void:
+	if SceneFade.curtain.visible:
+		return
 	PlayerState.reset()
 	StudyProgress.reset()
-	SceneFade.change_to(BEDROOM_SCENE)
+	SceneFade.change_to(BEDROOM_SCENE, 1.0, PlayerState.round_number)
 
 
 func _process(delta: float) -> void:

@@ -21,6 +21,7 @@ SceneFade="*res://scene_fade.gd"
 PlayerState="*res://player_state.gd"
 StudyProgress="*res://study_progress.gd"
 SaveManager="*res://save_manager.gd"
+StatRewards="*res://stat_rewards.gd"
 
 [display]
 
