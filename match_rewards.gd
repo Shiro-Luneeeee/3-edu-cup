@@ -7,6 +7,7 @@ enum Reward { NONE = -1, REMOVE, ADD, COPY, MONEY, AFFECTION, UPGRADE_POINTS, MA
 
 const CardCatalog := preload("res://card_catalog.gd")
 const CardFace := preload("res://card_face.gd")
+const SocialCharacters := preload("res://social_characters.gd")
 const ButtonMotion := preload("res://phone_app_icon.gd")
 const REWARD_ART := {
 	Reward.REMOVE: preload("res://images/deck/1.png"),
@@ -67,21 +68,26 @@ func _ready() -> void:
 
 
 func show_rewards() -> void:
+	var can_gain_affection := not affection_targets().is_empty()
 	if fixed_offer.is_empty():
 		var pool: Array[int] = []
 		pool.assign(REWARD_ART.keys())
 		if PlayerState.card_deck.size() <= 1:
 			pool.erase(Reward.REMOVE)
+		if not can_gain_affection:
+			pool.erase(Reward.AFFECTION)
 		pool.shuffle()
 		reward_offer = pool.slice(0, OFFER_SIZE)
 	else:
 		reward_offer.assign(fixed_offer)
+		if not can_gain_affection and reward_offer.size() > 1:
+			reward_offer.erase(Reward.AFFECTION)
 	var descriptions := {
 		Reward.REMOVE: "删除卡组中的一张牌",
 		Reward.ADD: "从三张牌中选一张加入卡组",
 		Reward.COPY: "复制卡组中的一张牌",
 		Reward.MONEY: "获得 %d 金钱" % money_reward,
-		Reward.AFFECTION: "让一名角色的好感度 +%d" % PlayerState.social_affection_gain(AFFECTION_REWARD),
+		Reward.AFFECTION: "让一名角色获得至多 %d 点好感度" % PlayerState.social_affection_gain(AFFECTION_REWARD) if can_gain_affection else "角色好感度已满",
 		Reward.UPGRADE_POINTS: "获得 %d 点升级点" % UPGRADE_POINT_REWARD,
 		Reward.MAX_ENERGY: "精力上限 +%d" % MAX_ENERGY_REWARD,
 		Reward.MAX_HEALTH: "心态上限 +%d" % MAX_HEALTH_REWARD,
@@ -110,12 +116,17 @@ func choose_reward(reward: int) -> void:
 			PlayerState.money += money_reward
 			complete_reward("获得 %d 金钱" % money_reward)
 		Reward.AFFECTION:
+			var targets := affection_targets()
+			if targets.is_empty():
+				complete_reward("所有角色的好感度已满")
+				return
 			clear_choices()
 			prompt.text = "选择一名角色增加好感度"
-			for character: String in CHARACTER_ART:
-				var current: int = PlayerState.character_affection.get(character, 0)
-				var caption := "%s · 当前好感度 %d" % [character, current]
-				add_choice(CHARACTER_ART[character], caption, choose_character.bind(character))
+			for character: String in targets:
+				var level := PlayerState.affection_progress(character).x
+				var gain := PlayerState.affection_gain_for(character, AFFECTION_REWARD)
+				var caption := "%s · %d 级 · 好感度 +%d" % [character, level, gain]
+				add_choice(targets[character], caption, choose_character.bind(character))
 			update_card_sizes()
 		Reward.UPGRADE_POINTS:
 			PlayerState.upgrade_points += UPGRADE_POINT_REWARD
@@ -155,13 +166,22 @@ func show_card_targets(reward: int) -> void:
 	update_card_sizes()
 
 
+func affection_targets() -> Dictionary:
+	var targets := CHARACTER_ART.duplicate()
+	for character in SocialCharacters.known_characters(PlayerState.park_meeting_seen):
+		targets[character] = SocialCharacters.avatar(character)
+	for character: String in targets.keys():
+		if PlayerState.affection_total(character) == PlayerState.MAX_AFFECTION:
+			targets.erase(character)
+	return targets
+
+
 func choose_character(character: String) -> void:
-	if reward_claimed or pending_reward != Reward.AFFECTION or not CHARACTER_ART.has(character):
+	if reward_claimed or pending_reward != Reward.AFFECTION or not affection_targets().has(character):
 		return
-	var current: int = PlayerState.character_affection.get(character, 0)
-	var gain := PlayerState.social_affection_gain(AFFECTION_REWARD)
-	PlayerState.character_affection[character] = current + gain
-	complete_reward("%s 好感度 +%d · 当前 %d" % [character, gain, current + gain])
+	var gain := PlayerState.add_character_affection(character, AFFECTION_REWARD)
+	var level := PlayerState.affection_progress(character).x
+	complete_reward("%s 好感度 +%d · 当前 %d 级" % [character, gain, level])
 
 
 func choose_target(card_id: int) -> void:

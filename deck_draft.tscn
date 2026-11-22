@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://deck_draft.gd" id="1_draft"]
 [ext_resource type="Texture2D" path="res://images/exam_classroom_pastel.png" id="2_background"]
-[ext_resource type="Texture2D" path="res://images/ui/end.png" id="3_end"]
+[ext_resource type="Texture2D" path="res://images/ui/finish_selection.png" id="3_finish"]
 [ext_resource type="Script" path="res://phone_app_icon.gd" id="4_motion"]
 
 [node name="DeckDraft" type="Control"]
@@ -75,7 +75,7 @@ custom_minimum_size = Vector2(184, 64)
 layout_mode = 2
 focus_mode = 0
 mouse_default_cursor_shape = 2
-tooltip_text = "结束选牌，开始牌局"
+tooltip_text = "完成选择"
 script = ExtResource("4_motion")
 
 [node name="Art" type="TextureRect" parent="Center/Content/Footer/End"]
@@ -84,6 +84,6 @@ anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
-texture = ExtResource("3_end")
+texture = ExtResource("3_finish")
 expand_mode = 1
 stretch_mode = 5

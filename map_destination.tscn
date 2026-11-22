@@ -26,3 +26,17 @@ stretch_mode = 5
 
 [node name="PlayerHud" parent="." instance=ExtResource("2_hud")]
 layout_mode = 1
+
+[node name="Visitors" type="HBoxContainer" parent="."]
+z_index = 5
+layout_mode = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -112.0
+offset_top = 21.0
+offset_right = -22.0
+offset_bottom = 97.0
+grow_horizontal = 0
+mouse_filter = 2
+theme_override_constants/separation = 10
+alignment = 2

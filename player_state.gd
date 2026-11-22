@@ -7,6 +7,7 @@ enum Stat { INTELLIGENCE, EMOTIONAL_INTELLIGENCE, PHYSICAL_STRENGTH }
 const CardCatalog := preload("res://card_catalog.gd")
 const MapActivity := preload("res://map_activity_data.gd")
 const RoundEvents := preload("res://round_event_catalog.gd")
+const SocialCharacters := preload("res://social_characters.gd")
 const STAT_NAMES := ["智商", "情商", "体魄"]
 const STAT_CURVE_VERSION := 2
 const LEGACY_STAT_FIRST_LEVEL_COST := 20
@@ -22,6 +23,9 @@ const ROUND_ALLOWANCE := 60
 const MIN_STARTER_DECK_SIZE := 10
 const MAX_STARTER_DECK_SIZE := 15
 const FIRST_UPGRADED_CARD_ID := 1000
+const AFFECTION_PER_LEVEL := 100
+const MAX_AFFECTION_LEVEL := 10
+const MAX_AFFECTION := AFFECTION_PER_LEVEL * MAX_AFFECTION_LEVEL
 
 var max_energy := DEFAULT_MAX_ENERGY
 var current_energy := DEFAULT_MAX_ENERGY
@@ -30,6 +34,7 @@ var next_round_energy_bonus := 0
 var max_health := DEFAULT_MAX_HEALTH
 var player_name := DEFAULT_PLAYER_NAME
 var park_meeting_seen := false
+var school_intro_seen := false
 var round_number := 1
 var intelligence := 0
 var emotional_intelligence := 0
@@ -43,6 +48,8 @@ var social_efficiency_percent := 0
 var claimed_stat_levels: Array[int] = [0, 0, 0]
 
 var _initialized := false
+var _starter_deck_completed := false
+var _yue_story_cards_resolved := 0
 var _last_event_round := 0
 var _last_event_id := ""
 var _pending_event_id := ""
@@ -63,8 +70,11 @@ func initialize(starting_intelligence: int, starting_emotional_intelligence: int
 
 func reset() -> void:
 	_initialized = false
+	_starter_deck_completed = false
+	_yue_story_cards_resolved = 0
 	player_name = DEFAULT_PLAYER_NAME
 	park_meeting_seen = false
+	school_intro_seen = false
 	round_number = 1
 	_last_event_round = 0
 	_last_event_id = ""
@@ -97,6 +107,7 @@ func make_snapshot() -> Dictionary:
 		"max_health": max_health,
 		"player_name": player_name,
 		"park_meeting_seen": park_meeting_seen,
+		"school_intro_seen": school_intro_seen,
 		"round_number": round_number,
 		"last_event_round": _last_event_round,
 		"last_event_id": _last_event_id,
@@ -108,6 +119,8 @@ func make_snapshot() -> Dictionary:
 		"money": money,
 		"owned_products": owned_products.duplicate(),
 		"card_deck": card_deck.duplicate(),
+		"starter_deck_completed": has_starter_deck(),
+		"yue_story_cards_resolved": _yue_story_cards_resolved,
 		"card_upgrades": _card_upgrades.duplicate(true),
 		"character_affection": character_affection.duplicate(),
 		"social_efficiency_percent": social_efficiency_percent,
@@ -126,6 +139,7 @@ func restore_snapshot(data: Dictionary) -> void:
 	var saved_name := str(data.get("player_name", "")).strip_edges()
 	player_name = DEFAULT_PLAYER_NAME if saved_name.is_empty() else saved_name
 	park_meeting_seen = bool(data.get("park_meeting_seen", false))
+	school_intro_seen = bool(data.get("school_intro_seen", false))
 	round_number = maxi(1, int(data.get("round_number", 1)))
 	_last_event_round = clampi(int(data.get("last_event_round", round_number)), 0, round_number)
 	_last_event_id = str(data.get("last_event_id", ""))
@@ -155,6 +169,10 @@ func restore_snapshot(data: Dictionary) -> void:
 		if product_id is String and not owned_products.has(product_id):
 			owned_products.append(product_id)
 	card_deck.clear()
+	_starter_deck_completed = bool(data.get("starter_deck_completed", false))
+	# A meeting completed in an older save has already passed its one-time offer.
+	var legacy_resolved := maxi(int(park_meeting_seen), int(data.get("yue_story_cards_claimed", 0)))
+	_yue_story_cards_resolved = maxi(0, int(data.get("yue_story_cards_resolved", legacy_resolved)))
 	restore_card_upgrades(data.get("card_upgrades", {}))
 	var saved_deck: Variant = data.get("card_deck", [])
 	if saved_deck is Array:
@@ -170,7 +188,7 @@ func restore_snapshot(data: Dictionary) -> void:
 		for character: Variant in saved_affection:
 			var affection: Variant = saved_affection[character]
 			if character is String and (affection is int or affection is float):
-				character_affection[character] = maxi(0, int(affection))
+				character_affection[character] = clampi(int(affection), 0, MAX_AFFECTION)
 	_initialized = true
 	changed.emit()
 
@@ -273,7 +291,14 @@ func next_stat_reward(skip_intelligence: bool = false) -> int:
 
 
 func has_starter_deck() -> bool:
-	return not card_deck.is_empty()
+	return not card_deck.is_empty() and (_starter_deck_completed or card_deck.any(func(card_id: int) -> bool:
+		return card_base_id(card_id) < CardCatalog.YUE_FIRST_CARD
+	))
+
+
+func finish_starter_deck(drafted_cards: Array[int]) -> void:
+	card_deck.append_array(drafted_cards)
+	_starter_deck_completed = true
 
 
 func card_base_id(card_id: int) -> int:
@@ -354,6 +379,59 @@ func try_buy_product(product_id: String, price: int, repeatable: bool, effects: 
 
 func social_affection_gain(base_amount: int) -> int:
 	return roundi(base_amount * (1.0 + social_efficiency_percent / 100.0))
+
+
+func affection_total(character: String) -> int:
+	return clampi(character_affection.get(character, 0), 0, MAX_AFFECTION)
+
+
+@warning_ignore("integer_division")
+func affection_progress(character: String) -> Vector2i:
+	var total := affection_total(character)
+	var level := total / AFFECTION_PER_LEVEL
+	var progress := AFFECTION_PER_LEVEL if level == MAX_AFFECTION_LEVEL else total % AFFECTION_PER_LEVEL
+	return Vector2i(level, progress)
+
+
+func affection_gain_for(character: String, base_amount: int) -> int:
+	return clampi(social_affection_gain(base_amount), 0, MAX_AFFECTION - affection_total(character))
+
+
+func add_character_affection(character: String, base_amount: int) -> int:
+	var gain := affection_gain_for(character, base_amount)
+	if gain > 0:
+		character_affection[character] = affection_total(character) + gain
+	return gain
+
+
+func meet_yue(add_story_card: bool) -> void:
+	if park_meeting_seen:
+		return
+	park_meeting_seen = true
+	resolve_yue_story_card(0, add_story_card)
+	changed.emit()
+
+
+func yue_story_card_offer(chapter_index: int) -> int:
+	return CardCatalog.yue_story_card(chapter_index) if chapter_index == _yue_story_cards_resolved else -1
+
+
+func resolve_yue_story_card(chapter_index: int, add_to_deck: bool) -> void:
+	var card_id := yue_story_card_offer(chapter_index)
+	if card_id < 0:
+		return
+	_yue_story_cards_resolved += 1
+	if add_to_deck and not card_deck.any(func(existing_id: int) -> bool: return card_base_id(existing_id) == card_id):
+		card_deck.append(card_id)
+
+
+func try_socialize(character: String) -> bool:
+	if character not in SocialCharacters.known_characters(park_meeting_seen) or current_energy < SocialCharacters.CHAT_ENERGY_COST:
+		return false
+	if add_character_affection(character, SocialCharacters.CHAT_AFFECTION_GAIN) == 0:
+		return false
+	set_energy(current_energy - SocialCharacters.CHAT_ENERGY_COST)
+	return true
 
 
 func owns_game(game_id: String) -> bool:

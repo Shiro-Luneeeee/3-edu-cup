@@ -30,6 +30,13 @@ static func season(round_number: int) -> Season:
 	return (Season.SPRING + school_season) as Season
 
 
+static func has_card_match(round_number: int) -> bool:
+	if round_number < FIRST_SCHOOL_ROUND:
+		return true
+	var current_season := season(round_number)
+	return current_season != Season.SUMMER and current_season != Season.WINTER
+
+
 static func grade(current_age: int) -> String:
 	var index := current_age - SCHOOL_AGE
 	if index < 0:

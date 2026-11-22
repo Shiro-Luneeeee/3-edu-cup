@@ -13,6 +13,7 @@ const MAP_SCENE := preload("res://map.tscn")
 const STUDY_SCENE := preload("res://study.tscn")
 const GALLERY_SCENE: PackedScene = preload("res://gallery.tscn")
 const UPGRADE_SCENE := preload("res://card_upgrade.tscn")
+const SOCIAL_SCENE := preload("res://social.tscn")
 const RoundCalendar := preload("res://round_calendar.gd")
 const ROUND_BOARD_WIDTH := 136.0
 @export_range(0, 100, 1) var intelligence := 0
@@ -40,12 +41,14 @@ const ROUND_BOARD_WIDTH := 136.0
 @onready var power_app: TextureButton = $PhoneOverlay/PhoneImage/Dock/Boot
 @onready var gallery_app: TextureButton = $PhoneOverlay/PhoneImage/AppRow/Gallery
 @onready var map_app: TextureButton = $PhoneOverlay/PhoneImage/AppRow/Map
+@onready var social_app: TextureButton = $PhoneOverlay/PhoneImage/AppRow/Chat
 
 var highlight_tweens: Dictionary[Polygon2D, Tween] = {}
 var gallery_overlay: Control
 var study_overlay: Control
 var map_overlay: Control
 var upgrade_overlay: Control
+var social_overlay: Control
 func _ready() -> void:
 	var music_stream := bedroom_music.stream.duplicate() as AudioStreamMP3
 	music_stream.loop = true
@@ -59,7 +62,7 @@ func _ready() -> void:
 	connect_highlight(bookshelf_button, bookshelf_highlight)
 	connect_highlight(gamepad_button, gamepad_highlight)
 	connect_highlight(notebook_button, notebook_highlight)
-	clock_button.pressed.connect(SceneFade.change_to.bind(PREPARATION_SCENE))
+	clock_button.pressed.connect(use_clock)
 	gamepad_button.pressed.connect(SceneFade.change_to.bind(GAME_SELECTION_SCENE))
 	notebook_button.pressed.connect(open_card_upgrades)
 	phone_button.pressed.connect(phone_overlay.show)
@@ -68,6 +71,7 @@ func _ready() -> void:
 	power_app.pressed.connect(phone_overlay.hide)
 	gallery_app.pressed.connect(open_gallery)
 	map_app.pressed.connect(open_map)
+	social_app.pressed.connect(open_social)
 	exit_button.pressed.connect(SaveManager.open_save_page)
 	phone_overlay.gui_input.connect(on_phone_overlay_input)
 	update_layout()
@@ -82,9 +86,20 @@ func update_player_display() -> void:
 	var current_round := PlayerState.round_number
 	round_label.text = "%d 岁" % RoundCalendar.age(current_round)
 	round_board.tooltip_text = "第 %d 轮  ·  %s" % [current_round, RoundCalendar.season_and_grade(current_round)]
+	clock_button.tooltip_text = "开始牌局" if RoundCalendar.has_card_match(current_round) else "进入下一轮"
+	social_app.disabled = not PlayerState.park_meeting_seen
+	social_app.modulate.a = 0.55 if social_app.disabled else 1.0
+	social_app.tooltip_text = "在公园完成初遇后解锁" if social_app.disabled else "社交"
 
 func open_shop() -> void:
 	SceneFade.change_to(SHOP_SCENE)
+
+
+func use_clock() -> void:
+	if RoundCalendar.has_card_match(PlayerState.round_number):
+		SceneFade.change_to(PREPARATION_SCENE)
+	else:
+		SceneFade.advance_to_next_round()
 
 func open_map() -> void:
 	if not is_instance_valid(map_overlay):
@@ -94,6 +109,16 @@ func show_map_overlay() -> void:
 	phone_overlay.hide()
 	map_overlay = MAP_SCENE.instantiate() as Control
 	add_child(map_overlay)
+
+
+func open_social() -> void:
+	if PlayerState.park_meeting_seen and not is_instance_valid(social_overlay):
+		SceneFade.play_action(show_social)
+
+
+func show_social() -> void:
+	social_overlay = SOCIAL_SCENE.instantiate() as Control
+	add_child(social_overlay)
 
 func open_study() -> void:
 	if not is_instance_valid(study_overlay):
@@ -168,6 +193,8 @@ func on_phone_overlay_input(event: InputEvent) -> void:
 		phone_overlay.hide()
 
 func _unhandled_key_input(event: InputEvent) -> void:
+	if is_instance_valid(social_overlay):
+		return
 	if phone_overlay.visible and event.is_action_pressed("ui_cancel"):
 		phone_overlay.hide()
 		get_viewport().set_input_as_handled()

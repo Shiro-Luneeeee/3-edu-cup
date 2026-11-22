@@ -1,6 +1,8 @@
 extends RefCounted
 
 const DIRECTORY := "res://images/card"
+const YUE_DIRECTORY := "res://images/card_yue"
+const YUE_FIRST_CARD := 100
 const CARDS := {
 	0: ["预习", 0], 1: ["解题", 0], 2: ["深呼吸", 0],
 	3: ["认真听讲", 1], 4: ["课间休息", 1], 5: ["合作", 1],
@@ -9,6 +11,9 @@ const CARDS := {
 	13: ["小测验", 1], 14: ["留到明天", 1], 15: ["午休", 2],
 	16: ["模拟考", 2], 17: ["请假", 2], 18: ["期中总复习", 3],
 	19: ["暑假", 3], 20: ["新学期", 3],
+	21: ["咖啡", 1], 22: ["挣扎", 2], 23: ["孤注一掷", 3], 24: ["温故", 1],
+	25: ["知新", 1], 26: ["小憩", 0], 27: ["挑灯奋战", 1],
+	YUE_FIRST_CARD: ["公园的约定", 3],
 }
 enum Upgrade { INCREASE, DECREASE, BOOST_PROGRESS, BOOST_DEFENSE }
 
@@ -17,6 +22,9 @@ const NUMBER_NAMES := {
 	"draw": "抽牌张数",
 	"progress": "进度", "block": "格挡", "heal": "回复心态", "health_change": "心态变化",
 	"health_set": "设定心态", "duration": "持续回合",
+	"energy_gain": "获得费用", "next_energy_gain": "下回合获得费用",
+	"next_energy_change": "下回合费用变化", "starting_energy_gain": "每回合额外费用",
+	"health_per_hand": "每张手牌改变心态",
 }
 const CARD_NUMBERS := {
 	0: {"draw": 1}, 1: {"progress": 3}, 2: {"block": 3}, 3: {"progress": 6},
@@ -27,6 +35,10 @@ const CARD_NUMBERS := {
 	14: {"duration": 2}, 15: {"heal": 8, "draw": 1},
 	16: {"progress": 12, "draw": 1, "block": 3}, 17: {"block": 2},
 	18: {"progress": 15, "draw": 2}, 19: {"health_set": 20}, 20: {"draw": 6},
+	21: {"energy_gain": 3, "next_energy_change": -1}, 22: {"starting_energy_gain": 1},
+	23: {"next_energy_gain": 5, "duration": 2}, 24: {}, 25: {"draw": 1},
+	26: {"energy_gain": 2}, 27: {"health_per_hand": -1, "draw": 3},
+	YUE_FIRST_CARD: {"duration": 2},
 }
 # Regions around Arabic numerals in the original effect text, in card texture pixels.
 const NUMBER_REGIONS := {
@@ -48,6 +60,12 @@ const NUMBER_REGIONS := {
 	18: {"progress": Rect2i(231, 1023, 94, 62), "draw": Rect2i(169, 1107, 71, 63)},
 	19: {"health_set": Rect2i(592, 1019, 106, 65)},
 	20: {"draw": Rect2i(228, 1099, 74, 70)},
+	21: {"energy_gain": Rect2i(227, 1012, 67, 64), "next_energy_change": Rect2i(232, 1186, 99, 63)},
+	22: {"starting_energy_gain": Rect2i(418, 1184, 109, 61)},
+	23: {"next_energy_gain": Rect2i(227, 1086, 64, 62), "duration": Rect2i(232, 1251, 64, 62)},
+	26: {"energy_gain": Rect2i(229, 1012, 64, 62)},
+	27: {"health_per_hand": Rect2i(405, 1097, 93, 61), "draw": Rect2i(172, 1185, 64, 62)},
+	YUE_FIRST_CARD: {"duration": Rect2i(219, 1092, 64, 68)},
 }
 
 
@@ -55,7 +73,7 @@ static func available_ids() -> Array[int]:
 	var ids: Array[int] = []
 	for file in ResourceLoader.list_directory(DIRECTORY):
 		var stem := file.get_basename()
-		if file.get_extension() == "png" and stem.is_valid_int() and CARDS.has(stem.to_int()):
+		if file.get_extension() == "png" and stem.is_valid_int() and stem.to_int() < YUE_FIRST_CARD and CARDS.has(stem.to_int()):
 			ids.append(stem.to_int())
 	ids.sort()
 	return ids
@@ -80,7 +98,7 @@ static func number_regions(card_id: int) -> Dictionary:
 static func minimum_number(field: String) -> int:
 	match field:
 		"duration", "health_set": return 1
-		"health_change": return -2147483647
+		"health_change", "health_per_hand", "next_energy_change": return -2147483647
 	return 0
 
 
@@ -96,7 +114,7 @@ static func upgraded_numbers(card_id: int, values: Dictionary, operation: int, f
 			if allowed.has("progress"):
 				updated["progress"] = boosted_number(int(updated["progress"]))
 		Upgrade.BOOST_DEFENSE:
-			for defense_field in ["block", "heal", "health_set", "health_change"]:
+			for defense_field in ["block", "heal", "health_set", "health_change", "health_per_hand"]:
 				if allowed.has(defense_field) and int(updated[defense_field]) > 0:
 					updated[defense_field] = boosted_number(int(updated[defense_field]))
 	return updated
@@ -108,8 +126,15 @@ static func boosted_number(value: int) -> int:
 
 
 static func texture(card_id: int) -> Texture2D:
+	if card_id >= YUE_FIRST_CARD:
+		return load("%s/%d.png" % [YUE_DIRECTORY, card_id - YUE_FIRST_CARD]) as Texture2D
 	return load("%s/%d.png" % [DIRECTORY, card_id]) as Texture2D
 
 
+static func yue_story_card(chapter_index: int) -> int:
+	var card_id := YUE_FIRST_CARD + chapter_index
+	return card_id if chapter_index >= 0 and CARDS.has(card_id) else -1
+
+
 static func exhausts_on_play(card_id: int) -> bool:
-	return card_id == 11
+	return card_id == 11 or card_id == 26

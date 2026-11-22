@@ -4,6 +4,7 @@ const MATCH_SCENE := "res://card.tscn"
 const DRAFT_SCENE := "res://deck_draft.tscn"
 const BEDROOM_SCENE := "res://bedroom.tscn"
 const CardCatalog := preload("res://card_catalog.gd")
+const RoundCalendar := preload("res://round_calendar.gd")
 
 @onready var start_button: Button = $LobbyPanel/Margin/Column/StartButton
 @onready var cards_button: Button = $LobbyPanel/Margin/Column/CardsButton
@@ -23,6 +24,9 @@ func _ready() -> void:
 
 
 func start_match() -> void:
+	if not RoundCalendar.has_card_match(PlayerState.round_number):
+		SceneFade.change_to(BEDROOM_SCENE, -1.0)
+		return
 	SceneFade.change_to(MATCH_SCENE if PlayerState.has_starter_deck() else DRAFT_SCENE)
 
 

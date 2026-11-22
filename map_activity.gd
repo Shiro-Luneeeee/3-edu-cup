@@ -22,6 +22,7 @@ var pointer := Vector2.ZERO
 
 
 func _ready() -> void:
+	super._ready()
 	highlights.name = "ActivityHighlights"
 	highlights.z_index = 2
 	add_child(highlights)
@@ -35,6 +36,10 @@ func _ready() -> void:
 	mouse_exited.connect(clear_hover)
 	PlayerState.changed.connect(update_hover)
 	update_layout()
+
+
+func can_open_character(character: String) -> bool:
+	return active_hotspot < 0 and not is_instance_valid(linked_overlay) and super.can_open_character(character)
 
 
 func create_highlight(points: PackedVector2Array) -> void:

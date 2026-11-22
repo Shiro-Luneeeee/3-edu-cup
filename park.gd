@@ -1,8 +1,9 @@
 extends "res://map_activity.gd"
 
-const RoundCalendar := preload("res://round_calendar.gd")
 const MEETING_SCENE := preload("res://park_meeting.tscn")
 const ParkMeeting := preload("res://park_meeting.gd")
+const STORY_CARD_OFFER_SCENE := preload("res://story_card_offer.tscn")
+const StoryCardOffer := preload("res://story_card_offer.gd")
 
 # The hit area follows the foreground path and cuts around the bench and pond curb.
 const ROAD_POINTS := [
@@ -23,6 +24,7 @@ const ROAD_POINTS := [
 ]
 
 var meeting: ParkMeeting
+var story_card_offer: StoryCardOffer
 
 
 func _ready() -> void:
@@ -32,19 +34,46 @@ func _ready() -> void:
 	jogging.physical_gain = 10
 	activities.append(jogging)
 	super._ready()
-	if RoundCalendar.age(PlayerState.round_number) == 5 and not PlayerState.park_meeting_seen:
-		meeting = MEETING_SCENE.instantiate() as ParkMeeting
-		meeting.completed.connect(finish_meeting)
-		add_child(meeting)
+
+
+func can_open_character(character: String) -> bool:
+	return not is_instance_valid(meeting) and not is_instance_valid(story_card_offer) and super.can_open_character(character)
+
+
+func open_character(character: String) -> void:
+	if not SocialCharacters.has_story(character, scene_file_path, PlayerState.round_number, PlayerState.park_meeting_seen):
+		super.open_character(character)
+		return
+	if can_open_character(character):
+		SceneFade.play_action(show_meeting)
+
+
+func show_meeting() -> void:
+	meeting = MEETING_SCENE.instantiate() as ParkMeeting
+	meeting.completed.connect(finish_meeting, CONNECT_ONE_SHOT)
+	add_child(meeting)
 
 
 func finish_meeting() -> void:
-	PlayerState.park_meeting_seen = true
+	meeting.hide()
 	meeting.queue_free()
+	var card_id := PlayerState.yue_story_card_offer(0)
+	if card_id < 0:
+		PlayerState.meet_yue(false)
+		return
+	story_card_offer = STORY_CARD_OFFER_SCENE.instantiate() as StoryCardOffer
+	story_card_offer.decided.connect(finish_card_offer, CONNECT_ONE_SHOT)
+	add_child(story_card_offer)
+	story_card_offer.show_offer(SocialCharacters.YUE, card_id)
+
+
+func finish_card_offer(add_to_deck: bool) -> void:
+	PlayerState.meet_yue(add_to_deck)
+	story_card_offer.queue_free()
 
 
 func _unhandled_key_input(event: InputEvent) -> void:
-	if is_instance_valid(meeting):
+	if is_instance_valid(meeting) or is_instance_valid(story_card_offer):
 		if event.is_action_pressed("ui_cancel"):
 			get_viewport().set_input_as_handled()
 		return

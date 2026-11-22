@@ -72,7 +72,7 @@ func finish_draft() -> void:
 		return
 	finishing = true
 	counter.text = "卡组 %d / %d" % [drafted_cards.size(), PlayerState.MAX_STARTER_DECK_SIZE]
-	PlayerState.card_deck.assign(drafted_cards)
+	PlayerState.finish_starter_deck(drafted_cards)
 	var destination := StatRewards.take_draft_destination(MATCH_SCENE)
 	StatRewards.continue_after_rewards(SceneFade.change_to.bind(destination))
 

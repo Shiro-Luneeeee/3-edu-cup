@@ -4,6 +4,9 @@ const CardCatalog := preload("res://card_catalog.gd")
 const SOURCE_SIZE := Vector2(1060, 1484)
 const DIGIT_COLOR := Color("b7322a")
 const DIGIT_FONT_SIZE := 72
+const COST_REGION := Rect2i(106, 127, 119, 120)
+const YUE_COST_REGION := Rect2i(89, 40, 99, 119)
+const SIGNED_FIELDS := ["health_change", "health_per_hand", "next_energy_change", "starting_energy_gain"]
 
 static var digit_font := make_digit_font()
 static var paper_patches: Dictionary[Vector3i, Texture2D] = {}
@@ -11,15 +14,17 @@ static var paper_patches: Dictionary[Vector3i, Texture2D] = {}
 var base_id := 0
 var numbers: Dictionary = {}
 var original_numbers: Dictionary = {}
+var cost_override := -1
 var edits: Control
 
 
-func set_card(card_id: int, preview_numbers: Dictionary = {}) -> void:
+func set_card(card_id: int, preview_numbers: Dictionary = {}, battle_cost: int = -1) -> void:
 	base_id = PlayerState.card_base_id(card_id)
 	texture = CardCatalog.texture(base_id)
 	original_numbers = CardCatalog.numbers(base_id)
 	numbers = PlayerState.card_numbers(card_id) if preview_numbers.is_empty() else preview_numbers
-	if numbers != original_numbers and edits == null:
+	cost_override = battle_cost
+	if (numbers != original_numbers or cost_override >= 0) and edits == null:
 		edits = Control.new()
 		edits.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		edits.draw.connect(draw_edits)
@@ -31,13 +36,20 @@ func set_card(card_id: int, preview_numbers: Dictionary = {}) -> void:
 
 
 func draw_edits() -> void:
-	if numbers == original_numbers:
+	if numbers == original_numbers and cost_override < 0:
 		return
 	var art_size := size
 	if stretch_mode == STRETCH_KEEP_ASPECT_CENTERED:
 		art_size = SOURCE_SIZE * minf(size.x / SOURCE_SIZE.x, size.y / SOURCE_SIZE.y)
 	var origin := (size - art_size) * 0.5
 	var art_scale := art_size / SOURCE_SIZE
+	if cost_override >= 0:
+		var is_yue := base_id >= CardCatalog.YUE_FIRST_CARD
+		var cost_region := YUE_COST_REGION if is_yue else COST_REGION
+		var ink := Color("fff9ed") if is_yue else Color("203659")
+		edits.draw_set_transform(origin, 0.0, art_scale)
+		edits.draw_texture(get_paper_patch(cost_region), Vector2(cost_region.position))
+		draw_digits(str(cost_override), Rect2(cost_region), origin, art_scale, ink, 131)
 	var regions := CardCatalog.number_regions(base_id)
 	for field: String in regions:
 		var value := int(numbers[field])
@@ -46,8 +58,9 @@ func draw_edits() -> void:
 		var region: Rect2i = regions[field]
 		edits.draw_set_transform(origin, 0.0, art_scale)
 		edits.draw_texture(get_paper_patch(region), Vector2(region.position))
-		var digits := "+%d" % value if field == "health_change" and value > 0 else str(value)
-		draw_digits(digits, Rect2(region), origin, art_scale)
+		var digits := "+%d" % value if field in SIGNED_FIELDS and value > 0 else str(value)
+		var ink := Color("365989") if field == "health_per_hand" else DIGIT_COLOR
+		draw_digits(digits, Rect2(region), origin, art_scale, ink)
 
 
 func get_paper_patch(region: Rect2i) -> Texture2D:
@@ -73,12 +86,12 @@ func get_paper_patch(region: Rect2i) -> Texture2D:
 	return paper_patches[key]
 
 
-func draw_digits(digits: String, bounds: Rect2, origin: Vector2, art_scale: Vector2) -> void:
-	var width := digit_font.get_string_size(digits, HORIZONTAL_ALIGNMENT_LEFT, -1, DIGIT_FONT_SIZE).x
+func draw_digits(digits: String, bounds: Rect2, origin: Vector2, art_scale: Vector2, ink: Color, font_size: int = DIGIT_FONT_SIZE) -> void:
+	var width := digit_font.get_string_size(digits, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
 	var fit := minf(1.0, (bounds.size.x - 6.0) / maxf(1.0, width))
-	var baseline := (digit_font.get_ascent(DIGIT_FONT_SIZE) - digit_font.get_descent(DIGIT_FONT_SIZE)) * 0.5
+	var baseline := (digit_font.get_ascent(font_size) - digit_font.get_descent(font_size)) * 0.5
 	edits.draw_set_transform(origin + bounds.get_center() * art_scale, 0.0, art_scale * Vector2(fit, 1.0))
-	edits.draw_string(digit_font, Vector2(-width * 0.5, baseline), digits, HORIZONTAL_ALIGNMENT_LEFT, -1.0, DIGIT_FONT_SIZE, DIGIT_COLOR)
+	edits.draw_string(digit_font, Vector2(-width * 0.5, baseline), digits, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size, ink)
 
 
 static func make_digit_font() -> SystemFont:

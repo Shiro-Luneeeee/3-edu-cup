@@ -5,6 +5,10 @@ const ROUND_INTRO := preload("res://round_intro.tscn")
 const RoundIntro := preload("res://round_intro.gd")
 const ROUND_EVENT := preload("res://round_event.tscn")
 const RoundEvent := preload("res://round_event.gd")
+const RoundCalendar := preload("res://round_calendar.gd")
+const StoryDialogue := preload("res://story_dialogue.gd")
+const SCHOOL_INTRO := preload("res://school_intro.tscn")
+const BEDROOM_SCENE := "res://bedroom.tscn"
 const COVER_TIME := 0.42
 const REVEAL_TIME := 0.48
 const ROUND_INTRO_FADE_TIME := 0.28
@@ -13,6 +17,7 @@ const ROUND_INTRO_HOLD_TIME := 1.8
 var curtain := ColorRect.new()
 var paper_material := ShaderMaterial.new()
 var event_panel: RoundEvent
+var school_intro_panel: StoryDialogue
 
 func _ready() -> void:
 	layer = 100
@@ -40,10 +45,30 @@ func change_to(scene_path: String, direction: float = 1.0, round_number: int = 0
 
 	if result == OK and round_number > 0:
 		await show_round_intro(round_number)
-		await show_round_event()
 	else:
 		await move_paper(0.5, 1.0, REVEAL_TIME, Tween.EASE_IN_OUT)
+	if result == OK:
+		if scene_path == BEDROOM_SCENE and RoundCalendar.age(PlayerState.round_number) == RoundCalendar.SCHOOL_AGE and not PlayerState.school_intro_seen:
+			await show_school_intro()
+		if round_number > 0:
+			await show_round_event()
 	curtain.hide()
+
+func advance_to_next_round() -> void:
+	if curtain.visible:
+		return
+	PlayerState.advance_round()
+	PlayerState.apply_next_round_energy_bonus()
+	change_to(BEDROOM_SCENE, -1.0, PlayerState.round_number)
+
+func show_school_intro() -> void:
+	school_intro_panel = SCHOOL_INTRO.instantiate() as StoryDialogue
+	add_child(school_intro_panel)
+	await school_intro_panel.completed
+	PlayerState.school_intro_seen = true
+	school_intro_panel.hide()
+	school_intro_panel.queue_free()
+	school_intro_panel = null
 
 func show_round_intro(round_number: int) -> void:
 	var intro := ROUND_INTRO.instantiate() as RoundIntro
@@ -92,5 +117,6 @@ func set_sweep_progress(value: float) -> void:
 	paper_material.set_shader_parameter("progress", value)
 
 func _input(event: InputEvent) -> void:
-	if curtain.visible and (not is_instance_valid(event_panel) or event.is_action_pressed("ui_cancel")):
+	var showing_cutscene := is_instance_valid(school_intro_panel) or is_instance_valid(event_panel)
+	if curtain.visible and (not showing_cutscene or event.is_action_pressed("ui_cancel")):
 		get_viewport().set_input_as_handled()
