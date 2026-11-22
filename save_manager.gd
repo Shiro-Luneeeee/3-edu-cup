@@ -8,16 +8,50 @@ const SAVE_DIRECTORY := "user://saves"
 const SAVE_PAGE_SCENE := "res://save_page.tscn"
 
 var page_mode := PageMode.LOAD
+var carried_music: AudioStreamPlayer
+var music_origin_scene := ""
+var keep_music_for_save_page := false
 
 
 func open_load_page() -> void:
 	page_mode = PageMode.LOAD
+	keep_music_for_save_page = true
 	SceneFade.change_to(SAVE_PAGE_SCENE)
 
 
 func open_save_page() -> void:
 	page_mode = PageMode.SAVE_AND_EXIT
+	keep_music_for_save_page = true
 	SceneFade.change_to(SAVE_PAGE_SCENE)
+
+
+func use_scene_music(scene_path: String, scene_music: AudioStreamPlayer) -> AudioStreamPlayer:
+	keep_music_for_save_page = false
+	if is_instance_valid(carried_music):
+		if music_origin_scene == scene_path:
+			scene_music.queue_free()
+			return carried_music
+		carried_music.stop()
+		carried_music.queue_free()
+	scene_music.reparent(self)
+	var music_stream := scene_music.stream.duplicate() as AudioStreamMP3
+	music_stream.loop = true
+	scene_music.stream = music_stream
+	scene_music.play()
+	carried_music = scene_music
+	music_origin_scene = scene_path
+	return scene_music
+
+
+func release_scene_music(scene_path: String) -> void:
+	if keep_music_for_save_page:
+		keep_music_for_save_page = false
+		return
+	if music_origin_scene == scene_path and is_instance_valid(carried_music):
+		carried_music.stop()
+		carried_music.queue_free()
+		carried_music = null
+		music_origin_scene = ""
 
 
 func has_any_save() -> bool:

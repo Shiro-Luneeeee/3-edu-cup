@@ -14,7 +14,11 @@ var emotional_intelligence := 0
 var physical_strength := 0
 var upgrade_points := 0
 var money := DEFAULT_MONEY
+var player_name := ""
 var owned_products: Array[String] = []
+var daoxiang_act := 0
+var daoxiang_last_age := 0
+var daoxiang_reply := ""
 
 var _initialized := false
 
@@ -30,6 +34,7 @@ func initialize(starting_intelligence: int, starting_emotional_intelligence: int
 
 
 func reset() -> void:
+	player_name = ""
 	_initialized = false
 	round_number = 1
 	intelligence = 0
@@ -38,11 +43,15 @@ func reset() -> void:
 	upgrade_points = 0
 	money = DEFAULT_MONEY
 	owned_products.clear()
+	daoxiang_act = 0
+	daoxiang_last_age = 0
+	daoxiang_reply = ""
 	set_max_energy(DEFAULT_MAX_ENERGY, true)
 
 
 func make_snapshot() -> Dictionary:
 	return {
+		"player_name": player_name,
 		"max_energy": max_energy,
 		"current_energy": current_energy,
 		"round_number": round_number,
@@ -52,10 +61,14 @@ func make_snapshot() -> Dictionary:
 		"upgrade_points": upgrade_points,
 		"money": money,
 		"owned_products": owned_products.duplicate(),
+		"daoxiang_act": daoxiang_act,
+		"daoxiang_last_age": daoxiang_last_age,
+		"daoxiang_reply": daoxiang_reply,
 	}
 
 
 func restore_snapshot(data: Dictionary) -> void:
+	player_name = str(data.get("player_name", ""))
 	max_energy = maxi(1, int(data.get("max_energy", DEFAULT_MAX_ENERGY)))
 	current_energy = clampi(int(data.get("current_energy", max_energy)), 0, max_energy)
 	round_number = maxi(1, int(data.get("round_number", 1)))
@@ -68,6 +81,9 @@ func restore_snapshot(data: Dictionary) -> void:
 	for product_id in data.get("owned_products", []):
 		if product_id is String and not owned_products.has(product_id):
 			owned_products.append(product_id)
+	daoxiang_act = clampi(int(data.get("daoxiang_act", 0)), 0, 3)
+	daoxiang_last_age = maxi(0, int(data.get("daoxiang_last_age", 0)))
+	daoxiang_reply = str(data.get("daoxiang_reply", ""))
 	_initialized = true
 	changed.emit()
 
@@ -76,6 +92,28 @@ func advance_round() -> void:
 	round_number += 1
 	money += ROUND_ALLOWANCE
 	set_energy(max_energy)
+
+
+func get_age_years() -> int:
+	# The first playable round is age six; each completed round advances one year.
+	return round_number + 5
+
+
+func available_daoxiang_act() -> int:
+	var age := get_age_years()
+	match daoxiang_act:
+		0: return 1 if age >= 6 and age <= 14 else 0
+		1: return 2 if age >= 15 else 0
+		2: return 3 if age >= 16 and age > daoxiang_last_age else 0
+		_: return 0
+
+
+func complete_daoxiang_act(act: int) -> void:
+	if act != available_daoxiang_act():
+		return
+	daoxiang_act = act
+	daoxiang_last_age = get_age_years()
+	changed.emit()
 
 
 func try_buy_product(product_id: String, price: int, repeatable: bool, effects: Dictionary) -> bool:

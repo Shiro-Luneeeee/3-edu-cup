@@ -1,6 +1,7 @@
 extends Control
 
 const BEDROOM_SCENE := "res://bedroom.tscn"
+const MAIN_MENU_SCENE := "res://main_menu.tscn"
 const SETTINGS_SCENE := preload("res://settings.tscn")
 const GALLERY_SCENE := preload("res://gallery.tscn")
 const MAX_RIPPLES := 16
@@ -30,10 +31,7 @@ func _ready() -> void:
 	flower_glow.material = flower_glow_material
 	flower_glow_material.set_shader_parameter("reveal_progress", -0.12)
 	create_tween().tween_property(flower_glow_material, "shader_parameter/reveal_progress", 1.12, 3.8).set_delay(0.45).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	var music_stream := menu_music.stream.duplicate() as AudioStreamMP3
-	music_stream.loop = true
-	menu_music.stream = music_stream
-	menu_music.play()
+	menu_music = SaveManager.use_scene_music(MAIN_MENU_SCENE, menu_music)
 	new_game_button.pressed.connect(start_new_game)
 	continue_button.visible = SaveManager.has_any_save()
 	continue_button.pressed.connect(SaveManager.open_load_page)
@@ -45,10 +43,14 @@ func _ready() -> void:
 	update_shader_ripples()
 
 
+func _exit_tree() -> void:
+	SaveManager.release_scene_music(MAIN_MENU_SCENE)
+
+
 func start_new_game() -> void:
 	PlayerState.reset()
 	StudyProgress.reset()
-	SceneFade.change_to(BEDROOM_SCENE)
+	SceneFade.change_to("res://birth_prologue.tscn")
 
 
 func _process(delta: float) -> void:

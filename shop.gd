@@ -13,7 +13,7 @@ const PRODUCTS := [
 	{"name": "芝士小黄油拿铁", "description": "芝士奶香与黄油香交融的拿铁。", "category": 3, "image": "res://images/shop_items/shop-cheese-butter-latte.png", "price": 18, "repeatable": true, "effects": {"current_energy": 4}},
 	{"name": "糯米果味抹茶米酒", "description": "果香、抹茶与糯米米酒的奇妙组合。", "category": 3, "image": "res://images/shop_items/shop-fruity-matcha-rice-wine.png", "price": 25, "repeatable": true, "effects": {"current_energy": 2, "emotional_intelligence": 1}},
 	{"name": "五万年高考三万年模拟", "description": "比上一册更厚，翻开就是新挑战。", "category": 1, "image": "res://images/shop_items/shop-50000-years-gaokao-30000-years-mock.png", "price": 120, "effects": {"intelligence": 9}},
-	{"name": "未寄出的信", "description": "@稻叶粽子的作品集，写给未来，也留给此刻。\n\n# 若要由你来讨论爱的话，你会说什么？\n\n", "category": 2, "image": "res://images/shop_items/shop-unsent-letter-book.png", "price": 55, "effects": {"emotional_intelligence": 5}},
+	{"name": "未寄出的信", "description": "@稻香粽子的作品集，写给未来，也留给此刻。\n\n# 若要由你来讨论爱的话，你会说什么？\n\n", "category": 2, "image": "res://images/shop_items/shop-unsent-letter-book.png", "price": 55, "effects": {"emotional_intelligence": 5}},
 	{"name": "Linux Debian 发行版", "description": "一套自由的操作系统，给好奇心留出折腾的空间。", "category": 1, "image": "res://images/shop_items/shop-debian-linux.png", "price": 80, "effects": {"intelligence": 4, "upgrade_points": 2}},
 	{"name": "神经网络可解释性从入门到入土", "description": "从一层层参数里，试着看懂机器为什么这样回答。", "category": 1, "image": "res://images/shop_items/shop-neural-network-interpretability-book.png", "price": 90, "effects": {"intelligence": 6}},
 	{"name": "茉莉雪芽铁观音", "description": "一袋带着茉莉花香的茶，热水一冲，慢慢回甘。", "category": 3, "image": "res://images/shop_items/shop-jasmine-tea.png", "price": 22, "repeatable": true, "effects": {"current_energy": 3}},

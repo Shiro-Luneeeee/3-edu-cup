@@ -1,6 +1,7 @@
 extends Control
 
 const IMAGE_SIZE := Vector2(1672, 941)
+const BEDROOM_SCENE := "res://bedroom.tscn"
 const CLOCK_RECT := Rect2(1000, 300, 175, 230)
 const PHONE_RECT := Rect2(1339, 589, 274, 178)
 const BOOKSHELF_RECT := Rect2(0, 162, 277, 401)
@@ -64,10 +65,7 @@ var energy_material: ShaderMaterial
 var energy_label: Label
 
 func _ready() -> void:
-	var music_stream := bedroom_music.stream.duplicate() as AudioStreamMP3
-	music_stream.loop = true
-	bedroom_music.stream = music_stream
-	bedroom_music.play()
+	bedroom_music = SaveManager.use_scene_music(BEDROOM_SCENE, bedroom_music)
 	PlayerState.initialize(intelligence, emotional_intelligence, physical_strength, max_energy)
 	create_point_board()
 	create_energy_bar()
@@ -86,8 +84,13 @@ func _ready() -> void:
 	gallery_app.pressed.connect(open_gallery)
 	map_app.pressed.connect(open_map)
 	exit_button.pressed.connect(SaveManager.open_save_page)
+	$NextRoundButton.pressed.connect(func() -> void: SceneFade.play_action(PlayerState.advance_round))
 	phone_overlay.gui_input.connect(on_phone_overlay_input)
 	update_layout()
+
+
+func _exit_tree() -> void:
+	SaveManager.release_scene_music(BEDROOM_SCENE)
 
 func create_energy_bar() -> void:
 	energy_bar = TextureRect.new()
@@ -126,7 +129,7 @@ func set_max_energy(value: int, refill: bool = false) -> void:
 	PlayerState.set_max_energy(value, refill)
 
 func update_player_display() -> void:
-	round_label.text = str(PlayerState.round_number)
+	round_label.text = "%d岁" % PlayerState.get_age_years()
 	update_energy_display()
 	update_point_board_values()
 
@@ -253,7 +256,7 @@ func update_layout() -> void:
 	var round_board_scale := ROUND_BOARD_WIDTH * image_scale / round_board.texture.get_width()
 	round_board.size = round_board.texture.get_size() * round_board_scale
 	round_board.position = image_origin + Vector2(IMAGE_SIZE.x - ROUND_BOARD_WIDTH - 38.0, 24.0) * image_scale
-	round_label.add_theme_font_size_override("font_size", maxi(1, roundi(58.0 * image_scale)))
+	round_label.add_theme_font_size_override("font_size", maxi(1, roundi(40.0 * image_scale)))
 	update_player_display()
 	place_hotspot(clock_button, clock_highlight, CLOCK_RECT, image_origin, image_scale)
 	place_hotspot(phone_button, phone_highlight, PHONE_RECT, image_origin, image_scale)
