@@ -11,6 +11,7 @@ const SUBJECT_REWARDS := ["情商经验", "智商经验", "升级点"]
 @onready var subject_name: Label = $StudyBoard/SubjectName
 @onready var level_value: Label = $StudyBoard/LevelValue
 @onready var experience_value: Label = $StudyBoard/ExperienceValue
+@onready var round_reward_label: Label = $StudyBoard/RoundReward
 @onready var reward_label: Label = $StudyBoard/ActionReward
 @onready var energy_cost_label: Label = $StudyBoard/ActionEnergyCost
 
@@ -40,6 +41,7 @@ func update_layout() -> void:
 	level_value.add_theme_font_size_override("font_size", value_font_size)
 	experience_value.add_theme_font_size_override("font_size", value_font_size)
 	var action_font_size := maxi(1, roundi(29.0 * board_scale))
+	round_reward_label.add_theme_font_size_override("font_size", action_font_size)
 	reward_label.add_theme_font_size_override("font_size", action_font_size)
 	energy_cost_label.add_theme_font_size_override("font_size", action_font_size)
 
@@ -53,12 +55,13 @@ func select_subject(subject: StudyProgress.Subject) -> void:
 
 
 func update_progress() -> void:
-	var experience := StudyProgress.get_experience(selected_subject)
-	var required := StudyProgress.EXPERIENCE_PER_LEVEL
+	var progress := StudyProgress.get_progress(selected_subject)
+	var required := StudyProgress.required_experience(progress.x)
 	subject_name.text = SUBJECT_NAMES[selected_subject]
-	level_value.text = "Lv. %d" % StudyProgress.get_level(selected_subject)
-	experience_value.text = "%d / %d" % [experience, required]
-	progress_material.set_shader_parameter("fill_ratio", float(experience) / required)
+	level_value.text = "Lv. %d" % progress.x
+	experience_value.text = "%d / %d" % [progress.y, required]
+	progress_material.set_shader_parameter("fill_ratio", float(progress.y) / required)
+	round_reward_label.text = "每回合  %s +%d" % [SUBJECT_REWARDS[selected_subject], progress.x]
 
 
 func perform_selected_action() -> void:

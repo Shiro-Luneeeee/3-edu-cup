@@ -59,7 +59,7 @@ const LINES := [
 
 
 func _ready() -> void:
-	art.texture = CLASSROOM_ART
+	show_background(CLASSROOM_ART)
 	YuePortraits.show_on(yue_portrait, RoundCalendar.SCHOOL_AGE)
 	place_portrait()
 	super._ready()

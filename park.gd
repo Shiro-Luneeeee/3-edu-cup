@@ -1,7 +1,9 @@
 extends "res://map_activity.gd"
 
 const MEETING_SCENE := preload("res://park_meeting.tscn")
-const ParkMeeting := preload("res://park_meeting.gd")
+const GOLDFISH_SCENE := preload("res://yue_goldfish.tscn")
+const FAREWELL_SCENE := preload("res://yue_farewell.tscn")
+const StoryDialogue := preload("res://story_dialogue.gd")
 const STORY_CARD_OFFER_SCENE := preload("res://story_card_offer.tscn")
 const StoryCardOffer := preload("res://story_card_offer.gd")
 
@@ -23,7 +25,7 @@ const ROAD_POINTS := [
 	Vector2(432, 605), Vector2(408, 607),
 ]
 
-var meeting: ParkMeeting
+var story: StoryDialogue
 var story_card_offer: StoryCardOffer
 
 
@@ -37,43 +39,52 @@ func _ready() -> void:
 
 
 func can_open_character(character: String) -> bool:
-	return not is_instance_valid(meeting) and not is_instance_valid(story_card_offer) and super.can_open_character(character)
+	return not is_instance_valid(story) and not is_instance_valid(story_card_offer) and super.can_open_character(character)
 
 
 func open_character(character: String) -> void:
-	if not SocialCharacters.has_story(character, scene_file_path, PlayerState.round_number, PlayerState.park_meeting_seen):
+	var chapter := PlayerState.yue_park_chapter()
+	if not SocialCharacters.has_story(character, scene_file_path, chapter):
 		super.open_character(character)
 		return
 	if can_open_character(character):
-		SceneFade.play_action(show_meeting)
+		if chapter == SocialCharacters.YueChapter.GOLDFISH and PlayerState.yue_goldfish_seen:
+			show_story_card_offer(chapter)
+		else:
+			SceneFade.play_action(show_story.bind(chapter))
 
 
-func show_meeting() -> void:
-	meeting = MEETING_SCENE.instantiate() as ParkMeeting
-	meeting.completed.connect(finish_meeting, CONNECT_ONE_SHOT)
-	add_child(meeting)
+func show_story(chapter: SocialCharacters.YueChapter) -> void:
+	var scene: PackedScene = [MEETING_SCENE, GOLDFISH_SCENE, FAREWELL_SCENE][chapter]
+	story = scene.instantiate() as StoryDialogue
+	story.completed.connect(finish_story.bind(chapter), CONNECT_ONE_SHOT)
+	add_child(story)
 
 
-func finish_meeting() -> void:
-	meeting.hide()
-	meeting.queue_free()
-	var card_id := PlayerState.yue_story_card_offer(0)
+func finish_story(chapter: SocialCharacters.YueChapter) -> void:
+	story.hide()
+	story.queue_free()
+	show_story_card_offer(chapter)
+
+
+func show_story_card_offer(chapter: SocialCharacters.YueChapter) -> void:
+	var card_id := PlayerState.yue_story_card_offer(chapter)
 	if card_id < 0:
-		PlayerState.meet_yue(false)
+		PlayerState.finish_yue_park_story(chapter, false)
 		return
 	story_card_offer = STORY_CARD_OFFER_SCENE.instantiate() as StoryCardOffer
-	story_card_offer.decided.connect(finish_card_offer, CONNECT_ONE_SHOT)
+	story_card_offer.decided.connect(finish_card_offer.bind(chapter), CONNECT_ONE_SHOT)
 	add_child(story_card_offer)
 	story_card_offer.show_offer(SocialCharacters.YUE, card_id)
 
 
-func finish_card_offer(add_to_deck: bool) -> void:
-	PlayerState.meet_yue(add_to_deck)
+func finish_card_offer(add_to_deck: bool, chapter: SocialCharacters.YueChapter) -> void:
+	PlayerState.finish_yue_park_story(chapter, add_to_deck)
 	story_card_offer.queue_free()
 
 
 func _unhandled_key_input(event: InputEvent) -> void:
-	if is_instance_valid(meeting) or is_instance_valid(story_card_offer):
+	if is_instance_valid(story) or is_instance_valid(story_card_offer):
 		if event.is_action_pressed("ui_cancel"):
 			get_viewport().set_input_as_handled()
 		return

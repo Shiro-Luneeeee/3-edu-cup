@@ -66,6 +66,7 @@ func show_next_reward() -> void:
 	panel.heading_text = "%s升至 %d 级" % [PlayerState.STAT_NAMES[stat], PlayerState.claimed_stat_levels[stat] + 1]
 	panel.continue_text = "继续"
 	panel.fixed_offer.assign(STAT_OFFERS[stat])
+	panel.reward_skipped.connect(close_reward)
 	if stat == PlayerState.Stat.INTELLIGENCE and needs_deck:
 		panel.requires_starter_deck = true
 		panel.heading_text = "智商升至 %d 级" % intelligence_level

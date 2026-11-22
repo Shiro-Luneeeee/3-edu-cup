@@ -8,6 +8,7 @@ const CardCatalog := preload("res://card_catalog.gd")
 const MapActivity := preload("res://map_activity_data.gd")
 const RoundEvents := preload("res://round_event_catalog.gd")
 const SocialCharacters := preload("res://social_characters.gd")
+const ShopProducts := preload("res://shop_products.gd")
 const STAT_NAMES := ["智商", "情商", "体魄"]
 const STAT_CURVE_VERSION := 2
 const LEGACY_STAT_FIRST_LEVEL_COST := 20
@@ -34,6 +35,8 @@ var next_round_energy_bonus := 0
 var max_health := DEFAULT_MAX_HEALTH
 var player_name := DEFAULT_PLAYER_NAME
 var park_meeting_seen := false
+var yue_goldfish_seen := false
+var yue_farewell_seen := false
 var school_intro_seen := false
 var round_number := 1
 var intelligence := 0
@@ -74,6 +77,8 @@ func reset() -> void:
 	_yue_story_cards_resolved = 0
 	player_name = DEFAULT_PLAYER_NAME
 	park_meeting_seen = false
+	yue_goldfish_seen = false
+	yue_farewell_seen = false
 	school_intro_seen = false
 	round_number = 1
 	_last_event_round = 0
@@ -107,6 +112,8 @@ func make_snapshot() -> Dictionary:
 		"max_health": max_health,
 		"player_name": player_name,
 		"park_meeting_seen": park_meeting_seen,
+		"yue_goldfish_seen": yue_goldfish_seen,
+		"yue_farewell_seen": yue_farewell_seen,
 		"school_intro_seen": school_intro_seen,
 		"round_number": round_number,
 		"last_event_round": _last_event_round,
@@ -139,6 +146,8 @@ func restore_snapshot(data: Dictionary) -> void:
 	var saved_name := str(data.get("player_name", "")).strip_edges()
 	player_name = DEFAULT_PLAYER_NAME if saved_name.is_empty() else saved_name
 	park_meeting_seen = bool(data.get("park_meeting_seen", false))
+	yue_goldfish_seen = bool(data.get("yue_goldfish_seen", false))
+	yue_farewell_seen = bool(data.get("yue_farewell_seen", false))
 	school_intro_seen = bool(data.get("school_intro_seen", false))
 	round_number = maxi(1, int(data.get("round_number", 1)))
 	_last_event_round = clampi(int(data.get("last_event_round", round_number)), 0, round_number)
@@ -198,7 +207,12 @@ func advance_round() -> void:
 	for activity_id in _activity_available_rounds.keys():
 		if _activity_available_rounds[activity_id] <= round_number:
 			_activity_available_rounds.erase(activity_id)
-	money += ROUND_ALLOWANCE
+	var product_effects := ShopProducts.recurring_effects(owned_products)
+	money += ROUND_ALLOWANCE + int(product_effects.get("money", 0))
+	intelligence += StudyProgress.get_level(StudyProgress.Subject.MATH) + int(product_effects.get("intelligence", 0))
+	emotional_intelligence += StudyProgress.get_level(StudyProgress.Subject.CHINESE) + int(product_effects.get("emotional_intelligence", 0))
+	physical_strength += int(product_effects.get("physical_strength", 0))
+	upgrade_points += StudyProgress.get_level(StudyProgress.Subject.ENGLISH) + int(product_effects.get("upgrade_points", 0))
 	round_energy_bonus = 0
 	set_energy(max_energy)
 
@@ -372,6 +386,7 @@ func try_buy_product(product_id: String, price: int, repeatable: bool, effects: 
 	upgrade_points = maxi(0, upgrade_points + int(effects.get("upgrade_points", 0)))
 	social_efficiency_percent = maxi(0, social_efficiency_percent + int(effects.get("social_efficiency_percent", 0)))
 	max_energy = maxi(1, max_energy + int(effects.get("max_energy", 0)))
+	max_health = maxi(DEFAULT_MAX_HEALTH, max_health + int(effects.get("max_health", 0)))
 	var energy_change := int(effects.get("current_energy", 0))
 	set_energy(current_energy + energy_change, energy_change > 0)
 	return true
@@ -404,11 +419,21 @@ func add_character_affection(character: String, base_amount: int) -> int:
 	return gain
 
 
-func meet_yue(add_story_card: bool) -> void:
-	if park_meeting_seen:
+func yue_park_chapter() -> SocialCharacters.YueChapter:
+	# Saves from before the second card was added can still make its one-time choice.
+	if yue_goldfish_seen and yue_story_card_offer(SocialCharacters.YueChapter.GOLDFISH) >= 0:
+		return SocialCharacters.YueChapter.GOLDFISH
+	return SocialCharacters.yue_park_chapter(round_number, park_meeting_seen, yue_goldfish_seen, yue_farewell_seen, affection_progress(SocialCharacters.YUE).x)
+
+
+func finish_yue_park_story(chapter: SocialCharacters.YueChapter, add_story_card: bool) -> void:
+	if chapter == SocialCharacters.YueChapter.NONE or chapter != yue_park_chapter():
 		return
-	park_meeting_seen = true
-	resolve_yue_story_card(0, add_story_card)
+	match chapter:
+		SocialCharacters.YueChapter.FIRST_MEETING: park_meeting_seen = true
+		SocialCharacters.YueChapter.GOLDFISH: yue_goldfish_seen = true
+		SocialCharacters.YueChapter.FAREWELL: yue_farewell_seen = true
+	resolve_yue_story_card(chapter, add_story_card)
 	changed.emit()
 
 

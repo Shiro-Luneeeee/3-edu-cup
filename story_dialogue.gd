@@ -1,10 +1,13 @@
 extends Control
 
 signal completed
+signal preview_cancelled
 
 const LISTENING_TINT := Color(0.60, 0.57, 0.64)
+const BACKGROUND_FADE_TIME := 0.32
 
 @onready var art: TextureRect = %Background
+@onready var outgoing_background: TextureRect = %OutgoingBackground
 @onready var stage: Control = $Stage
 @onready var yue_portrait: TextureRect = %YuePortrait
 @onready var dialogue_box: PanelContainer = $DialogueBox
@@ -14,6 +17,8 @@ const LISTENING_TINT := Color(0.60, 0.57, 0.64)
 @onready var next_button: Button = %Next
 
 var line_index := -1
+var background_fade: Tween
+var preview_only := false
 
 
 func _ready() -> void:
@@ -47,7 +52,49 @@ func advance() -> void:
 	speaker_name.text = stage_line(line)
 	name_tag.visible = not speaker_name.text.is_empty()
 	dialogue.text = str(line["text"]).replace("/name", PlayerState.player_name)
-	next_button.text = final_button_text() if line_index == story_lines.size() - 1 else "继续  ›"
+	next_button.text = "继续  ›"
+	if line_index == story_lines.size() - 1:
+		next_button.text = "查看专属卡  ›" if preview_only else final_button_text()
+
+
+func show_background(texture: Texture2D) -> Tween:
+	if texture == null or texture == art.texture:
+		return null
+	var previous := art.texture
+	art.texture = texture
+	if previous == null:
+		return null
+	if background_fade != null:
+		background_fade.kill()
+		if outgoing_background.self_modulate.a > 0.5:
+			previous = outgoing_background.texture
+	outgoing_background.texture = previous
+	outgoing_background.self_modulate.a = 1.0
+	background_fade = create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	background_fade.tween_property(outgoing_background, "self_modulate:a", 0.0, BACKGROUND_FADE_TIME)
+	background_fade.finished.connect(finish_background_fade, CONNECT_ONE_SHOT)
+	return background_fade
+
+
+func finish_background_fade() -> void:
+	outgoing_background.texture = null
+	background_fade = null
+
+
+func show_yue_background(texture: Texture2D, show_portrait: bool) -> void:
+	var fade := show_background(texture)
+	if fade == null:
+		yue_portrait.self_modulate.a = 1.0
+		yue_portrait.visible = show_portrait
+		return
+	var half_time := BACKGROUND_FADE_TIME * 0.5
+	if show_portrait:
+		yue_portrait.self_modulate.a = 0.0
+		yue_portrait.show()
+		fade.parallel().tween_property(yue_portrait, "self_modulate:a", 1.0, half_time).set_delay(half_time)
+	elif yue_portrait.visible:
+		fade.parallel().tween_property(yue_portrait, "self_modulate:a", 0.0, half_time)
+		fade.finished.connect(yue_portrait.hide, CONNECT_ONE_SHOT)
 
 
 func place_portrait() -> void:
@@ -84,6 +131,11 @@ func _gui_input(event: InputEvent) -> void:
 
 
 func _unhandled_key_input(event: InputEvent) -> void:
+	if preview_only and event is InputEventKey and event.pressed and not event.is_echo():
+		if event.keycode == KEY_I or event.is_action_pressed("ui_cancel"):
+			get_viewport().set_input_as_handled()
+			preview_cancelled.emit()
+			return
 	if not event.is_echo() and (event.is_action_pressed("ui_accept") or event.is_action_pressed("ui_select")):
 		get_viewport().set_input_as_handled()
 		advance()

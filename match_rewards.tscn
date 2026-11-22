@@ -109,3 +109,13 @@ layout_mode = 2
 mouse_default_cursor_shape = 2
 theme_override_font_sizes/font_size = 21
 text = "稍后领取"
+
+[node name="SkipButton" type="Button" parent="Margin/Content/Footer"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(150, 50)
+layout_mode = 2
+mouse_default_cursor_shape = 2
+theme_override_font_sizes/font_size = 21
+text = "放弃奖励"
+tooltip_text = "保留已升等级，并放弃本级的奖励。"

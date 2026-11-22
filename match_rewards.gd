@@ -2,6 +2,7 @@ extends ColorRect
 
 signal continue_requested
 signal deferred_requested
+signal reward_skipped
 
 enum Reward { NONE = -1, REMOVE, ADD, COPY, MONEY, AFFECTION, UPGRADE_POINTS, MAX_ENERGY, MAX_HEALTH, ENERGY_SUPPLY }
 
@@ -50,6 +51,7 @@ var target_cards: Array[int] = []
 @onready var choices: GridContainer = %Choices
 @onready var claimed_art: TextureRect = %ClaimedArt
 @onready var next_button: Button = %NextRoundButton
+@onready var skip_button: Button = %SkipButton
 
 
 func _ready() -> void:
@@ -59,6 +61,8 @@ func _ready() -> void:
 	next_button.text = continue_text
 	next_button.pressed.connect(func() -> void: continue_requested.emit())
 	%LaterButton.pressed.connect(func() -> void: deferred_requested.emit())
+	skip_button.visible = level_reward_stat >= 0
+	skip_button.pressed.connect(skip_level_reward)
 	resized.connect(update_card_sizes)
 	show_rewards()
 	if requires_starter_deck:
@@ -200,11 +204,23 @@ func choose_target(card_id: int) -> void:
 			complete_reward("已复制「%s」" % card_name)
 
 
-func complete_reward(message: String) -> void:
+func settle_reward() -> void:
 	reward_claimed = true
 	if level_reward_stat >= 0:
 		PlayerState.claimed_stat_levels[level_reward_stat] += 1
 	PlayerState.changed.emit()
+
+
+func skip_level_reward() -> void:
+	if level_reward_stat < 0 or reward_claimed:
+		return
+	settle_reward()
+	reward_skipped.emit()
+
+
+func complete_reward(message: String) -> void:
+	settle_reward()
+	skip_button.hide()
 	prompt.text = message
 	clear_choices()
 	scroll.hide()

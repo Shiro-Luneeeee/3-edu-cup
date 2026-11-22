@@ -30,10 +30,11 @@ func _ready() -> void:
 
 
 func refresh_character_markers() -> void:
-	var placements := SocialCharacters.locations_for_round(PlayerState.round_number, PlayerState.park_meeting_seen)
+	var yue_chapter := PlayerState.yue_park_chapter()
+	var placements := SocialCharacters.locations_for_round(PlayerState.round_number, PlayerState.park_meeting_seen, yue_chapter)
 	var story_characters: Array[String] = []
 	for character: String in placements:
-		if SocialCharacters.has_story(character, placements[character], PlayerState.round_number, PlayerState.park_meeting_seen):
+		if SocialCharacters.has_story(character, placements[character], yue_chapter):
 			story_characters.append(character)
 	if placements == last_character_locations and story_characters == last_story_characters:
 		return

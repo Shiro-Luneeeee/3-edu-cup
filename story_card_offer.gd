@@ -20,10 +20,12 @@ func _ready() -> void:
 	grab_focus()
 
 
-func show_offer(character: String, card_id: int) -> void:
+func show_offer(character: String, card_id: int, preview_only: bool = false) -> void:
 	title.text = "%s的专属卡牌" % character
 	card_name.text = "「%s」" % CardCatalog.card_name(card_id)
 	card_art.texture = CardCatalog.texture(card_id)
+	if preview_only:
+		%Warning.text = "预览中的选择不会写入存档。"
 
 
 func fit_panel() -> void:

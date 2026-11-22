@@ -20,11 +20,12 @@ func _ready() -> void:
 func refresh_visitors() -> void:
 	var here: Array[String] = []
 	var stories: Array[String] = []
-	var locations := SocialCharacters.locations_for_round(PlayerState.round_number, PlayerState.park_meeting_seen)
+	var yue_chapter := PlayerState.yue_park_chapter()
+	var locations := SocialCharacters.locations_for_round(PlayerState.round_number, PlayerState.park_meeting_seen, yue_chapter)
 	for character: String in locations:
 		if locations[character] == scene_file_path:
 			here.append(character)
-			if SocialCharacters.has_story(character, scene_file_path, PlayerState.round_number, PlayerState.park_meeting_seen):
+			if SocialCharacters.has_story(character, scene_file_path, yue_chapter):
 				stories.append(character)
 	if here == visitor_ids and stories == visitor_stories:
 		return

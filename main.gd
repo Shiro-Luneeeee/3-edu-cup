@@ -994,7 +994,7 @@ func apply_card_effect(card_id: int, slot: Control, multiplier: float) -> bool:
 		21:
 			energy += roundi(int(values["energy_gain"]) * multiplier)
 			next_turn_energy_change += roundi(int(values["next_energy_change"]) * multiplier)
-		22:
+		22, CardCatalog.YUE_GOLDFISH_CARD:
 			slot.set_meta("blocked", true)
 			refresh_slot_statuses(slot)
 			animate_slot_status(slot, slot.get_node("BlockMark"), SLOT_STATUS["blocked_until"][3])
@@ -1003,12 +1003,7 @@ func apply_card_effect(card_id: int, slot: Control, multiplier: float) -> bool:
 			next_turn_energy_change += roundi(int(values["next_energy_gain"]) * multiplier)
 			next_turn_slot_locks[slot] = maxi(next_turn_slot_locks.get(slot, 0), int(values["duration"]))
 		24:
-			if not played_discards.is_empty() and hand.size() < MAX_HAND_SIZE:
-				var chosen := await request_card_choice(played_discards, false, "选择一张打出过的牌加入手牌")
-				discard_pile.erase(chosen)
-				played_discards.erase(chosen)
-				give_drawn_card(chosen)
-				await get_tree().create_timer(0.6).timeout
+			await recover_played_cards(1)
 		25:
 			await draw_cards(roundi(int(values["draw"]) * multiplier), true)
 		26:
@@ -1024,8 +1019,26 @@ func apply_card_effect(card_id: int, slot: Control, multiplier: float) -> bool:
 				await draw_cards(roundi(int(values["draw"]) * multiplier))
 		CardCatalog.YUE_FIRST_CARD:
 			grant_slot_status(slot, "repeat_until", int(values["duration"]))
+		CardCatalog.YUE_EMPTY_FISHBOWL_CARD:
+			await recover_played_cards(2, int(values["recover_max_cost"]))
 	update_values()
 	return false
+
+func recover_played_cards(amount: int, maximum_cost: int = -1) -> void:
+	var candidates := played_discards.duplicate()
+	if maximum_cost >= 0:
+		candidates = candidates.filter(func(card_id: int) -> bool: return battle_card_cost(card_id) <= maximum_cost)
+	var count := mini(amount, mini(candidates.size(), MAX_HAND_SIZE - hand.size()))
+	for pick in count:
+		var prompt := "选择一张打出过的牌加入手牌"
+		if maximum_cost >= 0:
+			prompt = "取回已打出的牌（花费 ≤ %d）  %d/%d" % [maximum_cost, pick + 1, count]
+		var chosen := await request_card_choice(candidates, false, prompt)
+		candidates.erase(chosen)
+		discard_pile.erase(chosen)
+		played_discards.erase(chosen)
+		give_drawn_card(chosen)
+		await get_tree().create_timer(0.6).timeout
 
 func choose_and_discard_cards(amount: int) -> void:
 	for pick in mini(amount, hand.size()):

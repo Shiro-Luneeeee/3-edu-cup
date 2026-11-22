@@ -71,9 +71,8 @@ func set_portrait_expression(expression: YuePortraits.Mood) -> void:
 
 func stage_line(line: Dictionary) -> String:
 	if line.has("background"):
-		var background: String = line["background"]
-		art.texture = load(BACKGROUNDS[background]) as Texture2D
-		yue_portrait.visible = background == "pond"
+		var location: String = line["background"]
+		show_yue_background(load(BACKGROUNDS[location]) as Texture2D, location == "pond")
 	if line.has("expression"):
 		set_portrait_expression(line["expression"])
 	var speaker: int = line.get("speaker", Speaker.NARRATOR)
