@@ -77,7 +77,6 @@ func _ready() -> void:
 	map_app.pressed.connect(open_map)
 	social_app.pressed.connect(open_social)
 	exit_button.pressed.connect(SaveManager.open_save_page)
-	$NextRoundButton.pressed.connect(SceneFade.advance_to_next_round)
 	phone_overlay.gui_input.connect(on_phone_overlay_input)
 	update_layout()
 

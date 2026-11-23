@@ -10,6 +10,7 @@ const RoundEvents := preload("res://round_event_catalog.gd")
 const RoundCalendar := preload("res://round_calendar.gd")
 const SocialCharacters := preload("res://social_characters.gd")
 const ShopProducts := preload("res://shop_products.gd")
+const GameAesthetic := preload("res://game_aesthetic.gd")
 const STAT_NAMES := ["智商", "情商", "体魄"]
 const STAT_CURVE_VERSION := 2
 const LEGACY_STAT_FIRST_LEVEL_COST := 20
@@ -51,6 +52,9 @@ var physical_strength := 0
 var upgrade_points := 0
 var money := DEFAULT_MONEY
 var owned_products: Array[String] = []
+var game_aesthetic_points := 0
+var game_play_counts: Dictionary[String, int] = {}
+var game_aesthetic_reward_claimed := false
 var daoxiang_act := 0
 var daoxiang_last_age := 0
 var daoxiang_reply := ""
@@ -108,6 +112,9 @@ func reset() -> void:
 	max_health = DEFAULT_MAX_HEALTH
 	money = DEFAULT_MONEY
 	owned_products.clear()
+	game_aesthetic_points = 0
+	game_play_counts.clear()
+	game_aesthetic_reward_claimed = false
 	daoxiang_act = 0
 	daoxiang_last_age = 0
 	daoxiang_reply = ""
@@ -149,6 +156,9 @@ func make_snapshot() -> Dictionary:
 		"upgrade_points": upgrade_points,
 		"money": money,
 		"owned_products": owned_products.duplicate(),
+		"game_aesthetic_points": game_aesthetic_points,
+		"game_play_counts": game_play_counts.duplicate(),
+		"game_aesthetic_reward_claimed": game_aesthetic_reward_claimed,
 		"daoxiang_act": daoxiang_act,
 		"daoxiang_last_age": daoxiang_last_age,
 		"daoxiang_reply": daoxiang_reply,
@@ -211,6 +221,14 @@ func restore_snapshot(data: Dictionary) -> void:
 	for product_id in data.get("owned_products", []):
 		if product_id is String and not owned_products.has(product_id):
 			owned_products.append(product_id)
+	game_aesthetic_points = clampi(int(data.get("game_aesthetic_points", 0)), 0, GameAesthetic.target_points())
+	game_play_counts.clear()
+	var saved_game_plays: Variant = data.get("game_play_counts", {})
+	if saved_game_plays is Dictionary:
+		for game_id in saved_game_plays:
+			if game_id is String and GameAesthetic.contains_game(game_id):
+				game_play_counts[game_id] = clampi(int(saved_game_plays[game_id]), 0, 100000)
+	game_aesthetic_reward_claimed = bool(data.get("game_aesthetic_reward_claimed", false))
 	daoxiang_act = clampi(int(data.get("daoxiang_act", 0)), 0, 3)
 	daoxiang_last_age = maxi(0, int(data.get("daoxiang_last_age", 0)))
 	daoxiang_reply = str(data.get("daoxiang_reply", ""))
@@ -593,6 +611,28 @@ func reward_game(stat: String, amount: int) -> void:
 			push_error("Unknown game reward: %s" % stat)
 			return
 	changed.emit()
+
+
+func game_aesthetic_gain(game_id: String, price: int) -> int:
+	if not GameAesthetic.contains_game(game_id) or game_aesthetic_points >= GameAesthetic.target_points():
+		return 0
+	var completed_plays: int = game_play_counts.get(game_id, 0)
+	return mini(GameAesthetic.gain(price, completed_plays), GameAesthetic.target_points() - game_aesthetic_points)
+
+
+func record_game_play(game_id: String, price: int) -> Dictionary:
+	if not owns_game(game_id) or not GameAesthetic.contains_game(game_id) or price <= 0:
+		return {"gain": 0, "reward_unlocked": false}
+	var gain := game_aesthetic_gain(game_id, price)
+	game_aesthetic_points += gain
+	game_play_counts[game_id] = game_play_counts.get(game_id, 0) + 1
+	var reward_unlocked := game_aesthetic_points >= GameAesthetic.target_points() and not game_aesthetic_reward_claimed
+	if reward_unlocked:
+		game_aesthetic_reward_claimed = true
+		set_max_energy(max_energy * 2, true)
+	else:
+		changed.emit()
+	return {"gain": gain, "reward_unlocked": reward_unlocked}
 
 
 func set_energy(value: int, allow_overflow: bool = false) -> void:
