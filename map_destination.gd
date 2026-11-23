@@ -78,18 +78,34 @@ func finish_dialogue(on_complete: Callable) -> void:
 
 func show_story_card_offer(chapter: SocialCharacters.YueChapter) -> void:
 	var card_id := PlayerState.yue_story_card_offer(chapter)
+	offer_story_card(SocialCharacters.YUE, card_id, complete_yue_chapter.bind(chapter))
+
+
+func complete_yue_chapter(add_to_deck: bool, chapter: SocialCharacters.YueChapter) -> void:
+	PlayerState.finish_yue_story(chapter, add_to_deck)
+
+
+func request_confession_confirmation(character: String, on_decide: Callable) -> void:
+	story_card_offer = STORY_CARD_OFFER_SCENE.instantiate() as StoryCardOffer
+	story_card_offer.decided.connect(finish_card_offer.bind(on_decide), CONNECT_ONE_SHOT)
+	add_child(story_card_offer)
+	story_card_offer.show_confession_confirmation(character)
+
+
+func offer_story_card(character: String, card_id: int, on_decide: Callable) -> void:
 	if card_id < 0:
-		PlayerState.finish_yue_story(chapter, false)
+		on_decide.call(false)
 		return
 	story_card_offer = STORY_CARD_OFFER_SCENE.instantiate() as StoryCardOffer
-	story_card_offer.decided.connect(finish_card_offer.bind(chapter), CONNECT_ONE_SHOT)
+	story_card_offer.decided.connect(finish_card_offer.bind(on_decide), CONNECT_ONE_SHOT)
 	add_child(story_card_offer)
-	story_card_offer.show_offer(SocialCharacters.YUE, card_id)
+	story_card_offer.show_offer(character, card_id)
 
 
-func finish_card_offer(add_to_deck: bool, chapter: SocialCharacters.YueChapter) -> void:
-	PlayerState.finish_yue_story(chapter, add_to_deck)
+func finish_card_offer(add_to_deck: bool, on_decide: Callable) -> void:
+	story_card_offer.hide()
 	story_card_offer.queue_free()
+	on_decide.call(add_to_deck)
 
 
 func _unhandled_key_input(event: InputEvent) -> void:

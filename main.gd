@@ -50,6 +50,9 @@ var next_turn_energy_change := 0
 var battle_card_sources: Dictionary[int, int] = {}
 var free_cards: Dictionary[int, bool] = {}
 var promise_draw_cards: Dictionary[int, bool] = {}
+var pen_discounts: Dictionary[int, int] = {}
+var discard_progress_bonuses: Dictionary[int, int] = {}
+var end_turn_copies: Array[int] = []
 var battle_cost_reduction := 0
 var oath_applied := false
 var energy := STARTING_ENERGY
@@ -175,6 +178,9 @@ func _input(event: InputEvent) -> void:
 func end_turn() -> void:
 	if game_over or card_effect_resolving or resolving_attack or showing_turn_banner:
 		return
+	for card_id in end_turn_copies:
+		give_drawn_card(card_id)
+	end_turn_copies.clear()
 	if turn >= FINAL_TURN:
 		settle_game(true)
 		return
@@ -286,13 +292,14 @@ func resolve_attack(attack_id: int) -> void:
 func discard_random_hand_card() -> void:
 	if hand.is_empty():
 		return
-	discard_hand_card(randi_range(0, hand.size() - 1))
+	apply_hand_discard_effects([discard_hand_card(randi_range(0, hand.size() - 1))])
 
-func discard_hand_card(index: int, animate_layout: bool = true) -> void:
+func discard_hand_card(index: int, animate_layout: bool = true) -> int:
 	var card: Control = hand_holder.get_child(index)
 	if card_preview.visible:
 		card_preview.hide()
-	discard_pile.append(hand.pop_at(index))
+	var discarded_id: int = hand.pop_at(index)
+	discard_pile.append(discarded_id)
 	card.get_node("HoverArea").mouse_filter = Control.MOUSE_FILTER_IGNORE
 	card.reparent(ui, true)
 	card.z_index = 45
@@ -303,7 +310,7 @@ func discard_hand_card(index: int, animate_layout: bool = true) -> void:
 	discard_tween.tween_property(card, "modulate:a", 0.0, 0.6).set_delay(0.12)
 	discard_tween.chain().tween_callback(card.queue_free)
 	if not animate_layout:
-		return
+		return discarded_id
 	for card_index in hand_holder.get_child_count():
 		var remaining: Control = hand_holder.get_child(card_index)
 		remaining.set_meta("hand_index", card_index)
@@ -311,6 +318,40 @@ func discard_hand_card(index: int, animate_layout: bool = true) -> void:
 		var layout_tween := create_tween().set_parallel(true)
 		layout_tween.tween_property(remaining, "position", get_fan_position(card_index, hand.size()), 0.35).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 		layout_tween.tween_property(remaining, "rotation", get_fan_rotation(card_index, hand.size()), 0.35).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	return discarded_id
+
+func discard_all_hand_cards() -> int:
+	var discarded: Array[int] = []
+	for index in range(hand.size() - 1, -1, -1):
+		discarded.append(discard_hand_card(index, false))
+	apply_hand_discard_effects(discarded)
+	return discarded.size()
+
+func apply_hand_discard_effects(discarded: Array[int]) -> void:
+	if discarded.is_empty():
+		return
+	var piles: Array[Array] = [hand, deck, discard_pile]
+	for pile in piles:
+		for card_id: int in pile:
+			var source := source_card_id(card_id)
+			if PlayerState.card_base_id(source) == CardCatalog.FUSHIMI_LAST_BATTLE_CARD:
+				var gain := int(PlayerState.card_numbers(source)["progress_per_discard"])
+				discard_progress_bonuses[card_id] = discard_progress_bonuses.get(card_id, 0) + gain * discarded.size()
+	for index in hand.size():
+		var card_id := hand[index]
+		if discard_progress_bonuses.has(card_id):
+			set_battle_card_face(hand_holder.get_child(index).get_node("CardArt"), card_id)
+	for card_id in discarded:
+		var source := source_card_id(card_id)
+		match PlayerState.card_base_id(source):
+			CardCatalog.FUSHIMI_PEN_CARD:
+				var reduction := int(PlayerState.card_numbers(source)["cost_reduction"])
+				pen_discounts[card_id] = pen_discounts.get(card_id, 0) + reduction
+				discard_pile.erase(card_id)
+				give_drawn_card(card_id)
+			CardCatalog.FUSHIMI_NIGHT_WALK_CARD:
+				progress += int(PlayerState.card_numbers(source)["discard_progress"])
+	update_values()
 
 func refill_draw_pile() -> bool:
 	if deck.is_empty():
@@ -416,6 +457,11 @@ func can_use_slot(slot: Control) -> bool:
 
 func build_deck() -> void:
 	deck.assign(PlayerState.card_deck)
+	for index in deck.size():
+		var card_id := deck[index]
+		match PlayerState.card_base_id(card_id):
+			CardCatalog.FUSHIMI_PEN_CARD, CardCatalog.FUSHIMI_LAST_BATTLE_CARD:
+				deck[index] = identify_card_copy(card_id)
 	deck.shuffle()
 
 func make_card_free(card_id: int) -> int:
@@ -437,12 +483,20 @@ func source_card_id(card_id: int) -> int:
 	return battle_card_sources.get(card_id, card_id)
 
 func battle_card_cost(card_id: int) -> int:
-	return 0 if free_cards.has(card_id) else maxi(0, PlayerState.card_cost(source_card_id(card_id)) - battle_cost_reduction)
+	if free_cards.has(card_id):
+		return 0
+	return maxi(0, PlayerState.card_cost(source_card_id(card_id)) - battle_cost_reduction - pen_discounts.get(card_id, 0))
+
+func battle_card_numbers(card_id: int) -> Dictionary:
+	var values := PlayerState.card_numbers(source_card_id(card_id))
+	if discard_progress_bonuses.has(card_id):
+		values["progress"] += discard_progress_bonuses[card_id]
+	return values
 
 func set_battle_card_face(face: CardFace, card_id: int) -> void:
 	var source := source_card_id(card_id)
 	var current_cost := battle_card_cost(card_id)
-	face.set_card(source, {}, current_cost if current_cost != PlayerState.card_cost(source) else -1)
+	face.set_card(source, battle_card_numbers(card_id), current_cost if current_cost != PlayerState.card_cost(source) else -1)
 	var marker := face.get_node_or_null("PromiseDraw") as Label
 	var marked := promise_draw_cards.has(card_id)
 	if marked and marker == null:
@@ -942,7 +996,7 @@ func resolve_play(card_id: int, slot: Control, multiplier: float, repetitions: i
 
 func apply_card_effect(card_id: int, slot: Control, multiplier: float) -> bool:
 	var source := source_card_id(card_id)
-	var values := PlayerState.card_numbers(source)
+	var values := battle_card_numbers(card_id)
 	match PlayerState.card_base_id(source):
 		0:
 			await draw_cards(roundi(int(values["draw"]) * multiplier))
@@ -1026,9 +1080,7 @@ func apply_card_effect(card_id: int, slot: Control, multiplier: float) -> bool:
 		19:
 			health = minf(max_health, int(values["health_set"]))
 		20:
-			if not hand.is_empty():
-				while not hand.is_empty():
-					discard_hand_card(hand.size() - 1, false)
+			if discard_all_hand_cards() > 0:
 				await get_tree().create_timer(0.55).timeout
 			await draw_cards(roundi(int(values["draw"]) * multiplier))
 		21:
@@ -1065,6 +1117,19 @@ func apply_card_effect(card_id: int, slot: Control, multiplier: float) -> bool:
 			apply_oath(roundi(int(values["cost_reduction"]) * multiplier))
 		CardCatalog.YUE_FINAL_PROMISE_CARD:
 			grant_final_promise()
+		CardCatalog.FUSHIMI_PEN_CARD, CardCatalog.FUSHIMI_LAST_BATTLE_CARD:
+			progress += int(values["progress"]) * multiplier
+		CardCatalog.FUSHIMI_TUTORING_CARD:
+			var discarded_cost := await choose_and_discard_cards(2)
+			health = minf(max_health, health + discarded_cost * multiplier)
+		CardCatalog.FUSHIMI_NIGHT_WALK_CARD:
+			progress += int(values["progress"]) * multiplier
+			end_turn_copies.append(source)
+		CardCatalog.FUSHIMI_TOGETHER_CARD:
+			var discarded := discard_all_hand_cards()
+			if discarded > 0:
+				await get_tree().create_timer(0.55).timeout
+				await draw_cards(roundi(discarded * multiplier))
 	update_values()
 	return false
 
@@ -1124,11 +1189,16 @@ func recover_played_cards(amount: int, maximum_cost: int = -1) -> void:
 		give_drawn_card(chosen)
 		await get_tree().create_timer(0.6).timeout
 
-func choose_and_discard_cards(amount: int) -> void:
+func choose_and_discard_cards(amount: int) -> int:
+	var discarded: Array[int] = []
+	var total_cost := 0
 	for pick in mini(amount, hand.size()):
 		var index := await request_card_choice(hand, true)
-		discard_hand_card(index)
+		total_cost += battle_card_cost(hand[index])
+		discarded.append(discard_hand_card(index))
 		await get_tree().create_timer(0.4).timeout
+	apply_hand_discard_effects(discarded)
+	return total_cost
 
 func unblock_slot(slot: Control) -> void:
 	slot.set_meta("blocked", false)

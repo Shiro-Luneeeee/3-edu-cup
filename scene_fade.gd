@@ -8,14 +8,9 @@ const RoundEvent := preload("res://round_event.gd")
 const RoundCalendar := preload("res://round_calendar.gd")
 const StoryDialogue := preload("res://story_dialogue.gd")
 const SCHOOL_INTRO := preload("res://school_intro.tscn")
-const GOLDFISH_SCENE := preload("res://yue_goldfish.tscn")
-const FAREWELL_SCENE := preload("res://yue_farewell.tscn")
-const CONFESSION_SCENE := preload("res://yue_confession.tscn")
-const FINAL_PROMISE_SCENE := preload("res://yue_final_promise.tscn")
-const STORY_CARD_OFFER_SCENE := preload("res://story_card_offer.tscn")
-const StoryCardOffer := preload("res://story_card_offer.gd")
-const SocialCharacters := preload("res://social_characters.gd")
-const CardCatalog := preload("res://card_catalog.gd")
+const MIDDLE_SCHOOL_INTRO := preload("res://middle_school_intro.tscn")
+const STORY_PREVIEW_MENU_SCENE := preload("res://story_preview_menu.tscn")
+const StoryPreviewMenu := preload("res://story_preview_menu.gd")
 const BEDROOM_SCENE := "res://bedroom.tscn"
 const COVER_TIME := 0.42
 const REVEAL_TIME := 0.48
@@ -26,8 +21,7 @@ var curtain := ColorRect.new()
 var paper_material := ShaderMaterial.new()
 var event_panel: RoundEvent
 var school_intro_panel: StoryDialogue
-var story_preview: StoryDialogue
-var preview_confirmation: StoryCardOffer
+var story_preview_menu: StoryPreviewMenu
 
 func _ready() -> void:
 	layer = 100
@@ -58,8 +52,8 @@ func change_to(scene_path: String, direction: float = 1.0, round_number: int = 0
 	else:
 		await move_paper(0.5, 1.0, REVEAL_TIME, Tween.EASE_IN_OUT)
 	if result == OK:
-		if scene_path == BEDROOM_SCENE and RoundCalendar.age(PlayerState.round_number) == RoundCalendar.SCHOOL_AGE and not PlayerState.school_intro_seen:
-			await show_school_intro()
+		if scene_path == BEDROOM_SCENE:
+			await show_school_opening()
 		if round_number > 0:
 			await show_round_event()
 	curtain.hide()
@@ -71,11 +65,19 @@ func advance_to_next_round() -> void:
 	PlayerState.apply_next_round_energy_bonus()
 	change_to(BEDROOM_SCENE, -1.0, PlayerState.round_number)
 
-func show_school_intro() -> void:
-	school_intro_panel = SCHOOL_INTRO.instantiate() as StoryDialogue
+func show_school_opening() -> void:
+	var current_round := PlayerState.round_number
+	if RoundCalendar.age(current_round) == RoundCalendar.SCHOOL_AGE and not PlayerState.school_intro_seen:
+		await show_school_intro(SCHOOL_INTRO)
+		PlayerState.school_intro_seen = true
+	elif RoundCalendar.is_middle_school_start(current_round) and not PlayerState.middle_school_intro_seen:
+		await show_school_intro(MIDDLE_SCHOOL_INTRO)
+		PlayerState.middle_school_intro_seen = true
+
+func show_school_intro(scene: PackedScene) -> void:
+	school_intro_panel = scene.instantiate() as StoryDialogue
 	add_child(school_intro_panel)
 	await school_intro_panel.completed
-	PlayerState.school_intro_seen = true
 	school_intro_panel.hide()
 	school_intro_panel.queue_free()
 	school_intro_panel = null
@@ -126,61 +128,25 @@ func move_paper(from: float, to: float, duration: float, easing: Tween.EaseType)
 func set_sweep_progress(value: float) -> void:
 	paper_material.set_shader_parameter("progress", value)
 
-func request_confession_preview() -> void:
-	preview_confirmation = STORY_CARD_OFFER_SCENE.instantiate() as StoryCardOffer
-	preview_confirmation.process_mode = Node.PROCESS_MODE_WHEN_PAUSED
-	preview_confirmation.decided.connect(confirm_confession_preview, CONNECT_ONE_SHOT)
+func open_story_preview_menu() -> void:
+	var previous_focus := get_viewport().gui_get_focus_owner()
+	story_preview_menu = STORY_PREVIEW_MENU_SCENE.instantiate() as StoryPreviewMenu
+	story_preview_menu.closed.connect(close_story_preview_menu.bind(previous_focus), CONNECT_ONE_SHOT)
 	get_tree().paused = true
-	add_child(preview_confirmation)
-	preview_confirmation.show_confession_confirmation(SocialCharacters.YUE, true)
+	add_child(story_preview_menu)
 
-func confirm_confession_preview(accepted: bool) -> void:
-	preview_confirmation.hide()
-	preview_confirmation.queue_free()
-	preview_confirmation = null
-	if accepted:
-		open_story_preview(SocialCharacters.YueChapter.CONFESSION)
-	else:
-		get_tree().paused = false
-
-func open_story_preview(chapter: SocialCharacters.YueChapter) -> void:
-	var scene: PackedScene = [GOLDFISH_SCENE, FAREWELL_SCENE, CONFESSION_SCENE, FINAL_PROMISE_SCENE][chapter - 1]
-	story_preview = scene.instantiate() as StoryDialogue
-	story_preview.preview_only = true
-	story_preview.process_mode = Node.PROCESS_MODE_WHEN_PAUSED
-	story_preview.completed.connect(show_preview_card_offer.bind(chapter), CONNECT_ONE_SHOT)
-	story_preview.preview_cancelled.connect(close_story_preview, CONNECT_ONE_SHOT)
-	get_tree().paused = true
-	add_child(story_preview)
-
-func show_preview_card_offer(chapter: SocialCharacters.YueChapter) -> void:
-	var card_id := CardCatalog.yue_story_card(chapter)
-	if card_id < 0:
-		close_story_preview()
-		return
-	story_preview.dialogue_box.hide()
-	var offer := STORY_CARD_OFFER_SCENE.instantiate() as StoryCardOffer
-	offer.decided.connect(close_story_preview.unbind(1), CONNECT_ONE_SHOT)
-	story_preview.add_child(offer)
-	offer.show_offer(SocialCharacters.YUE, card_id, true)
-
-func close_story_preview() -> void:
-	story_preview.hide()
-	story_preview.queue_free()
-	story_preview = null
+func close_story_preview_menu(previous_focus: Control) -> void:
+	story_preview_menu.hide()
+	story_preview_menu.queue_free()
+	story_preview_menu = null
 	get_tree().paused = false
+	if is_instance_valid(previous_focus) and previous_focus.is_visible_in_tree():
+		previous_focus.grab_focus()
 
 func _input(event: InputEvent) -> void:
-	if OS.is_debug_build() and not curtain.visible and event is InputEventKey and event.pressed and not event.is_echo() and event.keycode == KEY_I:
+	if OS.is_debug_build() and not curtain.visible and not is_instance_valid(story_preview_menu) and event is InputEventKey and event.pressed and not event.is_echo() and event.keycode == KEY_I:
 		get_viewport().set_input_as_handled()
-		if event.shift_pressed:
-			open_story_preview(SocialCharacters.YueChapter.GOLDFISH)
-		elif event.ctrl_pressed:
-			open_story_preview(SocialCharacters.YueChapter.FAREWELL)
-		elif event.alt_pressed:
-			request_confession_preview()
-		else:
-			open_story_preview(SocialCharacters.YueChapter.FINAL_PROMISE)
+		open_story_preview_menu()
 		return
 	var showing_cutscene := is_instance_valid(school_intro_panel) or is_instance_valid(event_panel)
 	if curtain.visible and (not showing_cutscene or event.is_action_pressed("ui_cancel")):

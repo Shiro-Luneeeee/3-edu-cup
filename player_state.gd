@@ -41,7 +41,13 @@ var yue_farewell_seen := false
 var yue_final_promise_seen := false
 var romantic_partner := ""
 var school_intro_seen := false
+var middle_school_intro_seen := false
 var fushimi_pen_seen := false
+var fushimi_pen_card_resolved := false
+var fushimi_tutoring_seen := false
+var fushimi_bookshop_seen := false
+var fushimi_confession_seen := false
+var fushimi_final_promise_seen := false
 var round_number := 1
 var passed_exams := 0
 var final_exam_passed := false
@@ -88,7 +94,13 @@ func reset() -> void:
 	yue_final_promise_seen = false
 	romantic_partner = ""
 	school_intro_seen = false
+	middle_school_intro_seen = false
 	fushimi_pen_seen = false
+	fushimi_pen_card_resolved = false
+	fushimi_tutoring_seen = false
+	fushimi_bookshop_seen = false
+	fushimi_confession_seen = false
+	fushimi_final_promise_seen = false
 	round_number = 1
 	passed_exams = 0
 	final_exam_passed = false
@@ -128,7 +140,13 @@ func make_snapshot() -> Dictionary:
 		"yue_final_promise_seen": yue_final_promise_seen,
 		"romantic_partner": romantic_partner,
 		"school_intro_seen": school_intro_seen,
+		"middle_school_intro_seen": middle_school_intro_seen,
 		"fushimi_pen_seen": fushimi_pen_seen,
+		"fushimi_pen_card_resolved": fushimi_pen_card_resolved,
+		"fushimi_tutoring_seen": fushimi_tutoring_seen,
+		"fushimi_bookshop_seen": fushimi_bookshop_seen,
+		"fushimi_confession_seen": fushimi_confession_seen,
+		"fushimi_final_promise_seen": fushimi_final_promise_seen,
 		"round_number": round_number,
 		"passed_exams": passed_exams,
 		"final_exam_passed": final_exam_passed,
@@ -168,7 +186,13 @@ func restore_snapshot(data: Dictionary) -> void:
 	var saved_partner: Variant = data.get("romantic_partner", "")
 	romantic_partner = saved_partner if saved_partner is String else ""
 	school_intro_seen = bool(data.get("school_intro_seen", false))
+	middle_school_intro_seen = bool(data.get("middle_school_intro_seen", false))
 	fushimi_pen_seen = bool(data.get("fushimi_pen_seen", false))
+	fushimi_pen_card_resolved = bool(data.get("fushimi_pen_card_resolved", false))
+	fushimi_tutoring_seen = bool(data.get("fushimi_tutoring_seen", false))
+	fushimi_bookshop_seen = bool(data.get("fushimi_bookshop_seen", false))
+	fushimi_confession_seen = bool(data.get("fushimi_confession_seen", false))
+	fushimi_final_promise_seen = bool(data.get("fushimi_final_promise_seen", false))
 	round_number = clampi(int(data.get("round_number", 1)), 1, RoundCalendar.FINAL_EXAM_ROUND)
 	passed_exams = maxi(0, int(data.get("passed_exams", 0)))
 	final_exam_passed = RoundCalendar.is_final_exam(round_number) and bool(data.get("final_exam_passed", false))
@@ -484,7 +508,12 @@ func resolve_yue_story_card(chapter_index: int, add_to_deck: bool) -> void:
 		return
 	if chapter_index != SocialCharacters.YueChapter.FINAL_PROMISE:
 		_yue_story_cards_resolved += 1
-	if add_to_deck and not card_deck.any(func(existing_id: int) -> bool: return card_base_id(existing_id) == card_id):
+	if add_to_deck:
+		add_story_card(card_id)
+
+
+func add_story_card(card_id: int) -> void:
+	if not card_deck.any(func(existing_id: int) -> bool: return card_base_id(existing_id) == card_id):
 		card_deck.append(card_id)
 
 
@@ -498,14 +527,48 @@ func social_locations() -> Dictionary[String, String]:
 
 func has_character_story(character: String, location: String) -> bool:
 	if character == SocialCharacters.FUSHIMI:
-		return location == SocialCharacters.SCHOOL and not fushimi_pen_seen and SocialCharacters.fushimi_pen_available(round_number)
+		return location == SocialCharacters.SCHOOL and fushimi_story_chapter() != SocialCharacters.FushimiChapter.NONE
 	return SocialCharacters.has_story(character, location, yue_story_chapter())
 
 
-func finish_fushimi_pen_story() -> void:
-	if has_character_story(SocialCharacters.FUSHIMI, SocialCharacters.SCHOOL):
-		fushimi_pen_seen = true
-		changed.emit()
+func fushimi_story_chapter() -> SocialCharacters.FushimiChapter:
+	if not fushimi_pen_seen:
+		return SocialCharacters.FushimiChapter.PEN if SocialCharacters.fushimi_pen_available(round_number) else SocialCharacters.FushimiChapter.NONE
+	var affection_level := affection_progress(SocialCharacters.FUSHIMI).x
+	if RoundCalendar.is_final_exam(round_number) and not final_exam_passed and not fushimi_final_promise_seen and affection_level >= SocialCharacters.FINAL_PROMISE_AFFECTION_LEVEL:
+		return SocialCharacters.FushimiChapter.FINAL_PROMISE
+	if not fushimi_pen_card_resolved:
+		return SocialCharacters.FushimiChapter.PEN
+	var age := RoundCalendar.age(round_number)
+	if age == SocialCharacters.FUSHIMI_TUTORING_AGE and not fushimi_tutoring_seen and affection_level >= SocialCharacters.FUSHIMI_TUTORING_AFFECTION_LEVEL:
+		return SocialCharacters.FushimiChapter.TUTORING
+	var bookshop_age := age >= RoundCalendar.MIDDLE_SCHOOL_AGE and age <= SocialCharacters.FUSHIMI_BOOKSHOP_MAX_AGE
+	if bookshop_age and not fushimi_bookshop_seen and affection_level >= SocialCharacters.FUSHIMI_BOOKSHOP_AFFECTION_LEVEL:
+		return SocialCharacters.FushimiChapter.BOOKSHOP
+	if age == SocialCharacters.FUSHIMI_CONFESSION_AGE and affection_level >= SocialCharacters.FUSHIMI_CONFESSION_AFFECTION_LEVEL and romantic_partner.is_empty() and not fushimi_confession_seen:
+		return SocialCharacters.FushimiChapter.CONFESSION
+	return SocialCharacters.FushimiChapter.NONE
+
+
+func finish_fushimi_story(chapter: SocialCharacters.FushimiChapter, add_to_deck: bool) -> void:
+	if chapter == SocialCharacters.FushimiChapter.NONE or chapter != fushimi_story_chapter():
+		return
+	match chapter:
+		SocialCharacters.FushimiChapter.PEN:
+			fushimi_pen_seen = true
+			fushimi_pen_card_resolved = true
+		SocialCharacters.FushimiChapter.TUTORING:
+			fushimi_tutoring_seen = true
+		SocialCharacters.FushimiChapter.BOOKSHOP:
+			fushimi_bookshop_seen = true
+		SocialCharacters.FushimiChapter.CONFESSION:
+			fushimi_confession_seen = true
+			romantic_partner = SocialCharacters.FUSHIMI
+		SocialCharacters.FushimiChapter.FINAL_PROMISE:
+			fushimi_final_promise_seen = true
+	if add_to_deck:
+		add_story_card(CardCatalog.fushimi_story_card(chapter))
+	changed.emit()
 
 
 func try_socialize(character: String) -> bool:

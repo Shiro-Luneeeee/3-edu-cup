@@ -1,0 +1,137 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://story_preview_menu.gd" id="1_menu"]
+
+[sub_resource type="StyleBoxFlat" id="Style_panel"]
+content_margin_left = 24.0
+content_margin_top = 18.0
+content_margin_right = 24.0
+content_margin_bottom = 16.0
+bg_color = Color(1, 0.964, 0.936, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.86, 0.68, 0.75, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+shadow_color = Color(0.09, 0.04, 0.13, 0.35)
+shadow_size = 12
+shadow_offset = Vector2(0, 6)
+
+[sub_resource type="StyleBoxFlat" id="Style_choice"]
+content_margin_left = 14.0
+content_margin_right = 14.0
+bg_color = Color(0.95, 0.902, 0.939, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="Style_choice_hover"]
+content_margin_left = 14.0
+content_margin_right = 14.0
+bg_color = Color(0.894, 0.819, 0.925, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="Style_focus"]
+draw_center = false
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.63, 0.45, 0.71, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="Theme" id="Theme_menu"]
+Label/colors/font_color = Color(0.27, 0.18, 0.31, 1)
+PreviewSection/base_type = &"Label"
+PreviewSection/colors/font_color = Color(0.46, 0.32, 0.53, 1)
+PreviewSection/font_sizes/font_size = 18
+PreviewChapter/base_type = &"Button"
+PreviewChapter/colors/font_color = Color(0.28, 0.19, 0.33, 1)
+PreviewChapter/colors/font_focus_color = Color(0.28, 0.19, 0.33, 1)
+PreviewChapter/colors/font_hover_color = Color(0.25, 0.16, 0.3, 1)
+PreviewChapter/colors/font_pressed_color = Color(0.25, 0.16, 0.3, 1)
+PreviewChapter/font_sizes/font_size = 19
+PreviewChapter/styles/normal = SubResource("Style_choice")
+PreviewChapter/styles/hover = SubResource("Style_choice_hover")
+PreviewChapter/styles/pressed = SubResource("Style_choice_hover")
+PreviewChapter/styles/focus = SubResource("Style_focus")
+
+[node name="StoryPreviewMenu" type="Control"]
+process_mode = 3
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_menu")
+
+[node name="ListView" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.13, 0.08, 0.18, 0.72)
+
+[node name="Center" type="CenterContainer" parent="ListView"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="Panel" type="PanelContainer" parent="ListView/Center"]
+unique_name_in_owner = true
+layout_mode = 2
+theme = SubResource("Theme_menu")
+theme_override_styles/panel = SubResource("Style_panel")
+
+[node name="Content" type="VBoxContainer" parent="ListView/Center/Panel"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Header" type="HBoxContainer" parent="ListView/Center/Panel/Content"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="ListView/Center/Panel/Content/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 29
+text = "剧情预览"
+
+[node name="Close" type="Button" parent="ListView/Center/Panel/Content/Header"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(68, 36)
+layout_mode = 2
+theme_type_variation = &"PreviewChapter"
+mouse_default_cursor_shape = 2
+text = "关闭"
+
+[node name="Scroll" type="ScrollContainer" parent="ListView/Center/Panel/Content"]
+layout_mode = 2
+size_flags_vertical = 3
+follow_focus = true
+horizontal_scroll_mode = 0
+
+[node name="Chapters" type="VBoxContainer" parent="ListView/Center/Panel/Content/Scroll"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+
+[node name="Hint" type="Label" parent="ListView/Center/Panel/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "I / Esc 返回    ·    预览不会写入存档"
+autowrap_mode = 3

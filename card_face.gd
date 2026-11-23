@@ -7,9 +7,13 @@ const DIGIT_FONT_SIZE := 72
 const COST_REGION := Rect2i(106, 127, 119, 120)
 const YUE_COST_REGION := Rect2i(89, 40, 99, 119)
 const YUE_OATH_COST_REGION := Rect2i(127, 44, 80, 114)
+const FUSHIMI_COST_REGION := Rect2i(83, 63, 94, 113)
+const FUSHIMI_NIGHT_WALK_COST_REGION := Rect2i(75, 53, 90, 118)
+const FUSHIMI_LAST_COST_REGION := Rect2i(74, 53, 94, 113)
 const SIGNED_FIELDS := ["health_change", "health_per_hand", "next_energy_change", "starting_energy_gain"]
 
-static var digit_font := make_digit_font()
+static var digit_font := make_digit_font(["Times New Roman", "Liberation Serif", "Noto Serif", "DejaVu Serif"])
+static var fushimi_effect_font := make_digit_font(["Arial", "Liberation Sans", "Noto Sans"])
 static var paper_patches: Dictionary[Vector3i, Texture2D] = {}
 
 var base_id := 0
@@ -40,19 +44,25 @@ func draw_edits() -> void:
 	if numbers == original_numbers and cost_override < 0:
 		return
 	var art_size := size
+	var is_fushimi := base_id >= CardCatalog.FUSHIMI_PEN_CARD
+	var source_size := texture.get_size() if is_fushimi else SOURCE_SIZE
 	if stretch_mode == STRETCH_KEEP_ASPECT_CENTERED:
-		art_size = SOURCE_SIZE * minf(size.x / SOURCE_SIZE.x, size.y / SOURCE_SIZE.y)
+		art_size = source_size * minf(size.x / source_size.x, size.y / source_size.y)
 	var origin := (size - art_size) * 0.5
-	var art_scale := art_size / SOURCE_SIZE
+	var art_scale := art_size / source_size
 	if cost_override >= 0:
 		var is_yue := base_id >= CardCatalog.YUE_FIRST_CARD
 		var cost_region := YUE_COST_REGION if is_yue else COST_REGION
 		if base_id == CardCatalog.YUE_OATH_CARD:
 			cost_region = YUE_OATH_COST_REGION
+		elif base_id == CardCatalog.FUSHIMI_NIGHT_WALK_CARD:
+			cost_region = FUSHIMI_NIGHT_WALK_COST_REGION
+		elif is_fushimi:
+			cost_region = FUSHIMI_LAST_COST_REGION if base_id == CardCatalog.FUSHIMI_LAST_BATTLE_CARD else FUSHIMI_COST_REGION
 		var ink := Color("fff9ed") if is_yue else Color("203659")
 		edits.draw_set_transform(origin, 0.0, art_scale)
 		edits.draw_texture(get_paper_patch(cost_region), Vector2(cost_region.position))
-		draw_digits(str(cost_override), Rect2(cost_region), origin, art_scale, ink, 131)
+		draw_digits(str(cost_override), Rect2(cost_region), origin, art_scale, ink, 113 if is_fushimi else 131)
 	var regions := CardCatalog.number_regions(base_id)
 	for field: String in regions:
 		var value := int(numbers[field])
@@ -63,7 +73,15 @@ func draw_edits() -> void:
 		edits.draw_texture(get_paper_patch(region), Vector2(region.position))
 		var digits := "+%d" % value if field in SIGNED_FIELDS and value > 0 else str(value)
 		var ink := Color("365989") if field == "health_per_hand" else DIGIT_COLOR
-		draw_digits(digits, Rect2(region), origin, art_scale, ink)
+		if is_fushimi:
+			ink = Color("564291")
+			if field == "cost_reduction":
+				digits = str(-value)
+				ink = Color("24172b")
+			elif field == "progress_per_discard":
+				digits = "+%d" % value
+		var glyph_font := fushimi_effect_font if is_fushimi and field != "cost_reduction" else digit_font
+		draw_digits(digits, Rect2(region), origin, art_scale, ink, DIGIT_FONT_SIZE, glyph_font)
 
 
 func get_paper_patch(region: Rect2i) -> Texture2D:
@@ -89,16 +107,17 @@ func get_paper_patch(region: Rect2i) -> Texture2D:
 	return paper_patches[key]
 
 
-func draw_digits(digits: String, bounds: Rect2, origin: Vector2, art_scale: Vector2, ink: Color, font_size: int = DIGIT_FONT_SIZE) -> void:
-	var width := digit_font.get_string_size(digits, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+func draw_digits(digits: String, bounds: Rect2, origin: Vector2, art_scale: Vector2, ink: Color, font_size: int, font: Font = null) -> void:
+	var glyph_font := digit_font if font == null else font
+	var width := glyph_font.get_string_size(digits, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
 	var fit := minf(1.0, (bounds.size.x - 6.0) / maxf(1.0, width))
-	var baseline := (digit_font.get_ascent(font_size) - digit_font.get_descent(font_size)) * 0.5
+	var baseline := (glyph_font.get_ascent(font_size) - glyph_font.get_descent(font_size)) * 0.5
 	edits.draw_set_transform(origin + bounds.get_center() * art_scale, 0.0, art_scale * Vector2(fit, 1.0))
-	edits.draw_string(digit_font, Vector2(-width * 0.5, baseline), digits, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size, ink)
+	edits.draw_string(glyph_font, Vector2(-width * 0.5, baseline), digits, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size, ink)
 
 
-static func make_digit_font() -> SystemFont:
+static func make_digit_font(names: PackedStringArray) -> SystemFont:
 	var font := SystemFont.new()
-	font.font_names = PackedStringArray(["Times New Roman", "Liberation Serif", "Noto Serif", "DejaVu Serif"])
+	font.font_names = names
 	font.font_weight = 700
 	return font
