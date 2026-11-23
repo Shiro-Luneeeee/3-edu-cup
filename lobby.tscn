@@ -86,7 +86,7 @@ horizontal_alignment = 1
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.93, 0.97, 1)
 theme_override_font_sizes/font_size = 18
-text = "目标：取得 100 点学习进度\n初始心态：20   ·   每回合能量：3\n点击手牌，再点击桌上的卡槽使用它。"
+text = "点击手牌，再点击桌上的卡槽使用它。"
 horizontal_alignment = 1
 
 [node name="Spacer" type="Control" parent="LobbyPanel/Margin/Column"]
@@ -125,5 +125,5 @@ ok_button_text = "知道了"
 
 [node name="RulesDialog" type="AcceptDialog" parent="."]
 title = "玩法说明"
-dialog_text = "每回合有 3 点能量。点击手牌，再点击高亮的卡槽出牌。普通卡槽每回合可使用一次，拥有「重复」的卡槽可以多次出牌。\n\n按空格结束回合，从第二回合起，每回合开始抽两张牌。牌库抽空时，将弃牌洗回牌库。\n\n将鼠标悬停在卡槽状态文字上可以查看效果和剩余回合。在延迟卡槽打出的牌会在下回合开始时结算两次。\n进度达到 100 可提前结算，第五回合结束时自动结算。结算后进入下一轮，精力回满。"
+dialog_text = "每回合有 3 点能量。点击手牌，再点击高亮的卡槽出牌。普通卡槽每回合可使用一次，拥有「重复」的卡槽可以多次出牌。\n\n按空格结束回合，从第二回合起，每回合开始抽两张牌。牌库抽空时，将弃牌洗回牌库。\n\n将鼠标悬停在卡槽状态文字上可以查看效果和剩余回合。在延迟卡槽打出的牌会在下回合开始时结算两次。\n达到本场目标可提前交卷，第五回合结束时未达标则失败。通过考试后，下一场目标和敌方伤害会随通过场数提高。"
 ok_button_text = "知道了"

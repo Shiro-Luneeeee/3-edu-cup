@@ -6,6 +6,7 @@ const DIGIT_COLOR := Color("b7322a")
 const DIGIT_FONT_SIZE := 72
 const COST_REGION := Rect2i(106, 127, 119, 120)
 const YUE_COST_REGION := Rect2i(89, 40, 99, 119)
+const YUE_OATH_COST_REGION := Rect2i(127, 44, 80, 114)
 const SIGNED_FIELDS := ["health_change", "health_per_hand", "next_energy_change", "starting_energy_gain"]
 
 static var digit_font := make_digit_font()
@@ -46,6 +47,8 @@ func draw_edits() -> void:
 	if cost_override >= 0:
 		var is_yue := base_id >= CardCatalog.YUE_FIRST_CARD
 		var cost_region := YUE_COST_REGION if is_yue else COST_REGION
+		if base_id == CardCatalog.YUE_OATH_CARD:
+			cost_region = YUE_OATH_COST_REGION
 		var ink := Color("fff9ed") if is_yue else Color("203659")
 		edits.draw_set_transform(origin, 0.0, art_scale)
 		edits.draw_texture(get_paper_patch(cost_region), Vector2(cost_region.position))

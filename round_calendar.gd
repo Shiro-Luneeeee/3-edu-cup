@@ -6,6 +6,7 @@ const START_AGE := 4
 const SCHOOL_AGE := 7
 const FIRST_SCHOOL_ROUND := SCHOOL_AGE - START_AGE + 1
 const ROUNDS_PER_YEAR := 4
+const FINAL_EXAM_ROUND := FIRST_SCHOOL_ROUND + (18 - SCHOOL_AGE) * ROUNDS_PER_YEAR + 3
 const SEASON_NAMES := ["", "春天", "夏天", "秋天", "冬天"]
 const GRADES := [
 	"小学一年级", "小学二年级", "小学三年级", "小学四年级", "小学五年级", "小学六年级",
@@ -36,7 +37,13 @@ static func season(round_number: int) -> Season:
 	return (Season.SPRING + school_season) as Season
 
 
+static func is_final_exam(round_number: int) -> bool:
+	return round_number == FINAL_EXAM_ROUND
+
+
 static func has_card_match(round_number: int) -> bool:
+	if round_number >= FINAL_EXAM_ROUND:
+		return is_final_exam(round_number)
 	if round_number < FIRST_SCHOOL_ROUND:
 		return true
 	var current_season := season(round_number)
@@ -55,4 +62,6 @@ static func grade(current_age: int) -> String:
 static func season_and_grade(round_number: int) -> String:
 	var season_name: String = SEASON_NAMES[season(round_number)]
 	var grade_name := grade(age(round_number))
+	if is_final_exam(round_number):
+		return "%s  ·  %s  ·  高考" % [season_name, grade_name]
 	return grade_name if season_name.is_empty() else "%s  ·  %s" % [season_name, grade_name]

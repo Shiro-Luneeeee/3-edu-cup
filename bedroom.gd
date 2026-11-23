@@ -94,7 +94,10 @@ func update_player_display() -> void:
 	var current_round := PlayerState.round_number
 	round_label.text = "%d 岁" % RoundCalendar.age(current_round)
 	round_board.tooltip_text = "第 %d 轮  ·  %s" % [current_round, RoundCalendar.season_and_grade(current_round)]
-	clock_button.tooltip_text = "进入牌局" if RoundCalendar.has_card_match(current_round) else "本回合没有牌局，进入下一回合"
+	clock_button.tooltip_text = "开始牌局" if RoundCalendar.has_card_match(current_round) else "进入下一轮"
+	clock_button.disabled = PlayerState.final_exam_passed
+	if RoundCalendar.is_final_exam(current_round):
+		clock_button.tooltip_text = "高考已通过" if PlayerState.final_exam_passed else "参加高考"
 	social_app.disabled = false
 	social_app.modulate.a = 1.0
 	social_app.tooltip_text = "社交"
@@ -111,6 +114,8 @@ func open_game_selection() -> void:
 
 
 func use_clock() -> void:
+	if PlayerState.final_exam_passed:
+		return
 	if RoundCalendar.has_card_match(PlayerState.round_number):
 		SceneFade.change_to(PREPARATION_SCENE)
 	else:

@@ -4,6 +4,8 @@ signal decided(add_to_deck: bool)
 
 const CardCatalog := preload("res://card_catalog.gd")
 
+var confirming_confession := false
+
 @onready var panel: PanelContainer = %Panel
 @onready var title: Label = %Title
 @onready var card_art: TextureRect = %CardArt
@@ -26,6 +28,24 @@ func show_offer(character: String, card_id: int, preview_only: bool = false) -> 
 	card_art.texture = CardCatalog.texture(card_id)
 	if preview_only:
 		%Warning.text = "预览中的选择不会写入存档。"
+
+
+func show_confession_confirmation(character: String, preview_only: bool = false) -> void:
+	confirming_confession = true
+	title.text = "告白剧情"
+	card_art.hide()
+	card_name.hide()
+	%Prompt.text = "继续后将进入与%s的告白剧情。读完后，你们将成为恋人。" % character
+	%Warning.visible = preview_only
+	%Warning.text = "预览不会改动存档或恋人关系。"
+	add_button.text = "继续告白"
+	decline_button.text = "先不告白"
+
+
+func _unhandled_key_input(event: InputEvent) -> void:
+	if confirming_confession and event.is_action_pressed("ui_cancel") and not event.is_echo():
+		get_viewport().set_input_as_handled()
+		decide(false)
 
 
 func fit_panel() -> void:
