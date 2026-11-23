@@ -1,0 +1,19 @@
+[remap]
+
+importer="mp3"
+type="AudioStreamMP3"
+uid="uid://vfrdpv0goocy"
+path="res://.godot/imported/Mateus Asato - Time.mp3-96e6d7e3f0afcd7a94829e2bc54deeb0.mp3str"
+
+[deps]
+
+source_file="res://audio/music/Mateus Asato - Time.mp3"
+dest_files=["res://.godot/imported/Mateus Asato - Time.mp3-96e6d7e3f0afcd7a94829e2bc54deeb0.mp3str"]
+
+[params]
+
+loop=false
+loop_offset=0
+bpm=0
+beat_count=0
+bar_beats=4

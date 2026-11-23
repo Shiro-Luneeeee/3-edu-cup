@@ -13,7 +13,6 @@ const CARD_SIZE := Vector2(270.0, 315.0)
 @onready var count_label: Label = $CountLabel
 @onready var preview: Control = $Preview
 @onready var preview_art: TextureRect = $Preview/Art
-@onready var preview_caption: Label = $Preview/Caption
 @onready var previous_button: Button = $Preview/PreviousButton
 @onready var next_button: Button = $Preview/NextButton
 @onready var close_button: Button = $Preview/CloseButton
@@ -187,10 +186,7 @@ func update_count_label() -> void:
 
 func on_card_input(event: InputEvent, index: int) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-		if index == selected_index:
-			show_preview(index)
-		else:
-			select_photo_to(index)
+		show_preview(index)
 
 
 func _input(event: InputEvent) -> void:
@@ -214,7 +210,6 @@ func show_preview(index: int) -> void:
 	preview_index = posmod(index, image_paths.size())
 	select_photo_to(preview_index)
 	preview_art.texture = load(image_paths[preview_index]) as Texture2D
-	preview_caption.text = image_paths[preview_index].get_file().get_basename().replace("_", " ")
 	preview.show()
 
 

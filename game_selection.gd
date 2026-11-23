@@ -1,6 +1,7 @@
 extends Control
 
 const GameEntry = preload("res://game_entry.gd")
+const GameAesthetic := preload("res://game_aesthetic.gd")
 const BEDROOM_SCENE := "res://bedroom.tscn"
 const STAGE_SIZE := Vector2(1152, 648)
 const GAMES = [
@@ -25,8 +26,13 @@ var cost_label: Label
 var effect_label: Label
 var page_label: Label
 var balance_label: Label
+var aesthetic_bar: ProgressBar
+var aesthetic_amount_label: Label
+var aesthetic_reward_label: Label
+var aesthetic_detail_label: Label
 var action_button: Button
 var story_overlay: ColorRect
+var aesthetic_reward_overlay: ColorRect
 var pending_entry: GameEntry
 
 
@@ -41,9 +47,30 @@ func _ready() -> void:
 func build_interface() -> void:
 	var heading := make_label("游戏选择", Vector2(42, 30), Vector2(420, 76), 53, Color("fff1e0"))
 	stage.add_child(heading)
-	var subtitle := make_label("课余时光  /  小游戏收藏夹", Vector2(47, 102), Vector2(450, 30), 17, Color("f5d7d8"))
+	var subtitle := make_label("课余时光  /  小游戏收藏夹", Vector2(47, 96), Vector2(450, 28), 17, Color("f5d7d8"))
 	stage.add_child(subtitle)
-	balance_label = make_label("", Vector2(742, 101), Vector2(370, 34), 21, Color("fff0dc"))
+	var aesthetic_heading := make_label("游戏审美积累", Vector2(47, 129), Vector2(150, 28), 18, Color("fff0dc"))
+	stage.add_child(aesthetic_heading)
+	aesthetic_bar = ProgressBar.new()
+	aesthetic_bar.position = Vector2(198, 134)
+	aesthetic_bar.size = Vector2(380, 16)
+	aesthetic_bar.show_percentage = false
+	aesthetic_bar.max_value = GameAesthetic.target_points()
+	aesthetic_bar.tooltip_text = "每款游戏前 3 次完成时按价格积累审美，之后收益逐渐减少。积满后体力上限翻倍。"
+	var meter_background := make_style(Color("f8e9dd"), Color("d5a8ad"), 8, 1)
+	meter_background.shadow_size = 0
+	aesthetic_bar.add_theme_stylebox_override("background", meter_background)
+	var meter_fill := make_style(Color("b474af"), Color("f6d4ad"), 8, 1)
+	meter_fill.shadow_size = 0
+	aesthetic_bar.add_theme_stylebox_override("fill", meter_fill)
+	stage.add_child(aesthetic_bar)
+	aesthetic_amount_label = make_label("", Vector2(586, 124), Vector2(142, 31), 18, Color("fff0dc"))
+	aesthetic_amount_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	stage.add_child(aesthetic_amount_label)
+	aesthetic_reward_label = make_label("", Vector2(753, 127), Vector2(359, 27), 17, Color("fff0dc"))
+	aesthetic_reward_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	stage.add_child(aesthetic_reward_label)
+	balance_label = make_label("", Vector2(742, 94), Vector2(370, 30), 21, Color("fff0dc"))
 	balance_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	stage.add_child(balance_label)
 	PlayerState.changed.connect(update_information)
@@ -73,10 +100,12 @@ func build_interface() -> void:
 	description_label.add_theme_font_size_override("normal_font_size", 19)
 	description_label.add_theme_color_override("default_color", Color("765d77"))
 	paper.add_child(description_label)
-	cost_label = make_label("", Vector2(31, 253), Vector2(322, 32), 19, Color("715584"))
+	cost_label = make_label("", Vector2(31, 243), Vector2(322, 32), 19, Color("715584"))
 	paper.add_child(cost_label)
-	effect_label = make_label("", Vector2(31, 289), Vector2(322, 32), 19, Color("715584"))
+	effect_label = make_label("", Vector2(31, 275), Vector2(322, 32), 19, Color("715584"))
 	paper.add_child(effect_label)
+	aesthetic_detail_label = make_label("", Vector2(31, 307), Vector2(322, 29), 17, Color("875885"))
+	paper.add_child(aesthetic_detail_label)
 	action_button = make_button("", Vector2(35, 344), Vector2(315, 56))
 	action_button.pressed.connect(activate_selected_game)
 	paper.add_child(action_button)
@@ -166,6 +195,11 @@ func update_information() -> void:
 	cost_label.text = "体力消耗：%d" % entry.energy_cost
 	effect_label.text = "完成效果：%s" % entry.effect_description
 	balance_label.text = "余额：%d 金" % PlayerState.money
+	aesthetic_bar.value = PlayerState.game_aesthetic_points
+	aesthetic_amount_label.text = "%d / %d" % [PlayerState.game_aesthetic_points, GameAesthetic.target_points()]
+	aesthetic_reward_label.text = "已获得 · 体力上限 ×2" if PlayerState.game_aesthetic_reward_claimed else "积满奖励 · 体力上限 ×2"
+	var completed_plays: int = PlayerState.game_play_counts.get(entry.id, 0)
+	aesthetic_detail_label.text = "审美已满 · 继续游玩无额外积累" if PlayerState.game_aesthetic_reward_claimed else "第 %d 次完成 · 审美 +%d" % [completed_plays + 1, PlayerState.game_aesthetic_gain(entry.id, entry.price)]
 	var owned := PlayerState.owns_game(entry.id)
 	if owned:
 		action_button.disabled = PlayerState.current_energy < entry.energy_cost
@@ -286,12 +320,48 @@ func show_play_story(entry: GameEntry) -> void:
 func finish_play_story() -> void:
 	if pending_entry == null:
 		return
+	var previous_points := PlayerState.game_aesthetic_points
 	PlayerState.reward_game(pending_entry.reward_stat, pending_entry.reward_amount)
+	var aesthetic_result := PlayerState.record_game_play(pending_entry.id, pending_entry.price)
 	pending_entry = null
 	story_overlay.queue_free()
 	story_overlay = null
 	launching = false
 	update_information()
+	if aesthetic_result["gain"] > 0:
+		aesthetic_bar.value = previous_points
+		create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT).tween_property(aesthetic_bar, "value", PlayerState.game_aesthetic_points, 0.7)
+	if aesthetic_result["reward_unlocked"]:
+		show_aesthetic_reward()
+
+
+func show_aesthetic_reward() -> void:
+	aesthetic_reward_overlay = ColorRect.new()
+	aesthetic_reward_overlay.color = Color(0.14, 0.09, 0.21, 0.78)
+	aesthetic_reward_overlay.size = STAGE_SIZE
+	aesthetic_reward_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	aesthetic_reward_overlay.z_index = 60
+	stage.add_child(aesthetic_reward_overlay)
+	var letter := Panel.new()
+	letter.position = Vector2(252, 172)
+	letter.size = Vector2(648, 310)
+	letter.add_theme_stylebox_override("panel", make_style(Color("fff3e3"), Color("e7baa8"), 23, 2))
+	aesthetic_reward_overlay.add_child(letter)
+	var heading := make_label("✦  游戏审美积累已满  ✦", Vector2(34, 33), Vector2(580, 56), 32, Color("704978"))
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	letter.add_child(heading)
+	var message := make_label("每一次游玩，都留下新的眼光。\n体力上限翻倍至 %d，体力也已回满。" % PlayerState.max_energy, Vector2(45, 111), Vector2(558, 91), 23, Color("715584"))
+	message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	letter.add_child(message)
+	var confirm := make_button("收好这份成长", Vector2(211, 232), Vector2(226, 52))
+	confirm.pressed.connect(close_aesthetic_reward)
+	letter.add_child(confirm)
+
+
+func close_aesthetic_reward() -> void:
+	if is_instance_valid(aesthetic_reward_overlay):
+		aesthetic_reward_overlay.queue_free()
+		aesthetic_reward_overlay = null
 
 
 func update_layout() -> void:
@@ -341,7 +411,9 @@ func make_style(fill: Color, border: Color, radius: int, border_size: int) -> St
 func _unhandled_key_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel") and not event.is_echo():
 		get_viewport().set_input_as_handled()
-		if launching:
+		if is_instance_valid(aesthetic_reward_overlay):
+			close_aesthetic_reward()
+		elif launching:
 			finish_play_story()
 		else:
 			SceneFade.change_to(BEDROOM_SCENE, -1.0)

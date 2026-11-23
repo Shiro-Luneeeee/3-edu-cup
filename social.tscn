@@ -67,10 +67,6 @@ theme_override_colors/font_color = Color(0.36, 0.21, 0.43, 1)
 theme_override_font_sizes/font_size = 55
 text = "社交"
 
-[node name="EnergyBar" parent="Presentation/LeftPage" instance=ExtResource("3_energy")]
-unique_name_in_owner = true
-layout_mode = 2
-
 [node name="Contacts" type="ItemList" parent="Presentation/LeftPage"]
 unique_name_in_owner = true
 layout_mode = 2
@@ -86,6 +82,19 @@ theme_override_styles/focus = SubResource("Style_empty")
 theme_override_styles/selected = SubResource("Style_selected")
 theme_override_styles/selected_focus = SubResource("Style_selected")
 fixed_icon_size = Vector2i(95, 95)
+
+[node name="EmptyContacts" type="Label" parent="Presentation/LeftPage"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.46, 0.31, 0.5, 1)
+theme_override_font_sizes/font_size = 29
+text = "您的好友列表空空如也...........不是吗.........."
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
 
 [node name="Close" type="Button" parent="Presentation"]
 unique_name_in_owner = true
@@ -129,13 +138,6 @@ unique_name_in_owner = true
 layout_mode = 2
 self_modulate = Color(1, 0.78, 0.91, 1)
 
-[node name="ActionEffect" type="Label" parent="Presentation/Details"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(0.40, 0.27, 0.46, 1)
-theme_override_font_sizes/font_size = 30
-horizontal_alignment = 1
-
 [node name="Chat" type="Button" parent="Presentation/Details"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(219, 59)
@@ -150,12 +152,4 @@ theme_override_styles/normal = SubResource("Style_action")
 theme_override_styles/pressed = SubResource("Style_action_hover")
 theme_override_styles/hover = SubResource("Style_action_hover")
 theme_override_styles/disabled = SubResource("Style_selected")
-text = "发消息"
-
-[node name="Message" type="Label" parent="Presentation/Details"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 35)
-layout_mode = 2
-theme_override_colors/font_color = Color(0.53, 0.29, 0.50, 1)
-theme_override_font_sizes/font_size = 25
-horizontal_alignment = 1
+text = "自由对话"

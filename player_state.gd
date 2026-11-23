@@ -10,6 +10,7 @@ const RoundEvents := preload("res://round_event_catalog.gd")
 const RoundCalendar := preload("res://round_calendar.gd")
 const SocialCharacters := preload("res://social_characters.gd")
 const ShopProducts := preload("res://shop_products.gd")
+const GameAesthetic := preload("res://game_aesthetic.gd")
 const STAT_NAMES := ["智商", "情商", "体魄"]
 const STAT_CURVE_VERSION := 2
 const LEGACY_STAT_FIRST_LEVEL_COST := 20
@@ -57,8 +58,15 @@ var physical_strength := 0
 var upgrade_points := 0
 var money := DEFAULT_MONEY
 var owned_products: Array[String] = []
+var game_aesthetic_points := 0
+var game_play_counts: Dictionary[String, int] = {}
+var game_aesthetic_reward_claimed := false
+var daoxiang_act := 0
+var daoxiang_last_age := 0
+var daoxiang_reply := ""
 var card_deck: Array[int] = []
 var character_affection: Dictionary[String, int] = {}
+var social_chat_history: Dictionary = {}
 var social_efficiency_percent := 0
 var claimed_stat_levels: Array[int] = [0, 0, 0]
 
@@ -116,10 +124,17 @@ func reset() -> void:
 	max_health = DEFAULT_MAX_HEALTH
 	money = DEFAULT_MONEY
 	owned_products.clear()
+	game_aesthetic_points = 0
+	game_play_counts.clear()
+	game_aesthetic_reward_claimed = false
+	daoxiang_act = 0
+	daoxiang_last_age = 0
+	daoxiang_reply = ""
 	card_deck.clear()
 	_card_upgrades.clear()
 	_next_upgraded_card_id = FIRST_UPGRADED_CARD_ID
 	character_affection.clear()
+	social_chat_history.clear()
 	social_efficiency_percent = 0
 	claimed_stat_levels.fill(0)
 	_activity_available_rounds.clear()
@@ -128,12 +143,12 @@ func reset() -> void:
 
 func make_snapshot() -> Dictionary:
 	return {
+		"player_name": player_name,
 		"max_energy": max_energy,
 		"current_energy": current_energy,
 		"round_energy_bonus": round_energy_bonus,
 		"next_round_energy_bonus": next_round_energy_bonus,
 		"max_health": max_health,
-		"player_name": player_name,
 		"park_meeting_seen": park_meeting_seen,
 		"yue_goldfish_seen": yue_goldfish_seen,
 		"yue_farewell_seen": yue_farewell_seen,
@@ -159,11 +174,18 @@ func make_snapshot() -> Dictionary:
 		"upgrade_points": upgrade_points,
 		"money": money,
 		"owned_products": owned_products.duplicate(),
+		"game_aesthetic_points": game_aesthetic_points,
+		"game_play_counts": game_play_counts.duplicate(),
+		"game_aesthetic_reward_claimed": game_aesthetic_reward_claimed,
+		"daoxiang_act": daoxiang_act,
+		"daoxiang_last_age": daoxiang_last_age,
+		"daoxiang_reply": daoxiang_reply,
 		"card_deck": card_deck.duplicate(),
 		"starter_deck_completed": has_starter_deck(),
 		"yue_story_cards_resolved": _yue_story_cards_resolved,
 		"card_upgrades": _card_upgrades.duplicate(true),
 		"character_affection": character_affection.duplicate(),
+		"social_chat_history": social_chat_history.duplicate(true),
 		"social_efficiency_percent": social_efficiency_percent,
 		"claimed_stat_levels": claimed_stat_levels.duplicate(),
 		"activity_available_rounds": _activity_available_rounds.duplicate(),
@@ -223,6 +245,17 @@ func restore_snapshot(data: Dictionary) -> void:
 	for product_id in data.get("owned_products", []):
 		if product_id is String and not owned_products.has(product_id):
 			owned_products.append(product_id)
+	game_aesthetic_points = clampi(int(data.get("game_aesthetic_points", 0)), 0, GameAesthetic.target_points())
+	game_play_counts.clear()
+	var saved_game_plays: Variant = data.get("game_play_counts", {})
+	if saved_game_plays is Dictionary:
+		for game_id in saved_game_plays:
+			if game_id is String and GameAesthetic.contains_game(game_id):
+				game_play_counts[game_id] = clampi(int(saved_game_plays[game_id]), 0, 100000)
+	game_aesthetic_reward_claimed = bool(data.get("game_aesthetic_reward_claimed", false))
+	daoxiang_act = clampi(int(data.get("daoxiang_act", 0)), 0, 3)
+	daoxiang_last_age = maxi(0, int(data.get("daoxiang_last_age", 0)))
+	daoxiang_reply = str(data.get("daoxiang_reply", ""))
 	card_deck.clear()
 	_starter_deck_completed = bool(data.get("starter_deck_completed", false))
 	# A meeting completed in an older save has already passed its one-time offer.
@@ -244,6 +277,19 @@ func restore_snapshot(data: Dictionary) -> void:
 			var affection: Variant = saved_affection[character]
 			if character is String and (affection is int or affection is float):
 				character_affection[character] = clampi(int(affection), 0, MAX_AFFECTION)
+	social_chat_history.clear()
+	var saved_chats: Variant = data.get("social_chat_history", {})
+	if saved_chats is Dictionary:
+		for character in SocialCharacters.known_characters(park_meeting_seen, fushimi_pen_seen):
+			var records: Variant = saved_chats.get(character, [])
+			if records is Array:
+				var clean: Array[Dictionary] = []
+				for record in records.slice(-20):
+					if record is Dictionary and str(record.get("role", "")) in ["user", "assistant"]:
+						var content := str(record.get("content", "")).left(500)
+						if not content.is_empty():
+							clean.append({"role": record["role"], "content": content})
+				social_chat_history[character] = clean
 	_initialized = true
 	changed.emit()
 
@@ -271,6 +317,26 @@ func advance_round() -> void:
 	set_energy(max_energy)
 
 
+func get_age_years() -> int:
+	# Share the calendar used by the bedroom, seasonal events and social stories.
+	return preload("res://round_calendar.gd").age(round_number)
+
+
+func available_daoxiang_act() -> int:
+	var age := get_age_years()
+	match daoxiang_act:
+		0: return 1 if age >= 6 and age <= 10 else 0
+		1: return 2 if age >= 15 else 0
+		2: return 3 if age >= 16 and age > daoxiang_last_age else 0
+		_: return 0
+
+
+func complete_daoxiang_act(act: int) -> void:
+	if act != available_daoxiang_act():
+		return
+	daoxiang_act = act
+	daoxiang_last_age = get_age_years()
+	changed.emit()
 func apply_next_round_energy_bonus() -> void:
 	if next_round_energy_bonus <= 0:
 		return
@@ -608,6 +674,28 @@ func reward_game(stat: String, amount: int) -> void:
 			push_error("Unknown game reward: %s" % stat)
 			return
 	changed.emit()
+
+
+func game_aesthetic_gain(game_id: String, price: int) -> int:
+	if not GameAesthetic.contains_game(game_id) or game_aesthetic_points >= GameAesthetic.target_points():
+		return 0
+	var completed_plays: int = game_play_counts.get(game_id, 0)
+	return mini(GameAesthetic.gain(price, completed_plays), GameAesthetic.target_points() - game_aesthetic_points)
+
+
+func record_game_play(game_id: String, price: int) -> Dictionary:
+	if not owns_game(game_id) or not GameAesthetic.contains_game(game_id) or price <= 0:
+		return {"gain": 0, "reward_unlocked": false}
+	var gain := game_aesthetic_gain(game_id, price)
+	game_aesthetic_points += gain
+	game_play_counts[game_id] = game_play_counts.get(game_id, 0) + 1
+	var reward_unlocked := game_aesthetic_points >= GameAesthetic.target_points() and not game_aesthetic_reward_claimed
+	if reward_unlocked:
+		game_aesthetic_reward_claimed = true
+		set_max_energy(max_energy * 2, true)
+	else:
+		changed.emit()
+	return {"gain": gain, "reward_unlocked": reward_unlocked}
 
 
 func set_energy(value: int, allow_overflow: bool = false) -> void:

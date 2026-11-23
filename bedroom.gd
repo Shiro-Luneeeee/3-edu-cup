@@ -1,6 +1,7 @@
 extends Control
 
 const IMAGE_SIZE := Vector2(1672, 941)
+const BEDROOM_SCENE := "res://bedroom.tscn"
 const CLOCK_RECT := Rect2(1000, 300, 175, 230)
 const PHONE_RECT := Rect2(1339, 589, 274, 178)
 const BOOKSHELF_RECT := Rect2(0, 162, 277, 401)
@@ -14,6 +15,12 @@ const STUDY_SCENE := preload("res://study.tscn")
 const GALLERY_SCENE: PackedScene = preload("res://gallery.tscn")
 const UPGRADE_SCENE := preload("res://card_upgrade.tscn")
 const SOCIAL_SCENE := preload("res://social.tscn")
+const BEDROOM_PLAYLIST := [
+	preload("res://audio/music/Mateus Asato - Kawaii.mp3"),
+	preload("res://audio/music/Mateus Asato - MA.mp3"),
+	preload("res://audio/music/birth_cryin.mp3"),
+	preload("res://audio/music/Mateus Asato - too nerdy for pop, too pop for nerds.mp3"),
+]
 const RoundCalendar := preload("res://round_calendar.gd")
 const ROUND_BOARD_WIDTH := 136.0
 @export_range(0, 100, 1) var intelligence := 0
@@ -50,10 +57,7 @@ var map_overlay: Control
 var upgrade_overlay: Control
 var social_overlay: Control
 func _ready() -> void:
-	var music_stream := bedroom_music.stream.duplicate() as AudioStreamMP3
-	music_stream.loop = true
-	bedroom_music.stream = music_stream
-	bedroom_music.play()
+	bedroom_music = SaveManager.use_scene_playlist(BEDROOM_SCENE, bedroom_music, BEDROOM_PLAYLIST)
 	PlayerState.initialize(intelligence, emotional_intelligence, physical_strength, max_energy)
 	PlayerState.changed.connect(update_player_display)
 	resized.connect(update_layout)
@@ -63,7 +67,7 @@ func _ready() -> void:
 	connect_highlight(gamepad_button, gamepad_highlight)
 	connect_highlight(notebook_button, notebook_highlight)
 	clock_button.pressed.connect(use_clock)
-	gamepad_button.pressed.connect(SceneFade.change_to.bind(GAME_SELECTION_SCENE))
+	gamepad_button.pressed.connect(open_game_selection)
 	notebook_button.pressed.connect(open_card_upgrades)
 	phone_button.pressed.connect(phone_overlay.show)
 	bookshelf_button.pressed.connect(open_study)
@@ -75,6 +79,9 @@ func _ready() -> void:
 	exit_button.pressed.connect(SaveManager.open_save_page)
 	phone_overlay.gui_input.connect(on_phone_overlay_input)
 	update_layout()
+
+func _exit_tree() -> void:
+	SaveManager.release_scene_music(BEDROOM_SCENE)
 
 func set_energy(value: int) -> void:
 	PlayerState.set_energy(value)
@@ -90,12 +97,19 @@ func update_player_display() -> void:
 	clock_button.disabled = PlayerState.final_exam_passed
 	if RoundCalendar.is_final_exam(current_round):
 		clock_button.tooltip_text = "高考已通过" if PlayerState.final_exam_passed else "参加高考"
-	social_app.disabled = PlayerState.known_social_characters().is_empty()
-	social_app.modulate.a = 0.55 if social_app.disabled else 1.0
-	social_app.tooltip_text = "完成角色剧情后解锁" if social_app.disabled else "社交"
+	social_app.disabled = false
+	social_app.modulate.a = 1.0
+	social_app.tooltip_text = "社交"
 
 func open_shop() -> void:
 	SceneFade.change_to(SHOP_SCENE)
+
+
+func open_game_selection() -> void:
+	if SceneFade.curtain.visible:
+		return
+	SaveManager.keep_scene_music_on_exit()
+	SceneFade.change_to(GAME_SELECTION_SCENE)
 
 
 func use_clock() -> void:
@@ -117,7 +131,7 @@ func show_map_overlay() -> void:
 
 
 func open_social() -> void:
-	if not PlayerState.known_social_characters().is_empty() and not is_instance_valid(social_overlay):
+	if not is_instance_valid(social_overlay):
 		SceneFade.play_action(show_social)
 
 

@@ -3,6 +3,7 @@ extends "res://map_activity.gd"
 const MEETING_SCENE := preload("res://park_meeting.tscn")
 const GOLDFISH_SCENE := preload("res://yue_goldfish.tscn")
 const FAREWELL_SCENE := preload("res://yue_farewell.tscn")
+const DAOXIANG_SCENE: PackedScene = preload("res://daoxiang_vn.tscn")
 const CONFESSION_SCENE := preload("res://yue_confession.tscn")
 
 # The hit area follows the foreground path and cuts around the bench and pond curb.
@@ -23,6 +24,9 @@ const ROAD_POINTS := [
 	Vector2(432, 605), Vector2(408, 607),
 ]
 
+var daoxiang_story: StoryDialogue
+
+
 func _ready() -> void:
 	var jogging := Activity.new()
 	jogging.hotspot_points = PackedVector2Array(ROAD_POINTS)
@@ -32,7 +36,16 @@ func _ready() -> void:
 	super._ready()
 
 
+func can_open_character(character: String) -> bool:
+	return not is_instance_valid(daoxiang_story) and not is_instance_valid(story) and not is_instance_valid(story_card_offer) and super.can_open_character(character)
+
+
 func open_character(character: String) -> void:
+	if character == SocialCharacters.DAOXIANG:
+		var act := PlayerState.available_daoxiang_act()
+		if act > 0 and can_open_character(character):
+			SceneFade.play_action(show_daoxiang_story.bind(act))
+		return
 	var chapter := PlayerState.yue_story_chapter()
 	if not SocialCharacters.has_story(character, scene_file_path, chapter):
 		super.open_character(character)
@@ -50,3 +63,25 @@ func open_character(character: String) -> void:
 func confirm_confession(accepted: bool) -> void:
 	if accepted and PlayerState.yue_story_chapter() == SocialCharacters.YueChapter.CONFESSION:
 		SceneFade.play_action(show_story.bind(CONFESSION_SCENE, SocialCharacters.YueChapter.CONFESSION))
+
+
+func _unhandled_key_input(event: InputEvent) -> void:
+	if is_instance_valid(daoxiang_story):
+		if event.is_action_pressed("ui_cancel") and not event.is_echo():
+			get_viewport().set_input_as_handled()
+			daoxiang_story.queue_free()
+		return
+	super._unhandled_key_input(event)
+
+
+func show_daoxiang_story(act: int) -> void:
+	daoxiang_story = DAOXIANG_SCENE.instantiate() as StoryDialogue
+	daoxiang_story.set("act", act)
+	daoxiang_story.completed.connect(finish_daoxiang_story.bind(act), CONNECT_ONE_SHOT)
+	add_child(daoxiang_story)
+
+
+func finish_daoxiang_story(act: int) -> void:
+	PlayerState.complete_daoxiang_act(act)
+	daoxiang_story.hide()
+	daoxiang_story.queue_free()

@@ -5,27 +5,27 @@ const RoundCalendar := preload("res://round_calendar.gd")
 const YuePortraits := preload("res://yue_portraits.gd")
 const FushimiPortraits := preload("res://fushimi_portraits.gd")
 const PRESENTATION_SIZE := Vector2(1672.0, 941.0)
+const CHAT_SCENE := preload("res://social_chat.tscn")
 
 var selected_character := ""
+var chat_overlay: Control
 
 @onready var presentation: Control = %Presentation
 @onready var contacts: ItemList = get_node_or_null("%Contacts")
+@onready var empty_contacts: Label = get_node_or_null("%EmptyContacts")
 @onready var details: VBoxContainer = %Details
 @onready var portrait: TextureRect = %Portrait
 @onready var contact_name: Label = %ContactName
 @onready var affection_bar: ProgressBar = %AffectionBar
 @onready var affection_readout: Label = affection_bar.get_node("Readout")
-@onready var energy_bar: ProgressBar = %EnergyBar
-@onready var energy_readout: Label = energy_bar.get_node("Readout")
-@onready var action_effect: Label = %ActionEffect
-@onready var message: Label = %Message
 @onready var chat_button: Button = %Chat
 
 
 func _ready() -> void:
 	resized.connect(fit_presentation)
 	PlayerState.changed.connect(refresh_details)
-	chat_button.pressed.connect(chat)
+	chat_button.text = "自由对话"
+	chat_button.pressed.connect(open_free_chat)
 	%Close.pressed.connect(close)
 	fit_presentation()
 	affection_bar.max_value = PlayerState.AFFECTION_PER_LEVEL
@@ -33,6 +33,9 @@ func _ready() -> void:
 	var known := PlayerState.known_social_characters()
 	if known.is_empty():
 		details.hide()
+		if contacts != null:
+			contacts.hide()
+			empty_contacts.show()
 		return
 	var index := maxi(0, known.find(selected_character))
 	if contacts != null:
@@ -66,14 +69,10 @@ func show_contact(character: String) -> void:
 			YuePortraits.show_on(portrait, age)
 	elif character == SocialCharacters.FUSHIMI:
 		FushimiPortraits.show_on(portrait, age)
-	message.text = ""
 	refresh_details()
 
 
 func refresh_details() -> void:
-	energy_bar.max_value = PlayerState.max_energy
-	energy_bar.value = PlayerState.current_energy
-	energy_readout.text = "精力  %s" % PlayerState.energy_text()
 	if selected_character.is_empty():
 		return
 	var progress := PlayerState.affection_progress(selected_character)
@@ -81,30 +80,15 @@ func refresh_details() -> void:
 	affection_bar.value = progress.y
 	var progress_text := "已满" if maxed else "%d/%d" % [progress.y, PlayerState.AFFECTION_PER_LEVEL]
 	affection_readout.text = "好感度  %d 级  ·  %s" % [progress.x, progress_text]
-	var gain := PlayerState.affection_gain_for(selected_character, SocialCharacters.CHAT_AFFECTION_GAIN)
-	action_effect.text = "精力 −%d   ·   好感度 +%d" % [SocialCharacters.CHAT_ENERGY_COST, gain] if not maxed else ""
-	var enough_energy := PlayerState.current_energy >= SocialCharacters.CHAT_ENERGY_COST
-	chat_button.disabled = maxed or not enough_energy
-	var action := "发消息" if contacts != null else "聊一会儿"
-	if maxed:
-		action = "好感度已满"
-	elif not enough_energy:
-		action = "精力不足"
-	chat_button.text = action
 
 
-func chat() -> void:
-	if SceneFade.curtain.visible:
+func open_free_chat() -> void:
+	if selected_character.is_empty() or is_instance_valid(chat_overlay) or SceneFade.curtain.visible:
 		return
-	var previous_level := PlayerState.affection_progress(selected_character).x
-	var gain := PlayerState.affection_gain_for(selected_character, SocialCharacters.CHAT_AFFECTION_GAIN)
-	if PlayerState.try_socialize(selected_character):
-		var level := PlayerState.affection_progress(selected_character).x
-		if level > previous_level:
-			message.text = "好感度 +%d  ·  升至 %d 级" % [gain, level]
-		else:
-			var response := "%s回了消息。" % selected_character if contacts != null else "你们在这里聊了一会儿。"
-			message.text = "%s 好感度 +%d" % [response, gain]
+	chat_overlay = CHAT_SCENE.instantiate() as Control
+	chat_overlay.set("character", selected_character)
+	add_child(chat_overlay)
+	chat_overlay.tree_exited.connect(func() -> void: chat_overlay = null)
 
 
 func close() -> void:

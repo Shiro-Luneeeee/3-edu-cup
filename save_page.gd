@@ -2,6 +2,7 @@ extends Control
 
 const BEDROOM_SCENE := "res://bedroom.tscn"
 const MAIN_MENU_SCENE := "res://main_menu.tscn"
+const RoundCalendar := preload("res://round_calendar.gd")
 
 @onready var title_label: Label = $Title
 @onready var subtitle_label: Label = $Subtitle
@@ -52,8 +53,9 @@ func refresh_slot(slot: int) -> void:
 		action.disabled = not saving
 		delete.hide()
 	else:
-		heading.text = "存档 %02d · 第 %d 回合" % [slot, int(data["player"].get("round_number", 1))]
-		details.text = "存档年龄：%s\n存档时间：%s" % [SaveManager.age_text(data), str(data.get("saved_local", "未知"))]
+		var round_number := maxi(1, int(data["player"].get("round_number", 1)))
+		heading.text = "存档 %02d · 第 %d 回合 · %d 岁" % [slot, round_number, RoundCalendar.age(round_number)]
+		details.text = "游玩时长：%s\n存档时间：%s" % [SaveManager.play_time_text(data), str(data.get("saved_local", "未知"))]
 		action.text = "覆盖存档" if saving else "继续游戏"
 		action.disabled = false
 		delete.show()

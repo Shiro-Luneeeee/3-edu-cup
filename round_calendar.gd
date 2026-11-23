@@ -23,6 +23,12 @@ static func age(round_number: int) -> int:
 	return SCHOOL_AGE + (round_number - FIRST_SCHOOL_ROUND) / ROUNDS_PER_YEAR
 
 
+static func first_round_at_age(target_age: int) -> int:
+	if target_age < SCHOOL_AGE:
+		return maxi(1, target_age - START_AGE + 1)
+	return FIRST_SCHOOL_ROUND + (target_age - SCHOOL_AGE) * ROUNDS_PER_YEAR
+
+
 static func season(round_number: int) -> Season:
 	if round_number <= 1:
 		return Season.NONE

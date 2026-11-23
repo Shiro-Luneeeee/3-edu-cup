@@ -110,16 +110,6 @@ unique_name_in_owner = true
 layout_mode = 2
 self_modulate = Color(1, 0.78, 0.91, 1)
 
-[node name="EnergyBar" parent="Presentation/Interaction/Details" instance=ExtResource("2_energy")]
-unique_name_in_owner = true
-layout_mode = 2
-
-[node name="ActionEffect" type="Label" parent="Presentation/Interaction/Details"]
-unique_name_in_owner = true
-layout_mode = 2
-theme_override_colors/font_color = Color(0.40, 0.27, 0.46, 1)
-theme_override_font_sizes/font_size = 30
-
 [node name="Chat" type="Button" parent="Presentation/Interaction/Details"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(238, 60)
@@ -134,12 +124,4 @@ theme_override_styles/normal = SubResource("Style_primary")
 theme_override_styles/pressed = SubResource("Style_hover")
 theme_override_styles/hover = SubResource("Style_hover")
 theme_override_styles/disabled = SubResource("Style_disabled")
-text = "聊一会儿"
-
-[node name="Message" type="Label" parent="Presentation/Interaction/Details"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 32)
-layout_mode = 2
-theme_override_colors/font_color = Color(0.53, 0.29, 0.50, 1)
-theme_override_font_sizes/font_size = 25
-autowrap_mode = 3
+text = "自由对话"

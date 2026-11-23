@@ -22,6 +22,7 @@ PlayerState="*res://player_state.gd"
 StudyProgress="*res://study_progress.gd"
 SaveManager="*res://save_manager.gd"
 StatRewards="*res://stat_rewards.gd"
+LocalDialogue="*res://local_dialogue.gd"
 
 [display]
 
