@@ -7,6 +7,7 @@ enum Stat { INTELLIGENCE, EMOTIONAL_INTELLIGENCE, PHYSICAL_STRENGTH }
 const CardCatalog := preload("res://card_catalog.gd")
 const MapActivity := preload("res://map_activity_data.gd")
 const RoundEvents := preload("res://round_event_catalog.gd")
+const RoundCalendar := preload("res://round_calendar.gd")
 const SocialCharacters := preload("res://social_characters.gd")
 const ShopProducts := preload("res://shop_products.gd")
 const STAT_NAMES := ["智商", "情商", "体魄"]
@@ -37,8 +38,13 @@ var player_name := DEFAULT_PLAYER_NAME
 var park_meeting_seen := false
 var yue_goldfish_seen := false
 var yue_farewell_seen := false
+var yue_final_promise_seen := false
+var romantic_partner := ""
 var school_intro_seen := false
+var fushimi_pen_seen := false
 var round_number := 1
+var passed_exams := 0
+var final_exam_passed := false
 var intelligence := 0
 var emotional_intelligence := 0
 var physical_strength := 0
@@ -79,8 +85,13 @@ func reset() -> void:
 	park_meeting_seen = false
 	yue_goldfish_seen = false
 	yue_farewell_seen = false
+	yue_final_promise_seen = false
+	romantic_partner = ""
 	school_intro_seen = false
+	fushimi_pen_seen = false
 	round_number = 1
+	passed_exams = 0
+	final_exam_passed = false
 	_last_event_round = 0
 	_last_event_id = ""
 	_pending_event_id = ""
@@ -114,8 +125,13 @@ func make_snapshot() -> Dictionary:
 		"park_meeting_seen": park_meeting_seen,
 		"yue_goldfish_seen": yue_goldfish_seen,
 		"yue_farewell_seen": yue_farewell_seen,
+		"yue_final_promise_seen": yue_final_promise_seen,
+		"romantic_partner": romantic_partner,
 		"school_intro_seen": school_intro_seen,
+		"fushimi_pen_seen": fushimi_pen_seen,
 		"round_number": round_number,
+		"passed_exams": passed_exams,
+		"final_exam_passed": final_exam_passed,
 		"last_event_round": _last_event_round,
 		"last_event_id": _last_event_id,
 		"intelligence": intelligence,
@@ -148,8 +164,14 @@ func restore_snapshot(data: Dictionary) -> void:
 	park_meeting_seen = bool(data.get("park_meeting_seen", false))
 	yue_goldfish_seen = bool(data.get("yue_goldfish_seen", false))
 	yue_farewell_seen = bool(data.get("yue_farewell_seen", false))
+	yue_final_promise_seen = bool(data.get("yue_final_promise_seen", false))
+	var saved_partner: Variant = data.get("romantic_partner", "")
+	romantic_partner = saved_partner if saved_partner is String else ""
 	school_intro_seen = bool(data.get("school_intro_seen", false))
-	round_number = maxi(1, int(data.get("round_number", 1)))
+	fushimi_pen_seen = bool(data.get("fushimi_pen_seen", false))
+	round_number = clampi(int(data.get("round_number", 1)), 1, RoundCalendar.FINAL_EXAM_ROUND)
+	passed_exams = maxi(0, int(data.get("passed_exams", 0)))
+	final_exam_passed = RoundCalendar.is_final_exam(round_number) and bool(data.get("final_exam_passed", false))
 	_last_event_round = clampi(int(data.get("last_event_round", round_number)), 0, round_number)
 	_last_event_id = str(data.get("last_event_id", ""))
 	_pending_event_id = ""
@@ -199,6 +221,14 @@ func restore_snapshot(data: Dictionary) -> void:
 			if character is String and (affection is int or affection is float):
 				character_affection[character] = clampi(int(affection), 0, MAX_AFFECTION)
 	_initialized = true
+	changed.emit()
+
+
+func record_exam_pass() -> void:
+	if final_exam_passed:
+		return
+	passed_exams += 1
+	final_exam_passed = RoundCalendar.is_final_exam(round_number)
 	changed.emit()
 
 
@@ -419,25 +449,32 @@ func add_character_affection(character: String, base_amount: int) -> int:
 	return gain
 
 
-func yue_park_chapter() -> SocialCharacters.YueChapter:
+func yue_story_chapter() -> SocialCharacters.YueChapter:
+	var affection_level := affection_progress(SocialCharacters.YUE).x
+	if RoundCalendar.is_final_exam(round_number) and not yue_final_promise_seen and affection_level >= SocialCharacters.FINAL_PROMISE_AFFECTION_LEVEL:
+		return SocialCharacters.YueChapter.FINAL_PROMISE
 	# Saves from before the second card was added can still make its one-time choice.
 	if yue_goldfish_seen and yue_story_card_offer(SocialCharacters.YueChapter.GOLDFISH) >= 0:
 		return SocialCharacters.YueChapter.GOLDFISH
-	return SocialCharacters.yue_park_chapter(round_number, park_meeting_seen, yue_goldfish_seen, yue_farewell_seen, affection_progress(SocialCharacters.YUE).x)
+	return SocialCharacters.yue_park_chapter(round_number, park_meeting_seen, yue_goldfish_seen, yue_farewell_seen, affection_level, not romantic_partner.is_empty())
 
 
-func finish_yue_park_story(chapter: SocialCharacters.YueChapter, add_story_card: bool) -> void:
-	if chapter == SocialCharacters.YueChapter.NONE or chapter != yue_park_chapter():
+func finish_yue_story(chapter: SocialCharacters.YueChapter, add_story_card: bool) -> void:
+	if chapter == SocialCharacters.YueChapter.NONE or chapter != yue_story_chapter():
 		return
+	resolve_yue_story_card(chapter, add_story_card)
 	match chapter:
 		SocialCharacters.YueChapter.FIRST_MEETING: park_meeting_seen = true
 		SocialCharacters.YueChapter.GOLDFISH: yue_goldfish_seen = true
 		SocialCharacters.YueChapter.FAREWELL: yue_farewell_seen = true
-	resolve_yue_story_card(chapter, add_story_card)
+		SocialCharacters.YueChapter.CONFESSION: romantic_partner = SocialCharacters.YUE
+		SocialCharacters.YueChapter.FINAL_PROMISE: yue_final_promise_seen = true
 	changed.emit()
 
 
 func yue_story_card_offer(chapter_index: int) -> int:
+	if chapter_index == SocialCharacters.YueChapter.FINAL_PROMISE:
+		return -1 if yue_final_promise_seen else CardCatalog.yue_story_card(chapter_index)
 	return CardCatalog.yue_story_card(chapter_index) if chapter_index == _yue_story_cards_resolved else -1
 
 
@@ -445,13 +482,34 @@ func resolve_yue_story_card(chapter_index: int, add_to_deck: bool) -> void:
 	var card_id := yue_story_card_offer(chapter_index)
 	if card_id < 0:
 		return
-	_yue_story_cards_resolved += 1
+	if chapter_index != SocialCharacters.YueChapter.FINAL_PROMISE:
+		_yue_story_cards_resolved += 1
 	if add_to_deck and not card_deck.any(func(existing_id: int) -> bool: return card_base_id(existing_id) == card_id):
 		card_deck.append(card_id)
 
 
+func known_social_characters() -> Array[String]:
+	return SocialCharacters.known_characters(park_meeting_seen, fushimi_pen_seen)
+
+
+func social_locations() -> Dictionary[String, String]:
+	return SocialCharacters.locations_for_round(round_number, park_meeting_seen, yue_story_chapter(), fushimi_pen_seen)
+
+
+func has_character_story(character: String, location: String) -> bool:
+	if character == SocialCharacters.FUSHIMI:
+		return location == SocialCharacters.SCHOOL and not fushimi_pen_seen and SocialCharacters.fushimi_pen_available(round_number)
+	return SocialCharacters.has_story(character, location, yue_story_chapter())
+
+
+func finish_fushimi_pen_story() -> void:
+	if has_character_story(SocialCharacters.FUSHIMI, SocialCharacters.SCHOOL):
+		fushimi_pen_seen = true
+		changed.emit()
+
+
 func try_socialize(character: String) -> bool:
-	if character not in SocialCharacters.known_characters(park_meeting_seen) or current_energy < SocialCharacters.CHAT_ENERGY_COST:
+	if character not in known_social_characters() or current_energy < SocialCharacters.CHAT_ENERGY_COST:
 		return false
 	if add_character_affection(character, SocialCharacters.CHAT_AFFECTION_GAIN) == 0:
 		return false

@@ -5,6 +5,7 @@ const DRAFT_SCENE := "res://deck_draft.tscn"
 const BEDROOM_SCENE := "res://bedroom.tscn"
 const CardCatalog := preload("res://card_catalog.gd")
 const RoundCalendar := preload("res://round_calendar.gd")
+const ExamDifficulty := preload("res://exam_difficulty.gd")
 
 @onready var start_button: Button = $LobbyPanel/Margin/Column/StartButton
 @onready var cards_button: Button = $LobbyPanel/Margin/Column/CardsButton
@@ -15,7 +16,13 @@ const RoundCalendar := preload("res://round_calendar.gd")
 
 
 func _ready() -> void:
-	$LobbyPanel/Margin/Column/MatchInfo.text = "目标：取得 100 点学习进度\n初始心态：%d   ·   每回合能量：3\n点击手牌，再点击桌上的卡槽使用它。" % PlayerState.max_health
+	if RoundCalendar.is_final_exam(PlayerState.round_number):
+		$LobbyPanel/Margin/Column/Title.text = "高考准备"
+		$LobbyPanel/Margin/Column/Subtitle.text = "最后一场考试"
+		start_button.text = "参加高考"
+	var target := ExamDifficulty.progress_target(PlayerState.passed_exams)
+	var damage_bonus := ExamDifficulty.damage_bonus(PlayerState.passed_exams)
+	$LobbyPanel/Margin/Column/MatchInfo.text = "目标进度 %d   ·   敌方伤害 +%d\n初始心态：%d   ·   每回合能量：3\n点击手牌，再点击桌上的卡槽使用它。" % [target, damage_bonus, PlayerState.max_health]
 	start_button.pressed.connect(start_match)
 	cards_dialog.dialog_text = card_overview()
 	cards_button.pressed.connect(func() -> void: cards_dialog.popup_centered(Vector2i(620, 460)))
@@ -24,7 +31,7 @@ func _ready() -> void:
 
 
 func start_match() -> void:
-	if not RoundCalendar.has_card_match(PlayerState.round_number):
+	if PlayerState.final_exam_passed or not RoundCalendar.has_card_match(PlayerState.round_number):
 		SceneFade.change_to(BEDROOM_SCENE, -1.0)
 		return
 	SceneFade.change_to(MATCH_SCENE if PlayerState.has_starter_deck() else DRAFT_SCENE)

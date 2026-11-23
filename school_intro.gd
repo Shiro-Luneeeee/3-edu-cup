@@ -1,20 +1,10 @@
 extends "res://story_dialogue.gd"
 
-enum FushimiMood { CALM, ASKING, EXPLAINING, STARTLED, SMILING, FOCUSED }
-
 const RoundCalendar := preload("res://round_calendar.gd")
 const SocialCharacters := preload("res://social_characters.gd")
 const YuePortraits := preload("res://yue_portraits.gd")
+const FushimiPortraits := preload("res://fushimi_portraits.gd")
 const CLASSROOM_ART := preload("res://images/classroom.png")
-const FUSHIMI_SHEET := "res://images/character/fushimi_school_expressions.png"
-const FUSHIMI_REGIONS := {
-	FushimiMood.CALM: Rect2(66, 0, 416, 500),
-	FushimiMood.ASKING: Rect2(560, 0, 416, 500),
-	FushimiMood.EXPLAINING: Rect2(1074, 0, 416, 500),
-	FushimiMood.STARTLED: Rect2(66, 512, 416, 500),
-	FushimiMood.SMILING: Rect2(560, 512, 416, 500),
-	FushimiMood.FOCUSED: Rect2(1074, 512, 416, 500),
-}
 const LINES := [
 	{"text": "崭新的书包带子勒在肩膀上，有些微沉，但更多的是说不出的新鲜感。"},
 	{"text": "我站在一年级A班的教室门口，望着里面攒动的人头，心里多少有些打鼓。"},
@@ -28,18 +18,18 @@ const LINES := [
 	{"speaker": "player", "text": "嗯，很好看"},
 	{"speaker": "yue", "text": "嘻嘻，我就知道你会这么说", "mood": YuePortraits.Mood.LAUGHING},
 	{"text": "正当我俩凑在一起小声嘀咕时，旁边走道突然传来一阵轻微的脚步声"},
-	{"text": "一个背着深蓝色书包、身姿笔挺的女生停在了我们的课桌旁", "fushimi_mood": FushimiMood.CALM},
+	{"text": "一个背着深蓝色书包、身姿笔挺的女生停在了我们的课桌旁", "fushimi_mood": FushimiPortraits.Mood.CALM},
 	{"text": "她的校服穿得一丝不苟，连衣领都叠得整整齐齐，手里还捧着一本厚厚的图画百科"},
-	{"speaker": "优等生", "text": "打扰一下，请问这里是靠窗第二排吗？", "fushimi_mood": FushimiMood.ASKING},
+	{"speaker": "优等生", "text": "打扰一下，请问这里是靠窗第二排吗？", "fushimi_mood": FushimiPortraits.Mood.ASKING},
 	{"text": "女孩的声音不高，却透着一股同龄人少有的冷静与礼貌"},
 	{"speaker": "yue", "text": "咦？对呀，怎么啦？", "mood": YuePortraits.Mood.PUZZLED},
-	{"speaker": "优等生", "text": "这是老师提前排好的座位表，我的名字在这个位置。", "fushimi_mood": FushimiMood.EXPLAINING},
+	{"speaker": "优等生", "text": "这是老师提前排好的座位表，我的名字在这个位置。", "fushimi_mood": FushimiPortraits.Mood.EXPLAINING},
 	{"text": "她伸出白皙的手指，指向贴在桌角的一张小小姓名贴，上面工工整整地印着“伏见宫夜姬”五个字"},
-	{"speaker": "player", "text": "啊……原、原来这里有名字啊！对不起，我刚才没注意看！", "fushimi_mood": FushimiMood.STARTLED},
+	{"speaker": "player", "text": "啊……原、原来这里有名字啊！对不起，我刚才没注意看！", "fushimi_mood": FushimiPortraits.Mood.STARTLED},
 	{"text": "我慌忙站起身，脸颊有些发烫，手忙脚乱地把刚放下的书包拎起来"},
 	{"speaker": "yue", "text": "呜……还以为能和 /name 坐同桌呢", "mood": YuePortraits.Mood.POUTING},
 	{"text": "阳奈里鼓起腮帮子，有些不情愿地嘟囔了一句，但还是乖乖挪到了旁边的位置"},
-	{"speaker": "伏见宫夜姬", "text": "没关系，第一天难免会看漏。我叫伏见宫夜姬，请多指教。", "fushimi_mood": FushimiMood.SMILING},
+	{"speaker": "伏见宫夜姬", "text": "没关系，第一天难免会看漏。我叫伏见宫夜姬，请多指教。", "fushimi_mood": FushimiPortraits.Mood.SMILING},
 	{"text": "她微微颔首，动作标准得像是电视里的小大人，随后便安静地坐下，把书包规规矩矩地挂在了桌侧的挂钩上"},
 	{"speaker": "player", "text": "我叫 /name ，她叫月侧阳奈里，请、请多指教"},
 	{"text": "我有些局促地学着她的样子点了点头，心里暗自感叹，原来同龄人里也有这么厉害、这么像大人的存在"},
@@ -50,7 +40,7 @@ const LINES := [
 	{"speaker": "林老师", "text": "欢迎大家来到一年级A班，我是你们的班主任，大家可以叫我林老师。"},
 	{"text": "林老师在黑板上工整地写下自己的名字，转过身时，目光刚好扫过我们这一排"},
 	{"speaker": "林老师", "text": "接下来的日子里，大家要在这里一起学习、一起长大，希望每位同学都能交到好朋友。"},
-	{"text": "我偷偷瞄了一眼左边正朝我挤眉弄眼的阳奈里，又看了一眼右边已经端正坐好、拿出铅笔盒的伏见宫夜姬", "mood": YuePortraits.Mood.WINKING, "fushimi_mood": FushimiMood.FOCUSED},
+	{"text": "我偷偷瞄了一眼左边正朝我挤眉弄眼的阳奈里，又看了一眼右边已经端正坐好、拿出铅笔盒的伏见宫夜姬", "mood": YuePortraits.Mood.WINKING, "fushimi_mood": FushimiPortraits.Mood.FOCUSED},
 	{"speaker": "player", "text": "嗯，一定会很有趣的吧"},
 	{"text": "我在心里默默想着，迎着窗外洒进来的阳光，握紧了手中的铅笔。"},
 ]
@@ -80,11 +70,7 @@ func stage_line(line: Dictionary) -> String:
 	if line.has("mood"):
 		YuePortraits.show_on(yue_portrait, RoundCalendar.SCHOOL_AGE, line["mood"])
 	if line.has("fushimi_mood"):
-		var portrait := AtlasTexture.new()
-		portrait.atlas = load(FUSHIMI_SHEET) as Texture2D
-		portrait.region = FUSHIMI_REGIONS[line["fushimi_mood"]]
-		portrait.filter_clip = true
-		fushimi_portrait.texture = portrait
+		FushimiPortraits.show_school(fushimi_portrait, line["fushimi_mood"])
 		fushimi_portrait.show()
 		place_portrait()
 	var speaker: String = line.get("speaker", "")

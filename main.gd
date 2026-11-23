@@ -8,6 +8,7 @@ const DRAFT_SCENE := "res://deck_draft.tscn"
 const CardCatalog := preload("res://card_catalog.gd")
 const CardFace := preload("res://card_face.gd")
 const RoundCalendar := preload("res://round_calendar.gd")
+const ExamDifficulty := preload("res://exam_difficulty.gd")
 const MatchRewards := preload("res://match_rewards.gd")
 const MATCH_REWARDS_SCENE := preload("res://match_rewards.tscn")
 const MATCH_MUSIC_NAME := "MatchTransitionMusic"
@@ -15,7 +16,6 @@ const STARTING_HAND_SIZE := 5
 const FINAL_TURN := 5
 const TURN_DRAW_COUNT := 2
 const STARTING_ENERGY := 3
-const MAX_PROGRESS := 100
 const HEALTH_TRACK_IN_TEXTURE := Rect2(237.0, 291.0, 1794.0, 155.0)
 const PROGRESS_TRACK_IN_TEXTURE := Rect2(390.0, 333.0, 1548.0, 129.0)
 const MAX_HAND_SIZE := 9
@@ -47,7 +47,11 @@ var delayed_plays: Array[DelayedPlay] = []
 var next_turn_slot_locks: Dictionary[Control, int] = {}
 var starting_energy_bonus := 0
 var next_turn_energy_change := 0
-var free_card_sources: Dictionary[int, int] = {}
+var battle_card_sources: Dictionary[int, int] = {}
+var free_cards: Dictionary[int, bool] = {}
+var promise_draw_cards: Dictionary[int, bool] = {}
+var battle_cost_reduction := 0
+var oath_applied := false
 var energy := STARTING_ENERGY
 var max_health := PlayerState.max_health
 var health := float(max_health)
@@ -87,6 +91,8 @@ var hand_move_tween: Tween
 @onready var energy_value_label: Label = $HudLayer/UI/EnergyValueLabel
 @onready var turn_value_label: Label = $HudLayer/UI/TurnValueLabel
 @onready var end_button: Button = $HudLayer/UI/end
+@onready var progress_target := ExamDifficulty.progress_target(PlayerState.passed_exams)
+@onready var enemy_damage_bonus := ExamDifficulty.damage_bonus(PlayerState.passed_exams)
 
 var health_texture := preload("res://images/金色月桂叶游戏生命条.png")
 var progress_texture := preload("res://images/米色网格便签进度条界面.png")
@@ -97,7 +103,7 @@ var attack_textures: Array[Texture2D] = [
 ]
 
 func _ready() -> void:
-	if not RoundCalendar.has_card_match(PlayerState.round_number):
+	if PlayerState.final_exam_passed or not RoundCalendar.has_card_match(PlayerState.round_number):
 		get_tree().change_scene_to_file.call_deferred(BEDROOM_SCENE)
 		return
 	if not PlayerState.has_starter_deck():
@@ -237,6 +243,7 @@ func show_turn_banner() -> void:
 	showing_turn_banner = false
 
 func resolve_attack(attack_id: int) -> void:
+	var damage: int = ExamDifficulty.BASE_ATTACK_DAMAGE[attack_id] + enemy_damage_bonus
 	var art := TextureRect.new()
 	art.texture = attack_textures[attack_id]
 	art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
@@ -249,21 +256,26 @@ func resolve_attack(attack_id: int) -> void:
 	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	art.z_index = 55
 	ui.add_child(art)
+	if enemy_damage_bonus > 0:
+		var caption := Label.new()
+		caption.text = "本场伤害 %d（基础 %d + %d）" % [damage, ExamDifficulty.BASE_ATTACK_DAMAGE[attack_id], enemy_damage_bonus]
+		caption.position = Vector2(-40, art.size.y + 10)
+		caption.size = Vector2(310, 30)
+		caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		caption.add_theme_font_size_override("font_size", 21)
+		caption.add_theme_color_override("font_outline_color", Color("3c1720"))
+		caption.add_theme_constant_override("outline_size", 6)
+		art.add_child(caption)
 	var entrance := create_tween().set_parallel(true)
 	entrance.tween_property(art, "modulate:a", 1.0, 0.25)
 	entrance.tween_property(art, "scale", Vector2.ONE, 0.25)
 	await get_tree().create_timer(1.4).timeout
-	match attack_id:
-		0:
-			consume_health(6)
-		1:
-			consume_health(4)
-			if not game_over:
-				discard_random_hand_card()
-		2, 3:
-			consume_health(4)
-			if not game_over:
-				block_random_slot()
+	consume_health(damage)
+	if not game_over:
+		match attack_id:
+			1: discard_random_hand_card()
+			2, 3: block_random_slot()
 	update_values()
 	var exit_tween := create_tween().set_parallel(true)
 	exit_tween.tween_property(art, "modulate:a", 0.0, 0.3)
@@ -409,19 +421,45 @@ func build_deck() -> void:
 func make_card_free(card_id: int) -> int:
 	if battle_card_cost(card_id) == 0:
 		return card_id
-	# Negative IDs exist only in this match and identify the specific copy drawn.
-	var free_id := -free_card_sources.size() - 1
-	free_card_sources[free_id] = card_id
-	return free_id
+	var copy_id := identify_card_copy(card_id)
+	free_cards[copy_id] = true
+	return copy_id
+
+func identify_card_copy(card_id: int) -> int:
+	if battle_card_sources.has(card_id):
+		return card_id
+	# Store effects on individual copies using IDs that exist only in this match.
+	var copy_id := -battle_card_sources.size() - 1
+	battle_card_sources[copy_id] = card_id
+	return copy_id
 
 func source_card_id(card_id: int) -> int:
-	return free_card_sources.get(card_id, card_id)
+	return battle_card_sources.get(card_id, card_id)
 
 func battle_card_cost(card_id: int) -> int:
-	return 0 if free_card_sources.has(card_id) else PlayerState.card_cost(card_id)
+	return 0 if free_cards.has(card_id) else maxi(0, PlayerState.card_cost(source_card_id(card_id)) - battle_cost_reduction)
 
 func set_battle_card_face(face: CardFace, card_id: int) -> void:
-	face.set_card(source_card_id(card_id), {}, 0 if free_card_sources.has(card_id) else -1)
+	var source := source_card_id(card_id)
+	var current_cost := battle_card_cost(card_id)
+	face.set_card(source, {}, current_cost if current_cost != PlayerState.card_cost(source) else -1)
+	var marker := face.get_node_or_null("PromiseDraw") as Label
+	var marked := promise_draw_cards.has(card_id)
+	if marked and marker == null:
+		marker = Label.new()
+		marker.name = "PromiseDraw"
+		marker.text = "约定 · 使用时抽一张"
+		marker.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		marker.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		marker.add_theme_color_override("font_color", Color("fff1f9"))
+		marker.add_theme_color_override("font_outline_color", Color("65407a"))
+		marker.add_theme_constant_override("outline_size", 6)
+		face.add_child(marker)
+		marker.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
+		marker.offset_top = -30.0
+		marker.offset_bottom = -5.0
+	if marker != null:
+		marker.visible = marked
 
 func draw_starting_hand() -> void:
 	hand.clear()
@@ -453,7 +491,7 @@ func create_progress_ui(parent: Control) -> void:
 	progress_fill = make_rounded_meter_fill(Color(0.96, 0.64, 0.25, 0.82), track)
 	meter.add_child(progress_fill)
 
-	progress_value_label.text = "%s / %d" % [format_value(progress), MAX_PROGRESS]
+	progress_value_label.text = "%s / %d" % [format_value(progress), progress_target]
 
 func create_health_ui(parent: Control) -> void:
 	var holder := Control.new()
@@ -895,7 +933,9 @@ func resolve_play(card_id: int, slot: Control, multiplier: float, repetitions: i
 		finish_turn = finish_turn or ends_turn
 		if game_over:
 			break
-	if not CardCatalog.exhausts_on_play(PlayerState.card_base_id(source_card_id(card_id))):
+		if promise_draw_cards.has(card_id):
+			await draw_cards(1)
+	if (not oath_applied or battle_card_cost(card_id) == 0) and not CardCatalog.exhausts_on_play(PlayerState.card_base_id(source_card_id(card_id))):
 		discard_pile.append(card_id)
 		played_discards.append(card_id)
 	return finish_turn
@@ -1021,8 +1061,52 @@ func apply_card_effect(card_id: int, slot: Control, multiplier: float) -> bool:
 			grant_slot_status(slot, "repeat_until", int(values["duration"]))
 		CardCatalog.YUE_EMPTY_FISHBOWL_CARD:
 			await recover_played_cards(2, int(values["recover_max_cost"]))
+		CardCatalog.YUE_OATH_CARD:
+			apply_oath(roundi(int(values["cost_reduction"]) * multiplier))
+		CardCatalog.YUE_FINAL_PROMISE_CARD:
+			grant_final_promise()
 	update_values()
 	return false
+
+func grant_final_promise() -> void:
+	var piles: Array[Array] = [hand, deck, discard_pile]
+	var candidates: Array[Vector2i] = []
+	for pile_index in piles.size():
+		for index in piles[pile_index].size():
+			if not promise_draw_cards.has(piles[pile_index][index]):
+				candidates.append(Vector2i(pile_index, index))
+	candidates.shuffle()
+	for location: Vector2i in candidates.slice(0, 5):
+		var card_id: int = piles[location.x][location.y]
+		var copy_id := identify_card_copy(card_id)
+		piles[location.x][location.y] = copy_id
+		promise_draw_cards[copy_id] = true
+		if location.x == 0:
+			var card := hand_holder.get_child(location.y)
+			card.set_meta("card_id", copy_id)
+			set_battle_card_face(card.get_node("CardArt") as CardFace, copy_id)
+		elif location.x == 2:
+			var index := played_discards.find(card_id)
+			if index >= 0:
+				played_discards[index] = copy_id
+
+func apply_oath(cost_reduction: int) -> void:
+	oath_applied = true
+	battle_cost_reduction += cost_reduction
+	var keep_card := func(card_id: int) -> bool: return battle_card_cost(card_id) == 0
+	deck.assign(deck.filter(keep_card))
+	discard_pile.assign(discard_pile.filter(keep_card))
+	played_discards.assign(played_discards.filter(keep_card))
+	for index in range(hand.size() - 1, -1, -1):
+		var card := hand_holder.get_child(index)
+		if keep_card.call(hand[index]):
+			set_battle_card_face(card.get_node("CardArt") as CardFace, hand[index])
+		else:
+			hand.remove_at(index)
+			hand_holder.remove_child(card)
+			card.queue_free()
+	card_preview.hide()
+	rearrange_remaining_hand()
 
 func recover_played_cards(amount: int, maximum_cost: int = -1) -> void:
 	var candidates := played_discards.duplicate()
@@ -1059,7 +1143,7 @@ func consume_health(amount: float) -> void:
 		game_over = true
 		show_game_over.call_deferred()
 
-func show_game_over() -> void:
+func show_game_over(reason: String = "") -> void:
 	if health_display_tween and health_display_tween.is_running():
 		await health_display_tween.finished
 	var overlay := ColorRect.new()
@@ -1077,6 +1161,15 @@ func show_game_over() -> void:
 	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 54)
 	overlay.add_child(title)
+	if not reason.is_empty():
+		var detail := Label.new()
+		detail.text = reason
+		detail.size = Vector2(480, 32)
+		detail.position = (ui.size - detail.size) / 2.0
+		detail.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		detail.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		detail.add_theme_font_size_override("font_size", 22)
+		overlay.add_child(detail)
 	var restart := Button.new()
 	restart.text = "重新开始"
 	restart.size = Vector2(190, 54)
@@ -1091,10 +1184,16 @@ func finish_game() -> void:
 	settle_game(false)
 
 func settle_game(automatic: bool) -> void:
-	if game_over or (not automatic and progress < MAX_PROGRESS):
+	if game_over:
+		return
+	if progress < progress_target:
+		if automatic:
+			game_over = true
+			show_game_over("考试进度不足  %s / %d" % [format_value(progress), progress_target])
 		return
 	game_over = true
 	match_settled = true
+	PlayerState.record_exam_pass()
 	set_slots_selectable(false)
 	if card_preview != null:
 		card_preview.hide()
@@ -1110,13 +1209,21 @@ func settle_game(automatic: bool) -> void:
 	end_button.hide()
 	match_rewards = MATCH_REWARDS_SCENE.instantiate() as MatchRewards
 	match_rewards.summary = "进度 %s / %d    ·    心态 %s    ·    回合 %d    ·    下一轮回满精力" % [
-		format_value(progress), MAX_PROGRESS, format_value(health), turn,
+		format_value(progress), progress_target, format_value(health), turn,
 	]
+	if PlayerState.final_exam_passed:
+		match_rewards.result_only = true
+		match_rewards.heading_text = "高考通过"
+		match_rewards.summary = "进度 %s / %d    ·    剩余心态 %s" % [format_value(progress), progress_target, format_value(health)]
+		match_rewards.continue_text = "保存并返回标题"
 	match_rewards.continue_requested.connect(enter_next_round)
 	ui.add_child(match_rewards)
 
 func enter_next_round() -> void:
 	if not is_instance_valid(match_rewards) or not match_rewards.reward_claimed:
+		return
+	if PlayerState.final_exam_passed:
+		SaveManager.open_save_page()
 		return
 	start_next_round()
 
@@ -1138,7 +1245,7 @@ func set_end_button_hover(hovered: bool) -> void:
 	end_button_tween.tween_property(art, "modulate", Color(1.35, 1.25, 1.15) if hovered else Color.WHITE, 0.16)
 
 func update_values() -> void:
-	if not game_over and progress >= MAX_PROGRESS and not end_button.visible:
+	if not game_over and progress >= progress_target and not end_button.visible:
 		end_button.modulate.a = 0.0
 		end_button.scale = Vector2(0.85, 0.85)
 		end_button.show()
@@ -1146,15 +1253,15 @@ func update_values() -> void:
 		fade.tween_property(end_button, "modulate:a", 1.0, 0.4)
 		end_button_tween = create_tween()
 		end_button_tween.tween_property(end_button, "scale", Vector2.ONE, 0.4).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	elif not game_over and progress < MAX_PROGRESS:
+	elif not game_over and progress < progress_target:
 		end_button.hide()
 	energy_value_label.text = str(energy)
 	animate_health_display()
-	progress_value_label.text = "%s / %d" % [format_value(progress), MAX_PROGRESS]
+	progress_value_label.text = "%s / %d" % [format_value(progress), progress_target]
 	if progress_fill != null:
 		if progress_fill_tween and progress_fill_tween.is_running():
 			progress_fill_tween.kill()
-		var target_width := progress_track_width * clampf(float(progress) / MAX_PROGRESS, 0.0, 1.0)
+		var target_width := progress_track_width * clampf(float(progress) / progress_target, 0.0, 1.0)
 		progress_fill_tween = create_tween()
 		progress_fill_tween.tween_property(progress_fill, "size:x", target_width, 0.35).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 

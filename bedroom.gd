@@ -87,15 +87,20 @@ func update_player_display() -> void:
 	round_label.text = "%d 岁" % RoundCalendar.age(current_round)
 	round_board.tooltip_text = "第 %d 轮  ·  %s" % [current_round, RoundCalendar.season_and_grade(current_round)]
 	clock_button.tooltip_text = "开始牌局" if RoundCalendar.has_card_match(current_round) else "进入下一轮"
-	social_app.disabled = not PlayerState.park_meeting_seen
+	clock_button.disabled = PlayerState.final_exam_passed
+	if RoundCalendar.is_final_exam(current_round):
+		clock_button.tooltip_text = "高考已通过" if PlayerState.final_exam_passed else "参加高考"
+	social_app.disabled = PlayerState.known_social_characters().is_empty()
 	social_app.modulate.a = 0.55 if social_app.disabled else 1.0
-	social_app.tooltip_text = "在公园完成初遇后解锁" if social_app.disabled else "社交"
+	social_app.tooltip_text = "完成角色剧情后解锁" if social_app.disabled else "社交"
 
 func open_shop() -> void:
 	SceneFade.change_to(SHOP_SCENE)
 
 
 func use_clock() -> void:
+	if PlayerState.final_exam_passed:
+		return
 	if RoundCalendar.has_card_match(PlayerState.round_number):
 		SceneFade.change_to(PREPARATION_SCENE)
 	else:
@@ -112,7 +117,7 @@ func show_map_overlay() -> void:
 
 
 func open_social() -> void:
-	if PlayerState.park_meeting_seen and not is_instance_valid(social_overlay):
+	if not PlayerState.known_social_characters().is_empty() and not is_instance_valid(social_overlay):
 		SceneFade.play_action(show_social)
 
 

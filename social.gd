@@ -3,6 +3,7 @@ extends ColorRect
 const SocialCharacters := preload("res://social_characters.gd")
 const RoundCalendar := preload("res://round_calendar.gd")
 const YuePortraits := preload("res://yue_portraits.gd")
+const FushimiPortraits := preload("res://fushimi_portraits.gd")
 const PRESENTATION_SIZE := Vector2(1672.0, 941.0)
 
 var selected_character := ""
@@ -29,7 +30,7 @@ func _ready() -> void:
 	fit_presentation()
 	affection_bar.max_value = PlayerState.AFFECTION_PER_LEVEL
 	refresh_details()
-	var known := SocialCharacters.known_characters(PlayerState.park_meeting_seen)
+	var known := PlayerState.known_social_characters()
 	if known.is_empty():
 		details.hide()
 		return
@@ -57,12 +58,14 @@ func select_contact(index: int) -> void:
 func show_contact(character: String) -> void:
 	selected_character = character
 	contact_name.text = selected_character
+	var age := RoundCalendar.age(PlayerState.round_number)
 	if character == SocialCharacters.YUE:
-		var age := RoundCalendar.age(PlayerState.round_number)
 		if contacts == null:
 			YuePortraits.show_onsite(portrait, age)
 		else:
 			YuePortraits.show_on(portrait, age)
+	elif character == SocialCharacters.FUSHIMI:
+		FushimiPortraits.show_on(portrait, age)
 	message.text = ""
 	refresh_details()
 

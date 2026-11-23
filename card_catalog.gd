@@ -5,6 +5,8 @@ const YUE_DIRECTORY := "res://images/card_yue"
 const YUE_FIRST_CARD := 100
 const YUE_GOLDFISH_CARD := 101
 const YUE_EMPTY_FISHBOWL_CARD := 102
+const YUE_OATH_CARD := 103
+const YUE_FINAL_PROMISE_CARD := 104
 const CARDS := {
 	0: ["预习", 0], 1: ["解题", 0], 2: ["深呼吸", 0],
 	3: ["认真听讲", 1], 4: ["课间休息", 1], 5: ["合作", 1],
@@ -18,6 +20,8 @@ const CARDS := {
 	YUE_FIRST_CARD: ["公园的约定", 3],
 	YUE_GOLDFISH_CARD: ["阳奈里的金鱼", 1],
 	YUE_EMPTY_FISHBOWL_CARD: ["空鱼缸", 0],
+	YUE_OATH_CARD: ["阳奈里的誓约", 1],
+	YUE_FINAL_PROMISE_CARD: ["高考前的约定", 0],
 }
 enum Upgrade { INCREASE, DECREASE, BOOST_PROGRESS, BOOST_DEFENSE }
 
@@ -30,6 +34,7 @@ const NUMBER_NAMES := {
 	"next_energy_change": "下回合费用变化", "starting_energy_gain": "每回合额外费用",
 	"health_per_hand": "每张手牌改变心态",
 	"recover_max_cost": "可取回卡牌的最高花费",
+	"cost_reduction": "降低卡牌花费",
 }
 const CARD_NUMBERS := {
 	0: {"draw": 1}, 1: {"progress": 3}, 2: {"block": 3}, 3: {"progress": 6},
@@ -46,6 +51,8 @@ const CARD_NUMBERS := {
 	YUE_FIRST_CARD: {"duration": 2},
 	YUE_GOLDFISH_CARD: {"starting_energy_gain": 1},
 	YUE_EMPTY_FISHBOWL_CARD: {"recover_max_cost": 0},
+	YUE_OATH_CARD: {"cost_reduction": 1},
+	YUE_FINAL_PROMISE_CARD: {},
 }
 # Regions around Arabic numerals in the original effect text, in card texture pixels.
 const NUMBER_REGIONS := {
@@ -75,6 +82,7 @@ const NUMBER_REGIONS := {
 	YUE_FIRST_CARD: {"duration": Rect2i(219, 1092, 64, 68)},
 	YUE_GOLDFISH_CARD: {"starting_energy_gain": Rect2i(343, 1174, 44, 69)},
 	YUE_EMPTY_FISHBOWL_CARD: {"recover_max_cost": Rect2i(391, 1092, 51, 70)},
+	YUE_OATH_CARD: {"cost_reduction": Rect2i(662, 1014, 38, 63)},
 }
 
 
