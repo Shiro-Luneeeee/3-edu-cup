@@ -1,29 +1,38 @@
 extends ColorRect
 
 const MapLocation := preload("res://map_location.gd")
-const PAPER: Texture2D = preload("res://images/aged_blank_a4_paper.png")
+const SocialCharacters := preload("res://social_characters.gd")
+const CharacterBadge := preload("res://character_badge.gd")
+const MARKER_SIZE := 91.0
+const MARKER_GAP := 10.0
 
 @onready var artwork: Node2D = $Artwork
 @onready var map_image: Sprite2D = $Artwork/MapImage
 @onready var locations: Node2D = $Artwork/Locations
+@onready var character_markers: Node2D = $Artwork/CharacterMarkers
 
 var hovered_location: MapLocation
 var pressed_location: MapLocation
 var destination_overlay: Control
 var opening_destination := false
-var hover_card := TextureRect.new()
+var hover_card := Panel.new()
 var hover_text := Label.new()
+var last_character_locations: Dictionary[String, String] = {}
+var last_story_characters: Array[String] = []
 
 
 func _ready() -> void:
 	for location: MapLocation in locations.get_children():
 		location.configure(map_image.texture)
-	var paper_fill := AtlasTexture.new()
-	paper_fill.atlas = PAPER
-	paper_fill.region = Rect2(PAPER.get_size() * Vector2(0.07, 0.06), PAPER.get_size() * Vector2(0.86, 0.87))
-	hover_card.texture = paper_fill
-	hover_card.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	hover_card.stretch_mode = TextureRect.STRETCH_SCALE
+	var hint_style := StyleBoxFlat.new()
+	hint_style.bg_color = Color(1, 0.963, 0.931, 0.97)
+	hint_style.border_color = Color(0.86, 0.68, 0.75)
+	hint_style.set_border_width_all(1)
+	hint_style.set_corner_radius_all(17)
+	hint_style.shadow_color = Color(0.25, 0.14, 0.32, 0.26)
+	hint_style.shadow_size = 11
+	hint_style.shadow_offset = Vector2(0, 5)
+	hover_card.add_theme_stylebox_override("panel", hint_style)
 	hover_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hover_card.visible = false
 	add_child(hover_card)
@@ -33,9 +42,47 @@ func _ready() -> void:
 	hover_text.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	hover_text.add_theme_font_size_override("font_size", 19)
 	hover_text.add_theme_color_override("font_color", Color("514d54"))
+	PlayerState.changed.connect(refresh_character_markers)
+	refresh_character_markers()
 	resized.connect(update_layout)
 	mouse_exited.connect(set_hovered_location.bind(null))
 	update_layout()
+
+
+func refresh_character_markers() -> void:
+	var yue_chapter := PlayerState.yue_park_chapter()
+	var placements := SocialCharacters.locations_for_round(PlayerState.round_number, PlayerState.park_meeting_seen, yue_chapter)
+	var story_characters: Array[String] = []
+	for character: String in placements:
+		if SocialCharacters.has_story(character, placements[character], yue_chapter):
+			story_characters.append(character)
+	if placements == last_character_locations and story_characters == last_story_characters:
+		return
+	last_character_locations = placements
+	last_story_characters = story_characters
+	for child in character_markers.get_children():
+		character_markers.remove_child(child)
+		child.queue_free()
+	for location: MapLocation in locations.get_children():
+		if location.destination_scene == null or location.character_marker_position == Vector2.ZERO:
+			continue
+		var group := HBoxContainer.new()
+		group.name = location.name
+		group.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		group.add_theme_constant_override("separation", int(MARKER_GAP))
+		for character: String in placements:
+			if placements[character] != location.destination_scene.resource_path:
+				continue
+			var badge := CharacterBadge.new()
+			badge.configure(SocialCharacters.avatar(character), character, MARKER_SIZE, character in story_characters)
+			badge.pressed.connect(enter_location.bind(location))
+			group.add_child(badge)
+		if group.get_child_count() == 0:
+			group.free()
+			continue
+		var width := group.get_child_count() * (MARKER_SIZE + MARKER_GAP) - MARKER_GAP
+		group.position = location.character_marker_position - Vector2(width, MARKER_SIZE) * 0.5
+		character_markers.add_child(group)
 
 
 func update_layout() -> void:
@@ -78,7 +125,7 @@ func update_hover_hint() -> void:
 	if not hover_card.visible:
 		return
 	match PlayerState.available_daoxiang_act():
-		1: hover_text.text = "公园 · 6～14岁散步，或许会遇见写诗的女孩"
+		1: hover_text.text = "公园 · 6～10岁散步，或许会遇见写诗的女孩"
 		2: hover_text.text = "稻香粽子 · 第二幕｜河流没有回答"
 		3: hover_text.text = "稻香粽子 · 第三幕｜世界没有童话，我们还有彼此"
 		_: hover_text.text = "公园 · 沿着小路散步"
@@ -101,21 +148,24 @@ func _gui_input(event: InputEvent) -> void:
 			pressed_location = null
 			released_location.set_held(false)
 			if location == released_location:
-				var click_animation := released_location.play_click()
-				if released_location.destination_scene != null:
-					enter_destination(released_location.destination_scene, click_animation)
+				enter_location(released_location)
 
 
-func enter_destination(scene: PackedScene, click_animation: Tween) -> void:
+func enter_location(location: MapLocation) -> void:
+	if opening_destination or is_instance_valid(destination_overlay) or location.destination_scene == null:
+		return
 	opening_destination = true
+	var click_animation := location.play_click()
 	await click_animation.finished
-	await SceneFade.play_action(show_destination.bind(scene))
+	await SceneFade.play_action(show_destination.bind(location.destination_scene))
 	opening_destination = false
 
 
 func show_destination(scene: PackedScene) -> void:
 	set_hovered_location(null)
+	character_markers.hide()
 	destination_overlay = scene.instantiate() as Control
+	destination_overlay.tree_exited.connect(character_markers.show)
 	add_child(destination_overlay)
 
 

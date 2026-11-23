@@ -70,7 +70,7 @@ func _ready() -> void:
 	layout_page()
 	show_page()
 	var music := AudioStreamPlayer.new()
-	var track := preload("res://audio/music/birth_cryin.mp3").duplicate() as AudioStreamMP3
+	var track := preload("res://audio/music/Mateus Asato - Goodbye.mp3").duplicate() as AudioStreamMP3
 	track.loop = true
 	music.stream = track
 	music.volume_db = -10.0
@@ -154,4 +154,4 @@ func advance() -> void:
 		leaving = true
 		PlayerState.player_name = name_input.text.strip_edges()
 		next_button.disabled = true
-		SceneFade.change_to("res://bedroom.tscn")
+		SceneFade.change_to("res://bedroom.tscn", 1.0, PlayerState.round_number)

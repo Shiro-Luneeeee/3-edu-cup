@@ -2,8 +2,21 @@
 
 [ext_resource type="PackedScene" path="res://map_destination.tscn" id="1_destination"]
 [ext_resource type="Texture2D" path="res://images/amusement_park.png" id="2_background"]
+[ext_resource type="Script" path="res://map_activity.gd" id="3_activity"]
+[ext_resource type="Script" path="res://map_activity_data.gd" id="4_data"]
+
+[sub_resource type="Resource" id="Resource_ferris_wheel"]
+script = ExtResource("4_data")
+hotspot_points = PackedVector2Array(988, 0, 1220, 0, 1254, 17, 1267, 15, 1281, 28, 1281, 44, 1315, 80, 1330, 79, 1339, 91, 1343, 109, 1338, 130, 1350, 166, 1362, 168, 1371, 180, 1375, 205, 1370, 219, 1353, 222, 1353, 261, 1368, 267, 1376, 287, 1373, 300, 1363, 311, 1345, 313, 1337, 309, 1316, 348, 1296, 372, 1261, 399, 1229, 415, 1217, 429, 1203, 420, 1169, 421, 1127, 415, 1085, 420, 1047, 427, 1026, 407, 1000, 389, 986, 353, 975, 326, 961, 330, 944, 353, 926, 351, 913, 332, 900, 312, 889, 287, 874, 291, 862, 286, 855, 271, 856, 250, 865, 237, 888, 234, 891, 192, 873, 195, 862, 186, 859, 171, 864, 151, 877, 138, 897, 142, 910, 111, 899, 104, 900, 87, 907, 67, 918, 56, 938, 55, 963, 24)
+status_text = "游玩中"
+money_change = -10
+max_health_gain = 1
+cooldown_id = "ferris_wheel"
+cooldown_rounds = 2
 
 [node name="AmusementPark" instance=ExtResource("1_destination")]
+script = ExtResource("3_activity")
+activities = Array[ExtResource("4_data")]([SubResource("Resource_ferris_wheel")])
 
 [node name="Background" parent="." index="0"]
 texture = ExtResource("2_background")

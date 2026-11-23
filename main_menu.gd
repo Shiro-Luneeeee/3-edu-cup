@@ -4,6 +4,7 @@ const BEDROOM_SCENE := "res://bedroom.tscn"
 const MAIN_MENU_SCENE := "res://main_menu.tscn"
 const SETTINGS_SCENE := preload("res://settings.tscn")
 const GALLERY_SCENE := preload("res://gallery.tscn")
+const ModelNotice := preload("res://model_notice.gd")
 const MAX_RIPPLES := 16
 const RIPPLE_LIFETIME := 1.65
 
@@ -14,7 +15,7 @@ const RIPPLE_LIFETIME := 1.65
 @onready var continue_button: TextureButton = $MenuColumn/ContinueButton
 @onready var new_game_button: TextureButton = $MenuColumn/NewGameButton
 @onready var settings_button: TextureButton = $MenuColumn/SettingsButton
-@onready var menu_notice: AcceptDialog = $MenuNotice
+@onready var menu_notice: ModelNotice = $MenuNotice
 
 var ripple_material: ShaderMaterial
 var flower_glow_material: ShaderMaterial
@@ -37,10 +38,14 @@ func _ready() -> void:
 	continue_button.pressed.connect(SaveManager.open_load_page)
 	gallary_button.pressed.connect(open_gallery)
 	settings_button.pressed.connect(open_settings)
+	$MenuColumn/QuitButton.pressed.connect(func() -> void: get_tree().quit())
 	for index in 5:
 		spawn_ripple(randf_range(0.0, RIPPLE_LIFETIME * 0.8))
 	spawn_timer = randf_range(0.12, 0.30)
 	update_shader_ripples()
+	LocalDialogue.availability_changed.connect(_on_dialogue_checked)
+	if not LocalDialogue.checking and not LocalDialogue.available:
+		call_deferred("_on_dialogue_checked")
 
 
 func _exit_tree() -> void:
@@ -48,8 +53,11 @@ func _exit_tree() -> void:
 
 
 func start_new_game() -> void:
+	if SceneFade.curtain.visible:
+		return
 	PlayerState.reset()
 	StudyProgress.reset()
+	SaveManager.start_new_game()
 	SceneFade.change_to("res://birth_prologue.tscn")
 
 
@@ -85,8 +93,12 @@ func update_shader_ripples() -> void:
 
 
 func show_notice(message: String) -> void:
-	menu_notice.dialog_text = message
-	menu_notice.popup_centered(Vector2i(420, 160))
+	menu_notice.show_message(message)
+
+
+func _on_dialogue_checked() -> void:
+	if not LocalDialogue.available and not LocalDialogue.checking:
+		menu_notice.show_message("由于当前设备或本地模型环境不支持，社交功能中的本地模型对话暂不可用。\n\n%s\n\n其他剧情与社交操作仍可继续。" % LocalDialogue.reason)
 
 
 func open_settings() -> void:

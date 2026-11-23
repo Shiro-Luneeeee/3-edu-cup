@@ -1,90 +1,116 @@
-extends "res://map_destination.gd"
+extends "res://map_activity.gd"
 
-const STORY_SCENE: PackedScene = preload("res://daoxiang_vn.tscn")
-const PAPER: Texture2D = preload("res://images/aged_blank_a4_paper.png")
+const MEETING_SCENE := preload("res://park_meeting.tscn")
+const GOLDFISH_SCENE := preload("res://yue_goldfish.tscn")
+const FAREWELL_SCENE := preload("res://yue_farewell.tscn")
+const StoryDialogue := preload("res://story_dialogue.gd")
+const STORY_CARD_OFFER_SCENE := preload("res://story_card_offer.tscn")
+const StoryCardOffer := preload("res://story_card_offer.gd")
+const DAOXIANG_SCENE: PackedScene = preload("res://daoxiang_vn.tscn")
 
-var note := TextureRect.new()
-var title := Label.new()
-var description := Label.new()
-var walk_button := Button.new()
-var back_button := Button.new()
-var story: Control
+# The hit area follows the foreground path and cuts around the bench and pond curb.
+const ROAD_POINTS := [
+	Vector2(397, 603), Vector2(436, 575), Vector2(497, 549), Vector2(560, 530),
+	Vector2(627, 514), Vector2(706, 501), Vector2(777, 490), Vector2(841, 484),
+	Vector2(906, 481), Vector2(949, 480), Vector2(904, 492), Vector2(851, 494),
+	Vector2(792, 503), Vector2(740, 514), Vector2(703, 531), Vector2(684, 548),
+	Vector2(677, 565), Vector2(699, 585), Vector2(739, 608), Vector2(837, 649),
+	Vector2(988, 705), Vector2(1169, 769), Vector2(1330, 820), Vector2(1506, 869),
+	Vector2(1670, 915), Vector2(1670, 941), Vector2(337, 941), Vector2(314, 891),
+	Vector2(291, 850), Vector2(280, 809), Vector2(313, 815), Vector2(348, 819),
+	Vector2(356, 849), Vector2(368, 862), Vector2(383, 856), Vector2(377, 829),
+	Vector2(369, 776), Vector2(375, 752), Vector2(421, 728), Vector2(486, 692),
+	Vector2(496, 723), Vector2(504, 751), Vector2(522, 745), Vector2(514, 714),
+	Vector2(510, 669), Vector2(523, 662), Vector2(521, 651), Vector2(497, 644),
+	Vector2(506, 629), Vector2(502, 615), Vector2(487, 604), Vector2(464, 602),
+	Vector2(432, 605), Vector2(408, 607),
+]
+
+var story: StoryDialogue
+var story_card_offer: StoryCardOffer
+var daoxiang_story: StoryDialogue
 
 
 func _ready() -> void:
-	var fill := AtlasTexture.new()
-	fill.atlas = PAPER
-	fill.region = Rect2(PAPER.get_size() * Vector2(0.07, 0.06), PAPER.get_size() * Vector2(0.86, 0.87))
-	note.texture = fill
-	note.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	note.stretch_mode = TextureRect.STRETCH_SCALE
-	add_child(note)
-	for item in [title, description, walk_button, back_button]:
-		note.add_child(item)
-		item.add_theme_color_override("font_color", Color("514d54"))
-	title.text = "公园 · 散步"
-	title.add_theme_font_size_override("font_size", 24)
-	description.add_theme_font_size_override("font_size", 17)
-	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	for button in [walk_button, back_button]:
-		for state in ["normal", "hover", "pressed", "focus", "disabled"]:
-			button.add_theme_stylebox_override(state, StyleBoxEmpty.new())
-		button.add_theme_color_override("font_hover_color", Color("93704e"))
-		button.add_theme_color_override("font_pressed_color", Color("514d54"))
-		button.add_theme_font_size_override("font_size", 18)
-	walk_button.text = "沿着小路散步  →"
-	walk_button.pressed.connect(walk)
-	back_button.text = "返回地图"
-	back_button.pressed.connect(func() -> void: SceneFade.play_action(queue_free, -1.0))
-	PlayerState.changed.connect(update_note)
-	resized.connect(layout_note)
-	layout_note()
-	update_note()
+	var jogging := Activity.new()
+	jogging.hotspot_points = PackedVector2Array(ROAD_POINTS)
+	jogging.status_text = "慢跑中..."
+	jogging.physical_gain = 10
+	activities.append(jogging)
+	super._ready()
 
 
-func layout_note() -> void:
-	var factor := minf(size.x / 1152.0, size.y / 648.0)
-	note.size = Vector2(345, 250)
-	note.scale = Vector2.ONE * factor
-	note.position = Vector2(size.x - note.size.x * factor - 28 * factor, size.y - note.size.y * factor - 28 * factor)
-	title.position = Vector2(27, 22)
-	title.size = Vector2(290, 38)
-	description.position = Vector2(27, 75)
-	description.size = Vector2(290, 100)
-	back_button.position = Vector2(24, 196)
-	back_button.size = Vector2(110, 32)
-	walk_button.position = Vector2(142, 192)
-	walk_button.size = Vector2(180, 38)
+func can_open_character(character: String) -> bool:
+	return not is_instance_valid(daoxiang_story) and not is_instance_valid(story) and not is_instance_valid(story_card_offer) and super.can_open_character(character)
 
 
-func update_note() -> void:
-	match PlayerState.available_daoxiang_act():
-		1: description.text = "风从树下经过。\n也许会遇见一位写诗的女孩。"
-		2: description.text = "中考后的夏天。\n河边似乎有人在等一场回答。"
-		3: description.text = "稻香粽子 · 第三幕\n世界没有童话，我们还有彼此。"
-		_:
-			if PlayerState.daoxiang_act == 3:
-				description.text = "那张旧纸条，仍被好好地收着。"
-			elif PlayerState.daoxiang_act == 0 and PlayerState.get_age_years() > 14:
-				description.text = "风经过长椅。\n有些相遇，已经错过了季节。"
-			else:
-				description.text = "今天的公园很安静。\n沿着小路走走吧。"
-
-
-func walk() -> void:
-	if is_instance_valid(story):
+func open_character(character: String) -> void:
+	if character == SocialCharacters.DAOXIANG:
+		var act := PlayerState.available_daoxiang_act()
+		if act > 0 and can_open_character(character):
+			SceneFade.play_action(show_daoxiang_story.bind(act))
 		return
-	var next_act := PlayerState.available_daoxiang_act()
-	if next_act == 0:
-		description.text = "你沿着小路走了一圈。\n风从树叶间轻轻吹过。"
+	var chapter := PlayerState.yue_park_chapter()
+	if not SocialCharacters.has_story(character, scene_file_path, chapter):
+		super.open_character(character)
 		return
-	story = STORY_SCENE.instantiate() as Control
-	story.set("act", next_act)
+	if can_open_character(character):
+		if chapter == SocialCharacters.YueChapter.GOLDFISH and PlayerState.yue_goldfish_seen:
+			show_story_card_offer(chapter)
+		else:
+			SceneFade.play_action(show_story.bind(chapter))
+
+
+func show_story(chapter: SocialCharacters.YueChapter) -> void:
+	var scene: PackedScene = [MEETING_SCENE, GOLDFISH_SCENE, FAREWELL_SCENE][chapter]
+	story = scene.instantiate() as StoryDialogue
+	story.completed.connect(finish_story.bind(chapter), CONNECT_ONE_SHOT)
 	add_child(story)
-	story.tree_exited.connect(update_note)
+
+
+func finish_story(chapter: SocialCharacters.YueChapter) -> void:
+	story.hide()
+	story.queue_free()
+	show_story_card_offer(chapter)
+
+
+func show_story_card_offer(chapter: SocialCharacters.YueChapter) -> void:
+	var card_id := PlayerState.yue_story_card_offer(chapter)
+	if card_id < 0:
+		PlayerState.finish_yue_park_story(chapter, false)
+		return
+	story_card_offer = STORY_CARD_OFFER_SCENE.instantiate() as StoryCardOffer
+	story_card_offer.decided.connect(finish_card_offer.bind(chapter), CONNECT_ONE_SHOT)
+	add_child(story_card_offer)
+	story_card_offer.show_offer(SocialCharacters.YUE, card_id)
+
+
+func finish_card_offer(add_to_deck: bool, chapter: SocialCharacters.YueChapter) -> void:
+	PlayerState.finish_yue_park_story(chapter, add_to_deck)
+	story_card_offer.queue_free()
 
 
 func _unhandled_key_input(event: InputEvent) -> void:
-	if is_instance_valid(story):
+	if is_instance_valid(daoxiang_story):
+		if event.is_action_pressed("ui_cancel") and not event.is_echo():
+			get_viewport().set_input_as_handled()
+			daoxiang_story.queue_free()
+		return
+	if is_instance_valid(story) or is_instance_valid(story_card_offer):
+		if event.is_action_pressed("ui_cancel"):
+			get_viewport().set_input_as_handled()
 		return
 	super._unhandled_key_input(event)
+
+
+func show_daoxiang_story(act: int) -> void:
+	daoxiang_story = DAOXIANG_SCENE.instantiate() as StoryDialogue
+	daoxiang_story.set("act", act)
+	daoxiang_story.completed.connect(finish_daoxiang_story.bind(act), CONNECT_ONE_SHOT)
+	add_child(daoxiang_story)
+
+
+func finish_daoxiang_story(act: int) -> void:
+	PlayerState.complete_daoxiang_act(act)
+	daoxiang_story.hide()
+	daoxiang_story.queue_free()

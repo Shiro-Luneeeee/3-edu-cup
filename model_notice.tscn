@@ -1,0 +1,101 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://model_notice.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://images/settings_letter.png" id="2_paper"]
+
+[sub_resource type="StyleBoxEmpty" id="Style_empty_focus"]
+
+[node name="MenuNotice" type="Control"]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+z_index = 30
+script = ExtResource("1_script")
+
+[node name="Shade" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.12, 0.09, 0.17, 0.65)
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Letter" type="Control" parent="Center"]
+custom_minimum_size = Vector2(760, 530)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Paper" type="NinePatchRect" parent="Center/Letter"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("2_paper")
+patch_margin_left = 70
+patch_margin_top = 70
+patch_margin_right = 70
+patch_margin_bottom = 70
+
+[node name="Content" type="VBoxContainer" parent="Center/Letter"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 72.0
+offset_top = 54.0
+offset_right = -72.0
+offset_bottom = -64.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 12
+
+[node name="Heading" type="Label" parent="Center/Letter/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.28, 0.21, 0.32, 1)
+theme_override_font_sizes/font_size = 33
+text = "一封来自夏天的信"
+horizontal_alignment = 1
+
+[node name="Body" type="Label" parent="Center/Letter/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_colors/font_color = Color(0.34, 0.27, 0.37, 1)
+theme_override_font_sizes/font_size = 21
+text = "正在检查本地对话环境……"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+
+[node name="OkayButton" type="Button" parent="Center/Letter/Content"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(190, 51)
+layout_mode = 2
+size_flags_horizontal = 4
+focus_mode = 2
+theme_override_colors/font_color = Color(0.34, 0.27, 0.37, 1)
+theme_override_colors/font_focus_color = Color(0.34, 0.27, 0.37, 1)
+theme_override_colors/font_hover_color = Color(0.5, 0.29, 0.48, 1)
+theme_override_colors/font_pressed_color = Color(0.34, 0.27, 0.37, 1)
+theme_override_font_sizes/font_size = 23
+theme_override_styles/focus = SubResource("Style_empty_focus")
+text = "我知道了"
+flat = true

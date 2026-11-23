@@ -86,7 +86,7 @@ horizontal_alignment = 1
 layout_mode = 2
 theme_override_colors/font_color = Color(0.92, 0.93, 0.97, 1)
 theme_override_font_sizes/font_size = 18
-text = "目标：取得 100 点学习进度\n初始体力：20   ·   每回合能量：3\n点击手牌，再点击桌上的卡槽使用它。"
+text = "目标：取得 100 点学习进度\n初始心态：20   ·   每回合能量：3\n点击手牌，再点击桌上的卡槽使用它。"
 horizontal_alignment = 1
 
 [node name="Spacer" type="Control" parent="LobbyPanel/Margin/Column"]
@@ -120,10 +120,10 @@ text = "返回卧室"
 
 [node name="CardsDialog" type="AcceptDialog" parent="."]
 title = "卡牌一览"
-dialog_text = "每种卡牌在初始牌库中有 3 张。\n\n0 费：预习、解题、深呼吸\n1 费：认真听讲、课间休息、合作\n2 费：熬夜突击、押题、调整心态\n3 费：通宵\n\n进入牌局后会从牌库中随机抽取手牌。"
+dialog_text = "首次进入牌局前，从每组随机出现的三张牌中选一张，组成 10 至 15 张的卡组。"
 ok_button_text = "知道了"
 
 [node name="RulesDialog" type="AcceptDialog" parent="."]
 title = "玩法说明"
-dialog_text = "每回合有 3 点能量，打出卡牌会消耗对应能量。\n点击手牌，再点击高亮的卡槽出牌。\n每个卡槽每回合只能使用一次。\n按空格结束回合，从第二回合起，每回合开始抽两张牌。\n进度达到 100 可提前结算，第五回合结束时自动结算。\n结算后进入下一轮，精力回满。"
+dialog_text = "每回合有 3 点能量。点击手牌，再点击高亮的卡槽出牌。普通卡槽每回合可使用一次，拥有「重复」的卡槽可以多次出牌。\n\n按空格结束回合，从第二回合起，每回合开始抽两张牌。牌库抽空时，将弃牌洗回牌库。\n\n将鼠标悬停在卡槽状态文字上可以查看效果和剩余回合。在延迟卡槽打出的牌会在下回合开始时结算两次。\n进度达到 100 可提前结算，第五回合结束时自动结算。结算后进入下一轮，精力回满。"
 ok_button_text = "知道了"

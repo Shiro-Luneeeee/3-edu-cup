@@ -1,0 +1,74 @@
+[gd_scene format=3]
+
+[ext_resource type="Texture2D" path="res://images/ui/park_jog_progress.png" id="1_frame"]
+
+[sub_resource type="AtlasTexture" id="Atlas_frame"]
+atlas = ExtResource("1_frame")
+region = Rect2(24, 290, 2126, 145)
+filter_clip = true
+
+[sub_resource type="StyleBoxEmpty" id="Style_background"]
+
+[sub_resource type="StyleBoxFlat" id="Style_fill"]
+bg_color = Color(0.63, 0.39, 0.91, 1)
+border_width_top = 2
+border_color = Color(0.82, 0.68, 1, 0.86)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_left = 10
+corner_radius_bottom_right = 10
+
+[node name="JogProgress" type="ColorRect"]
+visible = false
+z_index = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+color = Color(0.06, 0.035, 0.12, 0.68)
+
+[node name="Center" type="CenterContainer" parent="."]
+z_index = 2
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="Activity" type="VBoxContainer" parent="Center"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 10
+
+[node name="Frame" type="TextureRect" parent="Center/Activity"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(420, 42)
+layout_mode = 2
+mouse_filter = 2
+texture = SubResource("Atlas_frame")
+expand_mode = 1
+
+[node name="Progress" type="ProgressBar" parent="Center/Activity/Frame"]
+unique_name_in_owner = true
+layout_mode = 1
+anchor_left = 0.016
+anchor_top = 0.248
+anchor_right = 0.983
+anchor_bottom = 0.752
+mouse_filter = 2
+theme_override_styles/background = SubResource("Style_background")
+theme_override_styles/fill = SubResource("Style_fill")
+step = 0.0
+show_percentage = false
+
+[node name="Status" type="Label" parent="Center/Activity"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 0.94, 1, 1)
+theme_override_colors/font_outline_color = Color(0.17, 0.07, 0.27, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 28
+text = "慢跑中..."
+horizontal_alignment = 1

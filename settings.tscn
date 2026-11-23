@@ -82,6 +82,20 @@ texture = ExtResource("3_letter")
 expand_mode = 1
 stretch_mode = 0
 
+[node name="BackFourth" type="TextureRect" parent="PaperStack"]
+modulate = Color(0.95, 0.94, 1, 0.9)
+layout_mode = 0
+offset_left = 46.0
+offset_top = 203.0
+offset_right = 606.0
+offset_bottom = 1007.0
+rotation = -0.055
+pivot_offset = Vector2(280, 402)
+mouse_filter = 0
+texture = ExtResource("3_letter")
+expand_mode = 1
+stretch_mode = 0
+
 [node name="MainPaper" type="TextureRect" parent="PaperStack"]
 layout_mode = 0
 offset_left = 20.0
@@ -164,6 +178,51 @@ mouse_filter = 2
 theme_override_colors/font_color = Color(0.42, 0.33, 0.36, 1)
 theme_override_font_sizes/font_size = 18
 text = "100%"
+horizontal_alignment = 1
+
+[node name="DebugHint" type="Label" parent="PaperStack/MainPaper/Content"]
+visible = false
+layout_mode = 0
+offset_left = 28.0
+offset_top = 125.0
+offset_right = 412.0
+offset_bottom = 180.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.29, 0.24, 0.28, 1)
+theme_override_font_sizes/font_size = 19
+text = "输入 /age x，直接进入 x 岁。\n角色名固定为 default。"
+
+[node name="DebugInput" type="LineEdit" parent="PaperStack/MainPaper/Content"]
+visible = false
+layout_mode = 0
+offset_left = 28.0
+offset_top = 190.0
+offset_right = 412.0
+offset_bottom = 238.0
+theme_override_font_sizes/font_size = 20
+placeholder_text = "/age 10"
+clear_button_enabled = true
+
+[node name="DebugRunButton" type="Button" parent="PaperStack/MainPaper/Content"]
+visible = false
+layout_mode = 0
+offset_left = 120.0
+offset_top = 256.0
+offset_right = 320.0
+offset_bottom = 303.0
+theme_override_font_sizes/font_size = 19
+text = "执行命令"
+
+[node name="DebugFeedback" type="Label" parent="PaperStack/MainPaper/Content"]
+visible = false
+layout_mode = 0
+offset_left = 28.0
+offset_top = 312.0
+offset_right = 412.0
+offset_bottom = 342.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.66, 0.27, 0.32, 1)
+theme_override_font_sizes/font_size = 17
 horizontal_alignment = 1
 
 [node name="BackButton" type="Button" parent="PaperStack/MainPaper/Content"]

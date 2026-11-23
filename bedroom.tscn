@@ -1,4 +1,4 @@
-[gd_scene load_steps=18 format=3]
+[gd_scene load_steps=19 format=3]
 
 [ext_resource type="Script" path="res://bedroom.gd" id="1_script"]
 [ext_resource type="Texture2D" path="res://images/bedroom.png" id="2_background"]
@@ -15,6 +15,7 @@
 [ext_resource type="Texture2D" path="res://images/ui/turn.png" id="13_round_board"]
 [ext_resource type="AudioStreamMP3" path="res://audio/music/Mateus Asato - Kawaii.mp3" id="14_music"]
 [ext_resource type="Texture2D" path="res://images/ui/save_exit_arrow.png" id="15_exit_arrow"]
+[ext_resource type="PackedScene" path="res://player_hud.tscn" id="16_hud"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_hotspot"]
 
@@ -48,6 +49,9 @@ mouse_filter = 2
 texture = ExtResource("2_background")
 expand_mode = 1
 stretch_mode = 5
+
+[node name="PlayerHud" parent="." instance=ExtResource("16_hud")]
+layout_mode = 1
 
 [node name="ClockButton" type="Button" parent="."]
 layout_mode = 0
@@ -109,13 +113,28 @@ color = Color(1, 0.91, 0.67, 0.38)
 antialiased = true
 polygon = PackedVector2Array(7, 155, 18, 93, 42, 59, 91, 31, 139, 20, 209, 13, 265, 23, 311, 49, 342, 82, 356, 112, 351, 144, 330, 159, 291, 165, 262, 143, 229, 128, 194, 135, 163, 171, 123, 203, 91, 217, 51, 218, 20, 205, 3, 187)
 
+[node name="NotebookButton" type="Button" parent="."]
+layout_mode = 0
+focus_mode = 0
+mouse_default_cursor_shape = 2
+flat = true
+theme_override_styles/hover = SubResource("StyleBoxEmpty_hotspot")
+theme_override_styles/pressed = SubResource("StyleBoxEmpty_hotspot")
+tooltip_text = "卡牌升级"
+
+[node name="NotebookHighlight" type="Polygon2D" parent="NotebookButton"]
+modulate = Color(1, 1, 1, 0)
+color = Color(1, 0.91, 0.67, 0.38)
+antialiased = true
+polygon = PackedVector2Array(9, 33, 249, 2, 296, 0, 313, 14, 429, 202, 429, 239, 416, 251, 295, 264, 289, 290, 260, 293, 240, 275, 110, 290, 94, 279, 4, 71)
+
 [node name="RoundBoard" type="TextureRect" parent="."]
 layout_mode = 0
 offset_left = 1498.0
 offset_top = 24.0
 offset_right = 1634.0
 offset_bottom = 160.0
-mouse_filter = 2
+mouse_filter = 1
 texture = ExtResource("13_round_board")
 expand_mode = 1
 
@@ -127,8 +146,8 @@ anchor_right = 0.87
 anchor_bottom = 0.88
 mouse_filter = 2
 theme_override_colors/font_color = Color(0.3, 0.2, 0.38, 1)
-theme_override_font_sizes/font_size = 58
-text = "1"
+theme_override_font_sizes/font_size = 39
+text = "4 岁"
 horizontal_alignment = 1
 vertical_alignment = 1
 
@@ -160,7 +179,7 @@ offset_right = -14.0
 offset_bottom = -10.0
 grow_horizontal = 0
 grow_vertical = 0
-tooltip_text = "下一回合：长大一岁，恢复精力并领取零花钱"
+tooltip_text = "下一回合：推进时节，恢复精力并领取零花钱"
 mouse_default_cursor_shape = 2
 focus_mode = 0
 texture_normal = ExtResource("15_exit_arrow")
@@ -235,7 +254,7 @@ anchor_bottom = 1.0
 offset_top = 3.0
 offset_bottom = 24.0
 mouse_filter = 2
-text = "聊天"
+text = "社交"
 horizontal_alignment = 1
 
 [node name="Gallery" type="TextureButton" parent="PhoneOverlay/PhoneImage/AppRow"]

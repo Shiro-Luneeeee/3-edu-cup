@@ -11,6 +11,8 @@
 [ext_resource type="Texture2D" uid="uid://c10a31tewk64y" path="res://images/ui/settings.png" id="9_settings"]
 [ext_resource type="Shader" uid="uid://cxbtnjcn6x5w2" path="res://menu_ink_weight.gdshader" id="10_ink_weight"]
 [ext_resource type="Shader" uid="uid://chs1snbeorjc1" path="res://menu_flower_glow.gdshader" id="11_flower_glow"]
+[ext_resource type="Texture2D" path="res://images/ui/quit.png" id="12_quit"]
+[ext_resource type="PackedScene" path="res://model_notice.tscn" id="13_notice"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_ripples"]
 shader = ExtResource("2_shader")
@@ -35,6 +37,10 @@ shader_parameter/color_flow_speed = 0.055
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_title"]
 shader = ExtResource("10_ink_weight")
+shader_parameter/spread_px = 3.0
+shader_parameter/extra_opacity = 0.55
+shader_parameter/white_ink = true
+shader_parameter/include_pink_glow = false
 shader_parameter/breath_scale = 0.012
 shader_parameter/breath_rise = 0.01
 
@@ -114,7 +120,7 @@ theme_override_constants/separation = 6
 [node name="ContinueButton" type="TextureButton" parent="MenuColumn" unique_id=656227289]
 visible = false
 material = SubResource("ShaderMaterial_menu_ink_weight")
-custom_minimum_size = Vector2(0, 78)
+custom_minimum_size = Vector2(0, 64)
 layout_mode = 2
 size_flags_vertical = 3
 mouse_default_cursor_shape = 2
@@ -124,7 +130,7 @@ stretch_mode = 5
 
 [node name="NewGameButton" type="TextureButton" parent="MenuColumn" unique_id=551745147]
 material = SubResource("ShaderMaterial_menu_ink_weight")
-custom_minimum_size = Vector2(0, 78)
+custom_minimum_size = Vector2(0, 64)
 layout_mode = 2
 size_flags_vertical = 3
 mouse_default_cursor_shape = 2
@@ -134,7 +140,7 @@ stretch_mode = 5
 
 [node name="GallaryButton" type="TextureButton" parent="MenuColumn" unique_id=1526992962]
 material = SubResource("ShaderMaterial_menu_ink_weight")
-custom_minimum_size = Vector2(0, 78)
+custom_minimum_size = Vector2(0, 64)
 layout_mode = 2
 size_flags_vertical = 3
 mouse_default_cursor_shape = 2
@@ -144,11 +150,22 @@ stretch_mode = 5
 
 [node name="SettingsButton" type="TextureButton" parent="MenuColumn" unique_id=1278268892]
 material = SubResource("ShaderMaterial_menu_ink_weight")
-custom_minimum_size = Vector2(0, 78)
+custom_minimum_size = Vector2(0, 64)
 layout_mode = 2
 size_flags_vertical = 3
 mouse_default_cursor_shape = 2
 texture_normal = ExtResource("9_settings")
+ignore_texture_size = true
+stretch_mode = 5
+
+[node name="QuitButton" type="TextureButton" parent="MenuColumn"]
+material = SubResource("ShaderMaterial_menu_ink_weight")
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+size_flags_vertical = 3
+mouse_default_cursor_shape = 2
+tooltip_text = "退出游戏"
+texture_normal = ExtResource("12_quit")
 ignore_texture_size = true
 stretch_mode = 5
 
@@ -172,5 +189,4 @@ theme_override_font_sizes/font_size = 16
 text = "v0.2.1"
 horizontal_alignment = 2
 
-[node name="MenuNotice" type="AcceptDialog" parent="." unique_id=711584323]
-title = "提示"
+[node name="MenuNotice" parent="." instance=ExtResource("13_notice")]

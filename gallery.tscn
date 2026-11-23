@@ -1,9 +1,7 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://gallery.gd" id="1_script"]
 [ext_resource type="Texture2D" path="res://images/gallery_background.png" id="2_background"]
-[ext_resource type="Texture2D" path="res://images/gallery_frame.png" id="3_frame"]
-[ext_resource type="Texture2D" path="res://images/settings_letter.png" id="4_paper"]
 [ext_resource type="AudioStream" path="res://audio/music/Mateus Asato - Wasted Hit.mp3" id="5_music"]
 
 [node name="Gallery" type="Control"]
@@ -117,90 +115,18 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.025, 0.07, 0.15, 0.82)
-
-[node name="PaperBacking" type="ColorRect" parent="Preview"]
-layout_mode = 1
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -183.0
-offset_top = -215.0
-offset_right = 183.0
-offset_bottom = 136.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-color = Color(0.996, 0.954, 0.883, 1)
-
-[node name="Paper" type="TextureRect" parent="Preview"]
-layout_mode = 1
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -184.0
-offset_top = -215.0
-offset_right = 184.0
-offset_bottom = 137.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-texture = ExtResource("4_paper")
-expand_mode = 1
-stretch_mode = 0
+color = Color(0.025, 0.035, 0.055, 0.96)
 
 [node name="Art" type="TextureRect" parent="Preview"]
 layout_mode = 1
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -170.0
-offset_top = -201.0
-offset_right = 167.0
-offset_bottom = 118.0
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 expand_mode = 1
 stretch_mode = 5
-
-[node name="Frame" type="TextureRect" parent="Preview"]
-layout_mode = 1
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -223.0
-offset_top = -254.0
-offset_right = 222.0
-offset_bottom = 255.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-texture = ExtResource("3_frame")
-expand_mode = 1
-stretch_mode = 0
-
-[node name="Caption" type="Label" parent="Preview"]
-layout_mode = 1
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -180.0
-offset_top = 148.0
-offset_right = 180.0
-offset_bottom = 195.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-theme_override_colors/font_color = Color(0.27, 0.23, 0.27, 1)
-theme_override_font_sizes/font_size = 22
-horizontal_alignment = 1
-vertical_alignment = 1
 
 [node name="PreviousButton" type="Button" parent="Preview"]
 layout_mode = 1

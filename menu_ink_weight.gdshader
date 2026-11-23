@@ -3,11 +3,13 @@ shader_type canvas_item;
 // Add a small amount of ink only beside solid strokes. Ignore faint PNG noise.
 uniform float spread_px : hint_range(0.0, 12.0) = 5.0;
 uniform float extra_opacity : hint_range(0.0, 1.0) = 0.24;
+uniform bool white_ink = false;
 // Colors sampled from main_menu_background.png: pink (520,470), green (530,240), yellow (400,580).
 uniform vec4 glow_pink : source_color = vec4(0.992, 0.710, 0.784, 1.0);
 uniform vec4 glow_green : source_color = vec4(0.788, 0.886, 0.376, 1.0);
 uniform vec4 glow_yellow : source_color = vec4(0.992, 0.898, 0.267, 1.0);
 uniform float color_flow_speed : hint_range(0.0, 0.2) = 0.055;
+uniform bool include_pink_glow = true;
 uniform float breath_scale = 0.0;
 uniform float breath_rise = 0.0; // Fraction of the texture height.
 
@@ -48,7 +50,10 @@ void fragment() {
 	float glow_alpha = glow_mask * mix(0.30, 0.75, glow_pulse);
 	float color_phase = fract(SCREEN_UV.x * 3.4 + SCREEN_UV.y * 0.85 - TIME * color_flow_speed);
 	vec3 glow_rgb;
-	if (color_phase < 0.3333333) {
+	if (!include_pink_glow) {
+		float blend = 0.5 - 0.5 * cos(color_phase * TAU);
+		glow_rgb = mix(glow_green.rgb, glow_yellow.rgb, blend);
+	} else if (color_phase < 0.3333333) {
 		float blend = smoothstep(0.0, 1.0, color_phase * 3.0);
 		glow_rgb = mix(glow_pink.rgb, glow_green.rgb, blend);
 	} else if (color_phase < 0.6666667) {
@@ -58,7 +63,10 @@ void fragment() {
 		float blend = smoothstep(0.0, 1.0, (color_phase - 0.6666667) * 3.0);
 		glow_rgb = mix(glow_yellow.rgb, glow_pink.rgb, blend);
 	}
-	vec3 color = mix(glow_rgb, original.rgb, ink_alpha);
 	float alpha = ink_alpha + (1.0 - ink_alpha) * glow_alpha;
+	vec3 color = mix(glow_rgb, original.rgb, ink_alpha);
+	if (white_ink) {
+		color = mix(glow_rgb, vec3(1.0), ink_alpha / max(alpha, 0.0001));
+	}
 	COLOR = vec4(color, alpha);
 }
