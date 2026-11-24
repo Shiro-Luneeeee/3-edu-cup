@@ -5,6 +5,7 @@ signal closed
 const CardCatalog := preload("res://card_catalog.gd")
 const SocialCharacters := preload("res://social_characters.gd")
 const StoryDialogue := preload("res://story_dialogue.gd")
+const FinalExamEnding := preload("res://final_exam_ending.gd")
 const StoryCardOffer := preload("res://story_card_offer.gd")
 const CARD_OFFER_SCENE := preload("res://story_card_offer.tscn")
 const SECTIONS := [
@@ -13,6 +14,8 @@ const SECTIONS := [
 		"chapters": [
 			{"title": "小学入学", "scene": preload("res://school_intro.tscn")},
 			{"title": "初中开学第一天", "scene": preload("res://middle_school_intro.tscn")},
+			{"title": "高中开学第一天", "scene": preload("res://high_school_intro.tscn")},
+			{"title": "高考结局", "scene": preload("res://final_exam_ending.tscn")},
 		],
 	},
 	{
@@ -33,6 +36,12 @@ const SECTIONS := [
 			{"title": "旧书店的秘密", "scene": preload("res://fushimi_bookshop.tscn"), "card": CardCatalog.FUSHIMI_CARDS_BY_NUMBER[SocialCharacters.FushimiChapter.BOOKSHOP]},
 			{"title": "放学后的告白", "scene": preload("res://fushimi_confession.tscn"), "card": CardCatalog.FUSHIMI_CARDS_BY_NUMBER[SocialCharacters.FushimiChapter.CONFESSION], "confession": true},
 			{"title": "天台上的约定", "scene": preload("res://fushimi_final_promise.tscn"), "card": CardCatalog.FUSHIMI_CARDS_BY_NUMBER[SocialCharacters.FushimiChapter.FINAL_PROMISE]},
+		],
+	},
+	{
+		"label": SocialCharacters.SHIRAKAWA,
+		"chapters": [
+			{"title": "课间的买刀买马", "scene": preload("res://shirakawa_first_story.tscn")},
 		],
 	},
 ]
@@ -96,8 +105,15 @@ func play_chapter(character: String, chapter: Dictionary) -> void:
 	clear_page()
 	list_view.hide()
 	var scene: PackedScene = chapter["scene"]
+	var page := scene.instantiate()
+	if page is FinalExamEnding:
+		page.preview = true
+		page.preview_finished.connect(show_list, CONNECT_ONE_SHOT)
+		active_page = page
+		add_child(page)
+		return
 	var card_id: int = chapter.get("card", -1)
-	var story := scene.instantiate() as StoryDialogue
+	var story := page as StoryDialogue
 	story.preview_end_text = "查看专属卡  ›" if card_id >= 0 else "返回剧情列表  ›"
 	story.completed.connect(finish_chapter.bind(story, character, card_id), CONNECT_ONE_SHOT)
 	active_page = story

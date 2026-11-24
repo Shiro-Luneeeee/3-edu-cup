@@ -1,6 +1,7 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://story_preview_menu.gd" id="1_menu"]
+[ext_resource type="FontVariation" path="res://fonts/StoryFont.tres" id="2_font"]
 
 [sub_resource type="StyleBoxFlat" id="Style_panel"]
 content_margin_left = 24.0
@@ -52,6 +53,7 @@ corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
 
 [sub_resource type="Theme" id="Theme_menu"]
+default_font = ExtResource("2_font")
 Label/colors/font_color = Color(0.27, 0.18, 0.31, 1)
 PreviewSection/base_type = &"Label"
 PreviewSection/colors/font_color = Color(0.46, 0.32, 0.53, 1)

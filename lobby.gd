@@ -1,7 +1,6 @@
 extends Control
 
 const MATCH_SCENE := "res://card.tscn"
-const DRAFT_SCENE := "res://deck_draft.tscn"
 const BEDROOM_SCENE := "res://bedroom.tscn"
 const CardCatalog := preload("res://card_catalog.gd")
 const RoundCalendar := preload("res://round_calendar.gd")
@@ -18,7 +17,7 @@ const ExamDifficulty := preload("res://exam_difficulty.gd")
 func _ready() -> void:
 	if RoundCalendar.is_final_exam(PlayerState.round_number):
 		$LobbyPanel/Margin/Column/Title.text = "高考准备"
-		$LobbyPanel/Margin/Column/Subtitle.text = "最后一场考试"
+		$LobbyPanel/Margin/Column/Subtitle.text = "高考只有一次。开考后退出，也会结束本次旅程。"
 		start_button.text = "参加高考"
 	var target := ExamDifficulty.progress_target(PlayerState.passed_exams)
 	var damage_bonus := ExamDifficulty.damage_bonus(PlayerState.passed_exams)
@@ -31,10 +30,13 @@ func _ready() -> void:
 
 
 func start_match() -> void:
-	if PlayerState.final_exam_passed or not RoundCalendar.has_card_match(PlayerState.round_number):
+	if PlayerState.final_exam_started:
+		SceneFade.change_to(SceneFade.FINAL_EXAM_ENDING_SCENE)
+		return
+	if not RoundCalendar.has_card_match(PlayerState.round_number):
 		SceneFade.change_to(BEDROOM_SCENE, -1.0)
 		return
-	SceneFade.change_to(MATCH_SCENE if PlayerState.has_starter_deck() else DRAFT_SCENE)
+	SceneFade.change_to(MATCH_SCENE if PlayerState.has_starter_deck() else SceneFade.starter_deck_entry_scene())
 
 
 func card_overview() -> String:

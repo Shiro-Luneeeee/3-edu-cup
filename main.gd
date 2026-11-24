@@ -4,7 +4,6 @@ signal card_choice_made(choice: int)
 
 const LOBBY_SCENE := "res://lobby.tscn"
 const BEDROOM_SCENE := "res://bedroom.tscn"
-const DRAFT_SCENE := "res://deck_draft.tscn"
 const CardCatalog := preload("res://card_catalog.gd")
 const CardFace := preload("res://card_face.gd")
 const RoundCalendar := preload("res://round_calendar.gd")
@@ -95,6 +94,7 @@ var hand_move_tween: Tween
 @onready var turn_value_label: Label = $HudLayer/UI/TurnValueLabel
 @onready var end_button: Button = $HudLayer/UI/end
 @onready var progress_target := ExamDifficulty.progress_target(PlayerState.passed_exams)
+@onready var is_final_exam := RoundCalendar.is_final_exam(PlayerState.round_number)
 @onready var enemy_damage_bonus := ExamDifficulty.damage_bonus(PlayerState.passed_exams)
 
 var health_texture := preload("res://images/金色月桂叶游戏生命条.png")
@@ -106,11 +106,7 @@ var attack_textures: Array[Texture2D] = [
 ]
 
 func _ready() -> void:
-	if PlayerState.final_exam_passed or not RoundCalendar.has_card_match(PlayerState.round_number):
-		get_tree().change_scene_to_file.call_deferred(BEDROOM_SCENE)
-		return
-	if not PlayerState.has_starter_deck():
-		get_tree().change_scene_to_file.call_deferred(DRAFT_SCENE)
+	if not prepare_match():
 		return
 	if get_tree().root.get_node_or_null(MATCH_MUSIC_NAME) == null:
 		var music_stream := match_music.stream.duplicate() as AudioStreamMP3
@@ -139,6 +135,38 @@ func _ready() -> void:
 	await show_turn_banner()
 
 
+func prepare_match() -> bool:
+	if PlayerState.final_exam_started:
+		get_tree().change_scene_to_file.call_deferred(SceneFade.FINAL_EXAM_ENDING_SCENE)
+		return false
+	if not RoundCalendar.has_card_match(PlayerState.round_number):
+		get_tree().change_scene_to_file.call_deferred(BEDROOM_SCENE)
+		return false
+	if not PlayerState.has_starter_deck():
+		get_tree().change_scene_to_file.call_deferred(SceneFade.starter_deck_entry_scene())
+		return false
+	if is_final_exam:
+		PlayerState.final_exam_started = true
+		if not SaveManager.save_active_slot():
+			PlayerState.final_exam_started = false
+			show_final_exam_save_error()
+			return false
+	return true
+
+
+func show_final_exam_save_error() -> void:
+	game_over = true
+	var notice := AcceptDialog.new()
+	notice.title = "无法开始高考"
+	notice.dialog_text = "无法记录开考状态，请检查存档目录后再试。"
+	notice.ok_button_text = "返回准备界面"
+	var go_back := get_tree().change_scene_to_file.bind(LOBBY_SCENE)
+	notice.confirmed.connect(go_back)
+	notice.canceled.connect(go_back)
+	add_child(notice)
+	notice.popup_centered.call_deferred(Vector2i(420, 160))
+
+
 func _exit_tree() -> void:
 	var transition_music := get_tree().root.get_node_or_null(MATCH_MUSIC_NAME) as AudioStreamPlayer
 	if transition_music != null:
@@ -160,10 +188,13 @@ func _input(event: InputEvent) -> void:
 		match event.keycode:
 			KEY_J:
 				get_viewport().set_input_as_handled()
-				start_next_round()
+				if not is_final_exam:
+					start_next_round()
 				return
 			KEY_ESCAPE:
 				get_viewport().set_input_as_handled()
+				if is_final_exam:
+					return
 				if match_settled:
 					enter_next_round()
 				else:
@@ -891,13 +922,13 @@ func set_slots_selectable(enabled: bool) -> void:
 		else:
 			glow.hide()
 
-func use_selected_card(event: InputEvent, slot: Control) -> void:
+func use_selected_card(event: InputEvent, slot: Control) -> bool:
 	if game_over or card_effect_resolving or resolving_attack or selected_card == null or not (event is InputEventMouseButton):
-		return
+		return false
 	if event.button_index != MOUSE_BUTTON_LEFT or not event.pressed:
-		return
+		return false
 	if slot.mouse_filter != Control.MOUSE_FILTER_STOP or not can_use_slot(slot):
-		return
+		return false
 
 	var used_card := selected_card
 	var card_id: int = used_card.get_meta("card_id")
@@ -921,6 +952,7 @@ func use_selected_card(event: InputEvent, slot: Control) -> void:
 	card_effect_resolving = false
 	if finish_turn and not game_over:
 		end_turn()
+	return true
 
 func animate_card_play(card: Control, slot: Control) -> void:
 	# The hand is hidden during slot selection. Launch from its visible resting position.
@@ -1210,8 +1242,18 @@ func consume_health(amount: float) -> void:
 	block -= absorbed
 	health = maxf(0.0, health - (maxf(amount, 0.0) - absorbed))
 	if health <= 0.0 and not game_over:
-		game_over = true
-		show_game_over.call_deferred()
+		if is_final_exam:
+			finish_final_exam(false)
+		else:
+			game_over = true
+			show_game_over.call_deferred()
+
+func finish_final_exam(passed: bool) -> void:
+	game_over = true
+	if passed:
+		PlayerState.record_exam_pass()
+		SaveManager.save_active_slot()
+	get_tree().change_scene_to_file.call_deferred(SceneFade.FINAL_EXAM_ENDING_SCENE)
 
 func show_game_over(reason: String = "") -> void:
 	if health_display_tween and health_display_tween.is_running():
@@ -1256,6 +1298,10 @@ func finish_game() -> void:
 func settle_game(automatic: bool) -> void:
 	if game_over:
 		return
+	if is_final_exam:
+		if automatic or progress >= progress_target:
+			finish_final_exam(progress >= progress_target)
+		return
 	if progress < progress_target:
 		if automatic:
 			game_over = true
@@ -1281,19 +1327,11 @@ func settle_game(automatic: bool) -> void:
 	match_rewards.summary = "进度 %s / %d    ·    心态 %s    ·    回合 %d    ·    下一轮回满精力" % [
 		format_value(progress), progress_target, format_value(health), turn,
 	]
-	if PlayerState.final_exam_passed:
-		match_rewards.result_only = true
-		match_rewards.heading_text = "高考通过"
-		match_rewards.summary = "进度 %s / %d    ·    剩余心态 %s" % [format_value(progress), progress_target, format_value(health)]
-		match_rewards.continue_text = "保存并返回标题"
 	match_rewards.continue_requested.connect(enter_next_round)
 	ui.add_child(match_rewards)
 
 func enter_next_round() -> void:
 	if not is_instance_valid(match_rewards) or not match_rewards.reward_claimed:
-		return
-	if PlayerState.final_exam_passed:
-		SaveManager.open_save_page()
 		return
 	start_next_round()
 

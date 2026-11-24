@@ -1,6 +1,7 @@
 extends "res://map_destination.gd"
 
 const FINAL_PROMISE_SCENE := preload("res://yue_final_promise.tscn")
+const SHIRAKAWA_FIRST_STORY := preload("res://shirakawa_first_story.tscn")
 const CardCatalog := preload("res://card_catalog.gd")
 const FUSHIMI_STORIES := {
 	SocialCharacters.FushimiChapter.PEN: preload("res://fushimi_pen_story.tscn"),
@@ -26,6 +27,8 @@ func open_character(character: String) -> void:
 			request_confession_confirmation(SocialCharacters.FUSHIMI, confirm_fushimi_confession)
 		else:
 			play_fushimi_story(chapter)
+	elif character == SocialCharacters.SHIRAKAWA:
+		SceneFade.play_action(show_dialogue.bind(SHIRAKAWA_FIRST_STORY, PlayerState.finish_shirakawa_first_story))
 	else:
 		SceneFade.play_action(show_story.bind(FINAL_PROMISE_SCENE, PlayerState.yue_story_chapter()))
 

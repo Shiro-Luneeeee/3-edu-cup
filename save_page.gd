@@ -53,13 +53,19 @@ func refresh_slot(slot: int) -> void:
 		action.disabled = not saving
 		delete.hide()
 	else:
-		var round_number := maxi(1, int(data["player"].get("round_number", 1)))
-		var player_name := str(data["player"].get("player_name", "")).strip_edges()
+		var player: Dictionary = data["player"]
+		var round_number := maxi(1, int(player.get("round_number", 1)))
+		var player_name := str(player.get("player_name", "")).strip_edges()
 		if player_name.is_empty():
 			player_name = PlayerState.DEFAULT_PLAYER_NAME
 		heading.text = "存档 %02d · 第 %d 回合 · %d 岁" % [slot, round_number, RoundCalendar.age(round_number)]
+		var ended := RoundCalendar.is_final_exam(round_number) and (
+			bool(player.get("final_exam_started", false)) or bool(player.get("final_exam_passed", false))
+		)
+		if ended:
+			heading.text += " · 已结局"
 		details.text = "玩家：%s\n游玩时长：%s\n存档时间：%s" % [player_name, SaveManager.play_time_text(data), str(data.get("saved_local", "未知"))]
-		action.text = "覆盖存档" if saving else "继续游戏"
+		action.text = "覆盖存档" if saving else ("回看结局" if ended else "继续游戏")
 		action.disabled = false
 		delete.show()
 
@@ -67,7 +73,7 @@ func refresh_slot(slot: int) -> void:
 func on_slot_action(slot: int) -> void:
 	if SaveManager.page_mode == SaveManager.PageMode.LOAD:
 		if SaveManager.load_slot(slot):
-			SceneFade.change_to(BEDROOM_SCENE)
+			SceneFade.change_to(SceneFade.FINAL_EXAM_ENDING_SCENE if PlayerState.final_exam_started else BEDROOM_SCENE)
 		else:
 			show_notice("这个存档无法读取。")
 		return

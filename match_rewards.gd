@@ -39,7 +39,6 @@ var continue_text := "进入下一轮"
 var fixed_offer: Array[int] = []
 var level_reward_stat := -1
 var requires_starter_deck := false
-var result_only := false
 var money_reward := MONEY_REWARD
 var reward_claimed := false
 var pending_reward := Reward.NONE
@@ -62,14 +61,6 @@ func _ready() -> void:
 	next_button.text = continue_text
 	next_button.pressed.connect(func() -> void: continue_requested.emit())
 	%LaterButton.pressed.connect(func() -> void: deferred_requested.emit())
-	if result_only:
-		reward_claimed = true
-		prompt.hide()
-		scroll.hide()
-		claimed_art.get_parent().show()
-		next_button.show()
-		next_button.grab_focus()
-		return
 	skip_button.visible = level_reward_stat >= 0
 	skip_button.pressed.connect(skip_level_reward)
 	resized.connect(update_card_sizes)

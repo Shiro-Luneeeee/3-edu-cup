@@ -5,6 +5,7 @@ enum Season { NONE, SPRING, SUMMER, AUTUMN, WINTER }
 const START_AGE := 4
 const SCHOOL_AGE := 7
 const MIDDLE_SCHOOL_AGE := 13
+const HIGH_SCHOOL_AGE := 16
 const FIRST_SCHOOL_ROUND := SCHOOL_AGE - START_AGE + 1
 const ROUNDS_PER_YEAR := 4
 const FINAL_EXAM_ROUND := FIRST_SCHOOL_ROUND + (18 - SCHOOL_AGE) * ROUNDS_PER_YEAR + 3
@@ -44,6 +45,10 @@ static func is_final_exam(round_number: int) -> bool:
 
 static func is_middle_school_start(round_number: int) -> bool:
 	return age(round_number) == MIDDLE_SCHOOL_AGE and season(round_number) == Season.AUTUMN
+
+
+static func is_high_school_start(round_number: int) -> bool:
+	return round_number == first_round_at_age(HIGH_SCHOOL_AGE)
 
 
 static func has_card_match(round_number: int) -> bool:

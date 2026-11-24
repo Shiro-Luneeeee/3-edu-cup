@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene format=3]
 
 [ext_resource type="Script" path="res://match_transition.gd" id="1_script"]
+[ext_resource type="FontVariation" path="res://fonts/StoryFont.tres" id="2_font"]
 
 [node name="MatchTransition" type="CanvasLayer"]
 layer = 100
@@ -32,6 +33,7 @@ theme_override_colors/font_shadow_color = Color(0.44, 0.3, 0.43, 0.6)
 theme_override_constants/shadow_offset_x = 0
 theme_override_constants/shadow_offset_y = 3
 theme_override_constants/line_spacing = 18
+theme_override_fonts/font = ExtResource("2_font")
 theme_override_font_sizes/font_size = 58
 text = "这一次…………\n请允我\n如夏日般融化…………"
 horizontal_alignment = 1

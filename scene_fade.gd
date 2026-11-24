@@ -9,9 +9,13 @@ const RoundCalendar := preload("res://round_calendar.gd")
 const StoryDialogue := preload("res://story_dialogue.gd")
 const SCHOOL_INTRO := preload("res://school_intro.tscn")
 const MIDDLE_SCHOOL_INTRO := preload("res://middle_school_intro.tscn")
+const HIGH_SCHOOL_INTRO := preload("res://high_school_intro.tscn")
 const STORY_PREVIEW_MENU_SCENE := preload("res://story_preview_menu.tscn")
 const StoryPreviewMenu := preload("res://story_preview_menu.gd")
 const BEDROOM_SCENE := "res://bedroom.tscn"
+const DRAFT_SCENE := "res://deck_draft.tscn"
+const BATTLE_TUTORIAL_SCENE := "res://battle_tutorial.tscn"
+const FINAL_EXAM_ENDING_SCENE := "res://final_exam_ending.tscn"
 const COVER_TIME := 0.42
 const REVEAL_TIME := 0.48
 const ROUND_INTRO_FADE_TIME := 0.28
@@ -65,6 +69,9 @@ func advance_to_next_round() -> void:
 	PlayerState.apply_next_round_energy_bonus()
 	change_to(BEDROOM_SCENE, -1.0, PlayerState.round_number)
 
+func starter_deck_entry_scene() -> String:
+	return DRAFT_SCENE if PlayerState.battle_tutorial_seen else BATTLE_TUTORIAL_SCENE
+
 func show_school_opening() -> void:
 	var current_round := PlayerState.round_number
 	if RoundCalendar.age(current_round) == RoundCalendar.SCHOOL_AGE and not PlayerState.school_intro_seen:
@@ -73,6 +80,9 @@ func show_school_opening() -> void:
 	elif RoundCalendar.is_middle_school_start(current_round) and not PlayerState.middle_school_intro_seen:
 		await show_school_intro(MIDDLE_SCHOOL_INTRO)
 		PlayerState.middle_school_intro_seen = true
+	elif RoundCalendar.is_high_school_start(current_round) and not PlayerState.high_school_intro_seen:
+		await show_school_intro(HIGH_SCHOOL_INTRO)
+		PlayerState.high_school_intro_seen = true
 
 func show_school_intro(scene: PackedScene) -> void:
 	school_intro_panel = scene.instantiate() as StoryDialogue

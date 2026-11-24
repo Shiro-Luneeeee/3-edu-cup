@@ -59,9 +59,8 @@ func _ready() -> void:
 	name_input.add_theme_color_override("caret_color", Color("514d54"))
 	body.scroll_active = false
 	body.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	name_input.placeholder_text = "在这里写下你的姓名"
+	name_input.placeholder_text = "留空使用「%s」" % PlayerState.DEFAULT_PLAYER_NAME
 	name_input.max_length = 12
-	name_input.text_changed.connect(func(value: String) -> void: next_button.disabled = value.strip_edges().is_empty())
 	name_input.text_submitted.connect(func(_value: String) -> void: advance())
 	next_button.pressed.connect(advance)
 	previous_button.text = "上一页"
@@ -109,14 +108,17 @@ func layout_page() -> void:
 func show_page() -> void:
 	body.text = PAGES[page]
 	if confirming:
-		body.text = "你确定，要叫作「%s」吗？\n\n若心中还有另一声轻轻的回响，也不必急着回答。\n\n这里并非现实，命运尚未落笔。\n\n你还有一次机会，俯身听听心底的风，为初生的自己，拾起一个愿意相伴一生的名字。" % name_input.text.strip_edges()
+		body.text = "你确定，要叫作「%s」吗？\n\n若心中还有另一声轻轻的回响，也不必急着回答。\n\n这里并非现实，命运尚未落笔。\n\n你还有一次机会，俯身听听心底的风，为初生的自己，拾起一个愿意相伴一生的名字。" % chosen_name()
 	reveal = 0.0
 	body.visible_characters = 0
 	name_input.visible = page == PAGES.size() - 1 and not confirming
 	previous_button.visible = page > 0
 	previous_button.text = "重新落笔" if confirming else "上一页"
 	next_button.text = "就叫这个名字" if confirming else ("写下这个名字" if name_input.visible else "继续阅读  →")
-	next_button.disabled = name_input.visible and name_input.text.strip_edges().is_empty()
+
+func chosen_name() -> String:
+	var entered := name_input.text.strip_edges()
+	return PlayerState.DEFAULT_PLAYER_NAME if entered.is_empty() else entered
 
 func go_back() -> void:
 	if opening or leaving:
@@ -145,14 +147,14 @@ func advance() -> void:
 	if page < PAGES.size() - 1:
 		page += 1
 		show_page()
-	elif not name_input.text.strip_edges().is_empty():
+	else:
 		if not confirming:
 			confirming = true
 			name_input.release_focus()
 			show_page()
 			return
 		leaving = true
-		PlayerState.player_name = name_input.text.strip_edges()
+		PlayerState.player_name = chosen_name()
 		PlayerState.bedroom_tutorial_pending = true
 		next_button.disabled = true
 		SceneFade.change_to("res://bedroom.tscn", 1.0, PlayerState.round_number)

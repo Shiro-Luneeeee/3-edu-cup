@@ -1,0 +1,19 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://story_dialogue.tscn" id="1_layout"]
+[ext_resource type="Script" path="res://high_school_intro.gd" id="2_intro"]
+
+[node name="HighSchoolIntro" instance=ExtResource("1_layout")]
+script = ExtResource("2_intro")
+
+[node name="FushimiPortrait" type="TextureRect" parent="Stage" index="2"]
+visible = false
+layout_mode = 0
+mouse_filter = 2
+expand_mode = 1
+
+[node name="ShirakawaPortrait" type="TextureRect" parent="Stage" index="3"]
+visible = false
+layout_mode = 0
+mouse_filter = 2
+expand_mode = 1

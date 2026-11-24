@@ -85,7 +85,7 @@ func start_reward_draft(return_scene: String) -> void:
 		return
 	draft_return_scene = return_scene
 	dismiss_panel()
-	SceneFade.change_to(DRAFT_SCENE)
+	SceneFade.change_to(SceneFade.starter_deck_entry_scene())
 
 
 func take_draft_destination(default_scene: String) -> String:

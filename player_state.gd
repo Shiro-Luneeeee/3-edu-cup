@@ -21,7 +21,7 @@ const STAT_FIXED_LEVEL_COST := 200
 const DEFAULT_MAX_ENERGY := 20
 const DEFAULT_MAX_HEALTH := 20
 const DEFAULT_MONEY := 500
-const DEFAULT_PLAYER_NAME := "小满"
+const DEFAULT_PLAYER_NAME := "樱白 满"
 const ROUND_ALLOWANCE := 60
 const MIN_STARTER_DECK_SIZE := 10
 const MAX_STARTER_DECK_SIZE := 15
@@ -38,6 +38,7 @@ var max_health := DEFAULT_MAX_HEALTH
 var player_name := DEFAULT_PLAYER_NAME
 var bedroom_tutorial_pending := false
 var bedroom_tutorial_seen := false
+var battle_tutorial_seen := false
 var park_meeting_seen := false
 var yue_goldfish_seen := false
 var yue_farewell_seen := false
@@ -45,14 +46,17 @@ var yue_final_promise_seen := false
 var romantic_partner := ""
 var school_intro_seen := false
 var middle_school_intro_seen := false
+var high_school_intro_seen := false
 var fushimi_pen_seen := false
 var fushimi_pen_card_resolved := false
 var fushimi_tutoring_seen := false
 var fushimi_bookshop_seen := false
 var fushimi_confession_seen := false
 var fushimi_final_promise_seen := false
+var shirakawa_first_story_seen := false
 var round_number := 1
 var passed_exams := 0
+var final_exam_started := false
 var final_exam_passed := false
 var intelligence := 0
 var emotional_intelligence := 0
@@ -100,6 +104,7 @@ func reset() -> void:
 	player_name = DEFAULT_PLAYER_NAME
 	bedroom_tutorial_pending = false
 	bedroom_tutorial_seen = false
+	battle_tutorial_seen = false
 	park_meeting_seen = false
 	yue_goldfish_seen = false
 	yue_farewell_seen = false
@@ -107,14 +112,17 @@ func reset() -> void:
 	romantic_partner = ""
 	school_intro_seen = false
 	middle_school_intro_seen = false
+	high_school_intro_seen = false
 	fushimi_pen_seen = false
 	fushimi_pen_card_resolved = false
 	fushimi_tutoring_seen = false
 	fushimi_bookshop_seen = false
 	fushimi_confession_seen = false
 	fushimi_final_promise_seen = false
+	shirakawa_first_story_seen = false
 	round_number = 1
 	passed_exams = 0
+	final_exam_started = false
 	final_exam_passed = false
 	_last_event_round = 0
 	_last_event_id = ""
@@ -149,6 +157,7 @@ func make_snapshot() -> Dictionary:
 	return {
 		"player_name": player_name,
 		"bedroom_tutorial_seen": bedroom_tutorial_seen,
+		"battle_tutorial_seen": battle_tutorial_seen,
 		"max_energy": max_energy,
 		"current_energy": current_energy,
 		"round_energy_bonus": round_energy_bonus,
@@ -161,14 +170,17 @@ func make_snapshot() -> Dictionary:
 		"romantic_partner": romantic_partner,
 		"school_intro_seen": school_intro_seen,
 		"middle_school_intro_seen": middle_school_intro_seen,
+		"high_school_intro_seen": high_school_intro_seen,
 		"fushimi_pen_seen": fushimi_pen_seen,
 		"fushimi_pen_card_resolved": fushimi_pen_card_resolved,
 		"fushimi_tutoring_seen": fushimi_tutoring_seen,
 		"fushimi_bookshop_seen": fushimi_bookshop_seen,
 		"fushimi_confession_seen": fushimi_confession_seen,
 		"fushimi_final_promise_seen": fushimi_final_promise_seen,
+		"shirakawa_first_story_seen": shirakawa_first_story_seen,
 		"round_number": round_number,
 		"passed_exams": passed_exams,
+		"final_exam_started": final_exam_started,
 		"final_exam_passed": final_exam_passed,
 		"last_event_round": _last_event_round,
 		"last_event_id": _last_event_id,
@@ -216,15 +228,18 @@ func restore_snapshot(data: Dictionary) -> void:
 	romantic_partner = saved_partner if saved_partner is String else ""
 	school_intro_seen = bool(data.get("school_intro_seen", false))
 	middle_school_intro_seen = bool(data.get("middle_school_intro_seen", false))
+	high_school_intro_seen = bool(data.get("high_school_intro_seen", false))
 	fushimi_pen_seen = bool(data.get("fushimi_pen_seen", false))
 	fushimi_pen_card_resolved = bool(data.get("fushimi_pen_card_resolved", fushimi_pen_seen))
 	fushimi_tutoring_seen = bool(data.get("fushimi_tutoring_seen", false))
 	fushimi_bookshop_seen = bool(data.get("fushimi_bookshop_seen", false))
 	fushimi_confession_seen = bool(data.get("fushimi_confession_seen", false))
 	fushimi_final_promise_seen = bool(data.get("fushimi_final_promise_seen", false))
+	shirakawa_first_story_seen = bool(data.get("shirakawa_first_story_seen", false))
 	round_number = clampi(int(data.get("round_number", 1)), 1, RoundCalendar.FINAL_EXAM_ROUND)
 	passed_exams = maxi(0, int(data.get("passed_exams", 0)))
 	final_exam_passed = RoundCalendar.is_final_exam(round_number) and bool(data.get("final_exam_passed", false))
+	final_exam_started = RoundCalendar.is_final_exam(round_number) and (final_exam_passed or bool(data.get("final_exam_started", false)))
 	_last_event_round = clampi(int(data.get("last_event_round", round_number)), 0, round_number)
 	_last_event_id = str(data.get("last_event_id", ""))
 	_pending_event_id = ""
@@ -277,6 +292,7 @@ func restore_snapshot(data: Dictionary) -> void:
 			var card_id := int(saved_id)
 			if saved_id == card_id and CardCatalog.CARDS.has(card_base_id(card_id)):
 				card_deck.append(card_id)
+	battle_tutorial_seen = bool(data.get("battle_tutorial_seen", _starter_deck_completed or has_starter_deck()))
 	character_affection.clear()
 	var saved_affection: Variant = data.get("character_affection", {})
 	if saved_affection is Dictionary:
@@ -305,7 +321,9 @@ func record_exam_pass() -> void:
 	if final_exam_passed:
 		return
 	passed_exams += 1
-	final_exam_passed = RoundCalendar.is_final_exam(round_number)
+	if RoundCalendar.is_final_exam(round_number):
+		final_exam_started = true
+		final_exam_passed = true
 	changed.emit()
 
 
@@ -548,7 +566,7 @@ func add_character_affection(character: String, base_amount: int) -> int:
 
 func yue_story_chapter() -> SocialCharacters.YueChapter:
 	var affection_level := affection_progress(SocialCharacters.YUE).x
-	if RoundCalendar.is_final_exam(round_number) and not yue_final_promise_seen and affection_level >= SocialCharacters.FINAL_PROMISE_AFFECTION_LEVEL:
+	if RoundCalendar.is_final_exam(round_number) and not final_exam_started and not yue_final_promise_seen and affection_level >= SocialCharacters.FINAL_PROMISE_AFFECTION_LEVEL:
 		return SocialCharacters.YueChapter.FINAL_PROMISE
 	# Saves from before the second card was added can still make its one-time choice.
 	if yue_goldfish_seen and yue_story_card_offer(SocialCharacters.YueChapter.GOLDFISH) >= 0:
@@ -598,6 +616,8 @@ func social_locations() -> Dictionary[String, String]:
 	var locations := SocialCharacters.locations_for_round(round_number, park_meeting_seen, yue_story_chapter(), fushimi_pen_seen)
 	if available_daoxiang_act() > 0:
 		locations[SocialCharacters.DAOXIANG] = SocialCharacters.PARK
+	if shirakawa_story_available():
+		locations[SocialCharacters.SHIRAKAWA] = SocialCharacters.SCHOOL
 	return locations
 
 
@@ -606,14 +626,27 @@ func has_character_story(character: String, location: String) -> bool:
 		return location == SocialCharacters.PARK and available_daoxiang_act() > 0
 	if character == SocialCharacters.FUSHIMI:
 		return location == SocialCharacters.SCHOOL and fushimi_story_chapter() != SocialCharacters.FushimiChapter.NONE
+	if character == SocialCharacters.SHIRAKAWA:
+		return location == SocialCharacters.SCHOOL and shirakawa_story_available()
 	return SocialCharacters.has_story(character, location, yue_story_chapter())
+
+
+func shirakawa_story_available() -> bool:
+	return not shirakawa_first_story_seen and RoundCalendar.age(round_number) == RoundCalendar.HIGH_SCHOOL_AGE
+
+
+func finish_shirakawa_first_story() -> void:
+	if not shirakawa_story_available():
+		return
+	shirakawa_first_story_seen = true
+	changed.emit()
 
 
 func fushimi_story_chapter() -> SocialCharacters.FushimiChapter:
 	if not fushimi_pen_seen:
 		return SocialCharacters.FushimiChapter.PEN if SocialCharacters.fushimi_pen_available(round_number) else SocialCharacters.FushimiChapter.NONE
 	var affection_level := affection_progress(SocialCharacters.FUSHIMI).x
-	if RoundCalendar.is_final_exam(round_number) and not final_exam_passed and not fushimi_final_promise_seen and affection_level >= SocialCharacters.FINAL_PROMISE_AFFECTION_LEVEL:
+	if RoundCalendar.is_final_exam(round_number) and not final_exam_started and not fushimi_final_promise_seen and affection_level >= SocialCharacters.FINAL_PROMISE_AFFECTION_LEVEL:
 		return SocialCharacters.FushimiChapter.FINAL_PROMISE
 	if not fushimi_pen_card_resolved:
 		return SocialCharacters.FushimiChapter.PEN

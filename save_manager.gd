@@ -16,6 +16,7 @@ var keep_music_for_scene_change := false
 var scene_playlist: Array[AudioStreamMP3] = []
 var playlist_index := 0
 var play_seconds := 0.0
+var active_slot := 0
 
 
 func _process(delta: float) -> void:
@@ -26,6 +27,7 @@ func _process(delta: float) -> void:
 
 func start_new_game() -> void:
 	play_seconds = 0.0
+	active_slot = 0
 
 
 func open_load_page() -> void:
@@ -159,13 +161,28 @@ func save_slot(slot: int) -> bool:
 		"player": PlayerState.make_snapshot(),
 		"study": StudyProgress.make_snapshot(),
 	}
-	var file := FileAccess.open(slot_path(slot), FileAccess.WRITE)
+	var path := ProjectSettings.globalize_path(slot_path(slot))
+	var pending_path := path + ".tmp"
+	var file := FileAccess.open(pending_path, FileAccess.WRITE)
 	if file == null:
 		push_error("Could not write save slot %d: %s" % [slot, error_string(FileAccess.get_open_error())])
 		return false
 	file.store_string(JSON.stringify(record, "\t"))
 	file.flush()
-	return file.get_error() == OK
+	var error := file.get_error()
+	file.close()
+	if error == OK:
+		error = DirAccess.rename_absolute(pending_path, path)
+	if error != OK:
+		DirAccess.remove_absolute(pending_path)
+		push_error("Could not update save slot %d: %s" % [slot, error_string(error)])
+		return false
+	active_slot = slot
+	return true
+
+
+func save_active_slot() -> bool:
+	return active_slot == 0 or save_slot(active_slot)
 
 
 func load_slot(slot: int) -> bool:
@@ -175,13 +192,18 @@ func load_slot(slot: int) -> bool:
 	PlayerState.restore_snapshot(data["player"])
 	StudyProgress.restore_snapshot(data["study"])
 	play_seconds = maxf(0.0, float(data.get("play_seconds", 0)))
+	active_slot = slot
 	return true
 
 
 func delete_slot(slot: int) -> bool:
 	if not is_valid_slot(slot) or not FileAccess.file_exists(slot_path(slot)):
 		return false
-	return DirAccess.remove_absolute(ProjectSettings.globalize_path(slot_path(slot))) == OK
+	if DirAccess.remove_absolute(ProjectSettings.globalize_path(slot_path(slot))) != OK:
+		return false
+	if active_slot == slot:
+		active_slot = 0
+	return true
 
 
 func play_time_text(data: Dictionary) -> String:
