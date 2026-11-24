@@ -12,6 +12,7 @@ const MARKER_GAP := 10.0
 @onready var character_markers: Node2D = $Artwork/CharacterMarkers
 
 var hovered_location: MapLocation
+var hovered_character := ""
 var pressed_location: MapLocation
 var destination_overlay: Control
 var opening_destination := false
@@ -57,6 +58,7 @@ func refresh_character_markers() -> void:
 			story_characters.append(character)
 	if placements == last_character_locations and story_characters == last_story_characters:
 		return
+	set_hovered_character("")
 	last_character_locations = placements
 	last_story_characters = story_characters
 	for child in character_markers.get_children():
@@ -74,6 +76,10 @@ func refresh_character_markers() -> void:
 				continue
 			var badge := CharacterBadge.new()
 			badge.configure(SocialCharacters.avatar(character), character, MARKER_SIZE, character in story_characters)
+			if character == SocialCharacters.DAOXIANG:
+				badge.tooltip_text = ""
+				badge.mouse_entered.connect(set_hovered_character.bind(character))
+				badge.mouse_exited.connect(clear_hovered_character.bind(character))
 			badge.pressed.connect(enter_location.bind(location))
 			group.add_child(badge)
 		if group.get_child_count() == 0:
@@ -116,11 +122,20 @@ func set_hovered_location(location: MapLocation) -> void:
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND if location != null else Control.CURSOR_ARROW
 	if hovered_location != null:
 		hovered_location.set_hovered(true)
+
+
+func set_hovered_character(character: String) -> void:
+	hovered_character = character
 	update_hover_hint()
 
 
+func clear_hovered_character(character: String) -> void:
+	if hovered_character == character:
+		set_hovered_character("")
+
+
 func update_hover_hint() -> void:
-	hover_card.visible = hovered_location != null and hovered_location.name == "Park"
+	hover_card.visible = hovered_character == SocialCharacters.DAOXIANG and PlayerState.available_daoxiang_act() > 0
 	if not hover_card.visible:
 		return
 	match PlayerState.available_daoxiang_act():
@@ -162,6 +177,7 @@ func enter_location(location: MapLocation) -> void:
 
 func show_destination(scene: PackedScene) -> void:
 	set_hovered_location(null)
+	set_hovered_character("")
 	character_markers.hide()
 	destination_overlay = scene.instantiate() as Control
 	destination_overlay.tree_exited.connect(character_markers.show)

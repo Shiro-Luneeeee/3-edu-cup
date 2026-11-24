@@ -31,9 +31,6 @@ func refresh_visitors() -> void:
 			here.append(character)
 			if PlayerState.has_character_story(character, scene_file_path):
 				stories.append(character)
-	if scene_file_path == SocialCharacters.PARK and PlayerState.available_daoxiang_act() > 0:
-		here.append(SocialCharacters.DAOXIANG)
-		stories.append(SocialCharacters.DAOXIANG)
 	if here == visitor_ids and stories == visitor_stories:
 		return
 	visitor_ids = here

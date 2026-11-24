@@ -36,6 +36,8 @@ var round_energy_bonus := 0
 var next_round_energy_bonus := 0
 var max_health := DEFAULT_MAX_HEALTH
 var player_name := DEFAULT_PLAYER_NAME
+var bedroom_tutorial_pending := false
+var bedroom_tutorial_seen := false
 var park_meeting_seen := false
 var yue_goldfish_seen := false
 var yue_farewell_seen := false
@@ -90,6 +92,8 @@ func reset() -> void:
 	_starter_deck_completed = false
 	_yue_story_cards_resolved = 0
 	player_name = DEFAULT_PLAYER_NAME
+	bedroom_tutorial_pending = false
+	bedroom_tutorial_seen = false
 	park_meeting_seen = false
 	yue_goldfish_seen = false
 	yue_farewell_seen = false
@@ -132,6 +136,7 @@ func reset() -> void:
 func make_snapshot() -> Dictionary:
 	return {
 		"player_name": player_name,
+		"bedroom_tutorial_seen": bedroom_tutorial_seen,
 		"max_energy": max_energy,
 		"current_energy": current_energy,
 		"round_energy_bonus": round_energy_bonus,
@@ -183,6 +188,8 @@ func restore_snapshot(data: Dictionary) -> void:
 	max_health = maxi(DEFAULT_MAX_HEALTH, int(data.get("max_health", DEFAULT_MAX_HEALTH)))
 	var saved_name := str(data.get("player_name", "")).strip_edges()
 	player_name = DEFAULT_PLAYER_NAME if saved_name.is_empty() else saved_name
+	bedroom_tutorial_pending = false
+	bedroom_tutorial_seen = bool(data.get("bedroom_tutorial_seen", true))
 	park_meeting_seen = bool(data.get("park_meeting_seen", false))
 	yue_goldfish_seen = bool(data.get("yue_goldfish_seen", false))
 	yue_farewell_seen = bool(data.get("yue_farewell_seen", false))
@@ -559,10 +566,15 @@ func known_social_characters() -> Array[String]:
 
 
 func social_locations() -> Dictionary[String, String]:
-	return SocialCharacters.locations_for_round(round_number, park_meeting_seen, yue_story_chapter(), fushimi_pen_seen)
+	var locations := SocialCharacters.locations_for_round(round_number, park_meeting_seen, yue_story_chapter(), fushimi_pen_seen)
+	if available_daoxiang_act() > 0:
+		locations[SocialCharacters.DAOXIANG] = SocialCharacters.PARK
+	return locations
 
 
 func has_character_story(character: String, location: String) -> bool:
+	if character == SocialCharacters.DAOXIANG:
+		return location == SocialCharacters.PARK and available_daoxiang_act() > 0
 	if character == SocialCharacters.FUSHIMI:
 		return location == SocialCharacters.SCHOOL and not fushimi_pen_seen and SocialCharacters.fushimi_pen_available(round_number)
 	return SocialCharacters.has_story(character, location, yue_story_chapter())

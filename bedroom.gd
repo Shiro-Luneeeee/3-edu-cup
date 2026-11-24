@@ -15,6 +15,7 @@ const STUDY_SCENE := preload("res://study.tscn")
 const GALLERY_SCENE: PackedScene = preload("res://gallery.tscn")
 const UPGRADE_SCENE := preload("res://card_upgrade.tscn")
 const SOCIAL_SCENE := preload("res://social.tscn")
+const TUTORIAL_SCENE := preload("res://bedroom_tutorial.tscn")
 const BEDROOM_PLAYLIST := [
 	preload("res://audio/music/Mateus Asato - Kawaii.mp3"),
 	preload("res://audio/music/Mateus Asato - MA.mp3"),
@@ -56,6 +57,7 @@ var study_overlay: Control
 var map_overlay: Control
 var upgrade_overlay: Control
 var social_overlay: Control
+var tutorial_overlay: Control
 func _ready() -> void:
 	bedroom_music = SaveManager.use_scene_playlist(BEDROOM_SCENE, bedroom_music, BEDROOM_PLAYLIST)
 	PlayerState.initialize(intelligence, emotional_intelligence, physical_strength, max_energy)
@@ -79,9 +81,28 @@ func _ready() -> void:
 	exit_button.pressed.connect(SaveManager.open_save_page)
 	phone_overlay.gui_input.connect(on_phone_overlay_input)
 	update_layout()
+	if PlayerState.bedroom_tutorial_pending and not PlayerState.bedroom_tutorial_seen:
+		call_deferred("show_tutorial_after_intro")
 
 func _exit_tree() -> void:
 	SaveManager.release_scene_music(BEDROOM_SCENE)
+
+
+func show_tutorial_after_intro() -> void:
+	while is_inside_tree() and SceneFade.curtain.visible:
+		await get_tree().process_frame
+	if not is_inside_tree() or not PlayerState.bedroom_tutorial_pending or PlayerState.bedroom_tutorial_seen:
+		return
+	tutorial_overlay = TUTORIAL_SCENE.instantiate() as Control
+	tutorial_overlay.set("bedroom", self)
+	tutorial_overlay.connect("finished", finish_tutorial, CONNECT_ONE_SHOT)
+	add_child(tutorial_overlay)
+
+
+func finish_tutorial() -> void:
+	PlayerState.bedroom_tutorial_pending = false
+	PlayerState.bedroom_tutorial_seen = true
+	tutorial_overlay = null
 
 func set_energy(value: int) -> void:
 	PlayerState.set_energy(value)
@@ -212,6 +233,8 @@ func on_phone_overlay_input(event: InputEvent) -> void:
 		phone_overlay.hide()
 
 func _unhandled_key_input(event: InputEvent) -> void:
+	if is_instance_valid(tutorial_overlay):
+		return
 	if is_instance_valid(social_overlay):
 		return
 	if phone_overlay.visible and event.is_action_pressed("ui_cancel"):

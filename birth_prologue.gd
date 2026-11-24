@@ -153,5 +153,6 @@ func advance() -> void:
 			return
 		leaving = true
 		PlayerState.player_name = name_input.text.strip_edges()
+		PlayerState.bedroom_tutorial_pending = true
 		next_button.disabled = true
 		SceneFade.change_to("res://bedroom.tscn", 1.0, PlayerState.round_number)

@@ -54,8 +54,11 @@ func refresh_slot(slot: int) -> void:
 		delete.hide()
 	else:
 		var round_number := maxi(1, int(data["player"].get("round_number", 1)))
+		var player_name := str(data["player"].get("player_name", "")).strip_edges()
+		if player_name.is_empty():
+			player_name = PlayerState.DEFAULT_PLAYER_NAME
 		heading.text = "存档 %02d · 第 %d 回合 · %d 岁" % [slot, round_number, RoundCalendar.age(round_number)]
-		details.text = "游玩时长：%s\n存档时间：%s" % [SaveManager.play_time_text(data), str(data.get("saved_local", "未知"))]
+		details.text = "玩家：%s\n游玩时长：%s\n存档时间：%s" % [player_name, SaveManager.play_time_text(data), str(data.get("saved_local", "未知"))]
 		action.text = "覆盖存档" if saving else "继续游戏"
 		action.disabled = false
 		delete.show()
