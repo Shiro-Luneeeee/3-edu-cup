@@ -42,6 +42,10 @@ const SECTIONS := [
 		"label": SocialCharacters.SHIRAKAWA,
 		"chapters": [
 			{"title": "课间的买刀买马", "scene": preload("res://shirakawa_first_story.tscn")},
+			{"title": "小巷里的小毛球", "scene": preload("res://shirakawa_puppy.tscn")},
+			{"title": "秋天最后的颜色", "scene": preload("res://shirakawa_osmanthus.tscn")},
+			{"title": "教室里的告白", "scene": preload("res://shirakawa_confession.tscn"), "confession": true},
+			{"title": "温暖的甜", "scene": preload("res://shirakawa_snow.tscn")},
 		],
 	},
 ]

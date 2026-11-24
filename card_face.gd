@@ -12,8 +12,7 @@ const FUSHIMI_NIGHT_WALK_COST_REGION := Rect2i(75, 53, 90, 118)
 const FUSHIMI_LAST_COST_REGION := Rect2i(74, 53, 94, 113)
 const SIGNED_FIELDS := ["health_change", "health_per_hand", "next_energy_change", "starting_energy_gain"]
 
-static var digit_font := make_digit_font(["Times New Roman", "Liberation Serif", "Noto Serif", "DejaVu Serif"])
-static var fushimi_effect_font := make_digit_font(["Arial", "Liberation Sans", "Noto Sans"])
+const DIGIT_FONT := preload("res://fonts/StoryFont.tres")
 static var paper_patches: Dictionary[Vector3i, Texture2D] = {}
 
 var base_id := 0
@@ -80,8 +79,7 @@ func draw_edits() -> void:
 				ink = Color("24172b")
 			elif field == "progress_per_discard":
 				digits = "+%d" % value
-		var glyph_font := fushimi_effect_font if is_fushimi and field != "cost_reduction" else digit_font
-		draw_digits(digits, Rect2(region), origin, art_scale, ink, DIGIT_FONT_SIZE, glyph_font)
+		draw_digits(digits, Rect2(region), origin, art_scale, ink, DIGIT_FONT_SIZE)
 
 
 func get_paper_patch(region: Rect2i) -> Texture2D:
@@ -107,17 +105,10 @@ func get_paper_patch(region: Rect2i) -> Texture2D:
 	return paper_patches[key]
 
 
-func draw_digits(digits: String, bounds: Rect2, origin: Vector2, art_scale: Vector2, ink: Color, font_size: int, font: Font = null) -> void:
-	var glyph_font := digit_font if font == null else font
+func draw_digits(digits: String, bounds: Rect2, origin: Vector2, art_scale: Vector2, ink: Color, font_size: int) -> void:
+	var glyph_font := DIGIT_FONT
 	var width := glyph_font.get_string_size(digits, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
 	var fit := minf(1.0, (bounds.size.x - 6.0) / maxf(1.0, width))
 	var baseline := (glyph_font.get_ascent(font_size) - glyph_font.get_descent(font_size)) * 0.5
 	edits.draw_set_transform(origin + bounds.get_center() * art_scale, 0.0, art_scale * Vector2(fit, 1.0))
 	edits.draw_string(glyph_font, Vector2(-width * 0.5, baseline), digits, HORIZONTAL_ALIGNMENT_LEFT, -1.0, font_size, ink)
-
-
-static func make_digit_font(names: PackedStringArray) -> SystemFont:
-	var font := SystemFont.new()
-	font.font_names = names
-	font.font_weight = 700
-	return font

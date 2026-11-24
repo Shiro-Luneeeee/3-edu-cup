@@ -56,7 +56,7 @@ func create_energy_bar() -> void:
 	energy_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	energy_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	var value_font := FontVariation.new()
-	value_font.base_font = preload("res://fonts/IndieFlower-Regular.ttf")
+	value_font.base_font = preload("res://fonts/StoryFont.tres")
 	value_font.variation_embolden = 0.6
 	energy_label.add_theme_font_override("font", value_font)
 	energy_label.add_theme_color_override("font_color", Color.WHITE)

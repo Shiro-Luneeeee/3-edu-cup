@@ -33,7 +33,7 @@ window/stretch/aspect="expand"
 
 [gui]
 
-theme/custom_font="res://fonts/GameHandwriting.tres"
+theme/custom_font="res://fonts/StoryFont.tres"
 
 [input_devices]
 

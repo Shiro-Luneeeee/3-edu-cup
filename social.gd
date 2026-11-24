@@ -4,6 +4,7 @@ const SocialCharacters := preload("res://social_characters.gd")
 const RoundCalendar := preload("res://round_calendar.gd")
 const YuePortraits := preload("res://yue_portraits.gd")
 const FushimiPortraits := preload("res://fushimi_portraits.gd")
+const SHIRAKAWA_PORTRAIT := preload("res://images/high_school_intro/shirakawa_social_portrait.tres")
 const PRESENTATION_SIZE := Vector2(1672.0, 941.0)
 const CHAT_SCENE := preload("res://social_chat.tscn")
 
@@ -69,6 +70,9 @@ func show_contact(character: String) -> void:
 			YuePortraits.show_on(portrait, age)
 	elif character == SocialCharacters.FUSHIMI:
 		FushimiPortraits.show_on(portrait, age)
+	elif character == SocialCharacters.SHIRAKAWA:
+		portrait.material = null
+		portrait.texture = SHIRAKAWA_PORTRAIT
 	refresh_details()
 
 

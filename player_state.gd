@@ -54,6 +54,10 @@ var fushimi_bookshop_seen := false
 var fushimi_confession_seen := false
 var fushimi_final_promise_seen := false
 var shirakawa_first_story_seen := false
+var shirakawa_second_story_seen := false
+var shirakawa_third_story_seen := false
+var shirakawa_confession_seen := false
+var shirakawa_snow_seen := false
 var round_number := 1
 var passed_exams := 0
 var final_exam_started := false
@@ -120,6 +124,10 @@ func reset() -> void:
 	fushimi_confession_seen = false
 	fushimi_final_promise_seen = false
 	shirakawa_first_story_seen = false
+	shirakawa_second_story_seen = false
+	shirakawa_third_story_seen = false
+	shirakawa_confession_seen = false
+	shirakawa_snow_seen = false
 	round_number = 1
 	passed_exams = 0
 	final_exam_started = false
@@ -178,6 +186,10 @@ func make_snapshot() -> Dictionary:
 		"fushimi_confession_seen": fushimi_confession_seen,
 		"fushimi_final_promise_seen": fushimi_final_promise_seen,
 		"shirakawa_first_story_seen": shirakawa_first_story_seen,
+		"shirakawa_second_story_seen": shirakawa_second_story_seen,
+		"shirakawa_third_story_seen": shirakawa_third_story_seen,
+		"shirakawa_confession_seen": shirakawa_confession_seen,
+		"shirakawa_snow_seen": shirakawa_snow_seen,
 		"round_number": round_number,
 		"passed_exams": passed_exams,
 		"final_exam_started": final_exam_started,
@@ -236,6 +248,10 @@ func restore_snapshot(data: Dictionary) -> void:
 	fushimi_confession_seen = bool(data.get("fushimi_confession_seen", false))
 	fushimi_final_promise_seen = bool(data.get("fushimi_final_promise_seen", false))
 	shirakawa_first_story_seen = bool(data.get("shirakawa_first_story_seen", false))
+	shirakawa_second_story_seen = bool(data.get("shirakawa_second_story_seen", false))
+	shirakawa_third_story_seen = bool(data.get("shirakawa_third_story_seen", false))
+	shirakawa_confession_seen = bool(data.get("shirakawa_confession_seen", false))
+	shirakawa_snow_seen = bool(data.get("shirakawa_snow_seen", false))
 	round_number = clampi(int(data.get("round_number", 1)), 1, RoundCalendar.FINAL_EXAM_ROUND)
 	passed_exams = maxi(0, int(data.get("passed_exams", 0)))
 	final_exam_passed = RoundCalendar.is_final_exam(round_number) and bool(data.get("final_exam_passed", false))
@@ -303,7 +319,7 @@ func restore_snapshot(data: Dictionary) -> void:
 	social_chat_history.clear()
 	var saved_chats: Variant = data.get("social_chat_history", {})
 	if saved_chats is Dictionary:
-		for character in SocialCharacters.known_characters(park_meeting_seen, fushimi_pen_seen):
+		for character in known_social_characters():
 			var records: Variant = saved_chats.get(character, [])
 			if records is Array:
 				var clean: Array[Dictionary] = []
@@ -609,14 +625,17 @@ func add_story_card(card_id: int) -> void:
 
 
 func known_social_characters() -> Array[String]:
-	return SocialCharacters.known_characters(park_meeting_seen, fushimi_pen_seen)
+	var known := SocialCharacters.known_characters(park_meeting_seen, fushimi_pen_seen)
+	if shirakawa_first_story_seen:
+		known.append(SocialCharacters.SHIRAKAWA)
+	return known
 
 
 func social_locations() -> Dictionary[String, String]:
 	var locations := SocialCharacters.locations_for_round(round_number, park_meeting_seen, yue_story_chapter(), fushimi_pen_seen)
 	if available_daoxiang_act() > 0:
 		locations[SocialCharacters.DAOXIANG] = SocialCharacters.PARK
-	if shirakawa_story_available():
+	if shirakawa_first_story_seen or shirakawa_story_available():
 		locations[SocialCharacters.SHIRAKAWA] = SocialCharacters.SCHOOL
 	return locations
 
@@ -627,7 +646,10 @@ func has_character_story(character: String, location: String) -> bool:
 	if character == SocialCharacters.FUSHIMI:
 		return location == SocialCharacters.SCHOOL and fushimi_story_chapter() != SocialCharacters.FushimiChapter.NONE
 	if character == SocialCharacters.SHIRAKAWA:
-		return location == SocialCharacters.SCHOOL and shirakawa_story_available()
+		return location == SocialCharacters.SCHOOL and (
+			shirakawa_story_available() or shirakawa_second_story_available() or shirakawa_third_story_available()
+			or shirakawa_confession_available() or shirakawa_snow_available()
+		)
 	return SocialCharacters.has_story(character, location, yue_story_chapter())
 
 
@@ -640,6 +662,60 @@ func finish_shirakawa_first_story() -> void:
 		return
 	shirakawa_first_story_seen = true
 	changed.emit()
+
+
+func shirakawa_second_story_available() -> bool:
+	return shirakawa_first_story_seen and not shirakawa_second_story_seen and (
+		RoundCalendar.age(round_number) >= RoundCalendar.HIGH_SCHOOL_AGE
+		and affection_progress(SocialCharacters.SHIRAKAWA).x >= 2
+	)
+
+
+func finish_shirakawa_second_story() -> void:
+	if shirakawa_second_story_available():
+		shirakawa_second_story_seen = true
+		changed.emit()
+
+
+func shirakawa_third_story_available() -> bool:
+	return shirakawa_first_story_seen and shirakawa_second_story_seen and not shirakawa_third_story_seen and (
+		RoundCalendar.age(round_number) >= RoundCalendar.HIGH_SCHOOL_AGE
+		and affection_progress(SocialCharacters.SHIRAKAWA).x >= 5
+	)
+
+
+func finish_shirakawa_third_story() -> void:
+	if shirakawa_third_story_available():
+		shirakawa_third_story_seen = true
+		changed.emit()
+
+
+func shirakawa_confession_available() -> bool:
+	return shirakawa_first_story_seen and shirakawa_second_story_seen and shirakawa_third_story_seen and (
+		not shirakawa_confession_seen and romantic_partner.is_empty()
+		and RoundCalendar.age(round_number) >= RoundCalendar.HIGH_SCHOOL_AGE
+		and affection_progress(SocialCharacters.SHIRAKAWA).x >= 8
+	)
+
+
+func finish_shirakawa_confession() -> void:
+	if shirakawa_confession_available():
+		shirakawa_confession_seen = true
+		romantic_partner = SocialCharacters.SHIRAKAWA
+		changed.emit()
+
+
+func shirakawa_snow_available() -> bool:
+	return shirakawa_first_story_seen and shirakawa_second_story_seen and shirakawa_third_story_seen and shirakawa_confession_seen and (
+		not shirakawa_snow_seen and RoundCalendar.is_final_exam(round_number) and not final_exam_started
+		and affection_progress(SocialCharacters.SHIRAKAWA).x >= SocialCharacters.FINAL_PROMISE_AFFECTION_LEVEL
+	)
+
+
+func finish_shirakawa_snow() -> void:
+	if shirakawa_snow_available():
+		shirakawa_snow_seen = true
+		changed.emit()
 
 
 func fushimi_story_chapter() -> SocialCharacters.FushimiChapter:

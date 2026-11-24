@@ -1,5 +1,7 @@
 extends "res://main.gd"
 
+signal effect_confirmed
+
 enum Step { OVERVIEW, PROGRESS, BLOCK, END_TURN, RESOLVING, RECOVER, COMPLETE }
 
 const PROGRESS_CARD := 3
@@ -16,7 +18,7 @@ const LESSONS := [
 	["用卡牌推进进度", "「认真听讲」消耗 1 点能量，提供 6 点进度。先点击这张牌，再点击一个亮起的卡槽。"],
 	["用格挡保护心态", "「深呼吸」不消耗能量，提供 3 点格挡。打出它，准备抵挡下一次攻击。这个回合已经用过的普通卡槽不能再用。"],
 	["结束回合", "按空格或点击下方按钮。下一回合会恢复能量并抽两张牌，随后对手会攻击，先消耗格挡，再扣心态。"],
-	["对手正在结算", "这次攻击有 6 点伤害，刚才的格挡会挡住 3 点。"],
+	["对手即将攻击", "这次攻击有 6 点伤害，刚才的格挡会挡住 3 点。"],
 	["回复心态", "刚才少了 3 点心态。「课间休息」消耗 1 点能量，回复最多 4 点心态，并提供 3 点格挡。把它打出去试试。"],
 	["练习完成", "练习中的牌和数值会清空。接下来选自己的卡牌，正式考试会从满心态、零进度开始。"],
 ]
@@ -33,14 +35,17 @@ const LESSONS := [
 
 var step := Step.OVERVIEW
 var leaving := false
+var waiting_for_effect := false
 
 
 func _ready() -> void:
 	skip_button.pressed.connect(finish_practice)
 	guide_action.pressed.connect(on_guide_action)
 	guide.resized.connect(layout_guide)
-	show_step(Step.OVERVIEW)
+	hide_guide()
 	await super._ready()
+	if not leaving:
+		show_step(Step.OVERVIEW)
 
 
 func prepare_match() -> bool:
@@ -92,17 +97,44 @@ func use_selected_card(event: InputEvent, slot: Control) -> bool:
 	return true
 
 
+func animate_card_play(card: Control, slot: Control) -> void:
+	hide_guide()
+	await super.animate_card_play(card, slot)
+
+
+func apply_card_effect(card_id: int, slot: Control, multiplier: float) -> bool:
+	var explanation: String
+	match step:
+		Step.PROGRESS: explanation = "这张牌会增加 6 点进度。留意进度条的变化，达到目标后就能交卷。"
+		Step.BLOCK: explanation = "这张牌会增加 3 点格挡。受到攻击时，会先扣格挡，再扣心态。"
+		Step.RECOVER: explanation = "这张牌会回复心态，并提供 3 点格挡。心态最多回复到上限。"
+	await explain_effect(LESSONS[step][0], explanation, "查看效果")
+	if leaving:
+		return false
+	var ends_turn := await super.apply_card_effect(card_id, slot, multiplier)
+	if health_display_tween and health_display_tween.is_running():
+		await health_display_tween.finished
+	if progress_fill_tween and progress_fill_tween.is_running():
+		await progress_fill_tween.finished
+	return ends_turn
+
+
 func end_turn() -> void:
 	if step != Step.END_TURN or leaving or card_effect_resolving or resolving_attack or showing_turn_banner:
 		return
-	show_step(Step.RESOLVING)
+	step = Step.RESOLVING
+	hide_guide()
 	await super.end_turn()
 	if not leaving:
 		show_step(Step.RECOVER)
 
 
 func resolve_attack(_attack_id: int) -> void:
-	await super.resolve_attack(PRACTICE_ATTACK)
+	if leaving:
+		return
+	await explain_effect(LESSONS[step][0], LESSONS[step][1], "播放攻击")
+	if not leaving:
+		await super.resolve_attack(PRACTICE_ATTACK)
 
 
 func settle_game(_automatic: bool) -> void:
@@ -112,6 +144,7 @@ func settle_game(_automatic: bool) -> void:
 
 func show_step(next: Step) -> void:
 	step = next
+	guide_panel.show()
 	guide_title.text = LESSONS[step][0]
 	guide_body.text = LESSONS[step][1]
 	guide_action.visible = step == Step.OVERVIEW or step == Step.END_TURN or step == Step.COMPLETE
@@ -119,12 +152,37 @@ func show_step(next: Step) -> void:
 		Step.OVERVIEW: guide_action.text = "开始练习"
 		Step.END_TURN: guide_action.text = "结束回合"
 		Step.COMPLETE: guide_action.text = "进入选牌"
-	dimmer.visible = step != Step.RESOLVING
+	dimmer.show()
 	layout_guide()
+
+
+func explain_effect(title: String, explanation: String, action: String) -> void:
+	if leaving:
+		return
+	waiting_for_effect = true
+	guide_title.text = title
+	guide_body.text = explanation
+	guide_action.text = action
+	guide_action.show()
+	guide_panel.show()
+	dimmer.show()
+	layout_guide()
+	await effect_confirmed
+
+
+func hide_guide() -> void:
+	guide_panel.hide()
+	dimmer.hide()
+	outline.hide()
 
 
 func on_guide_action() -> void:
 	if leaving or SceneFade.curtain.visible:
+		return
+	if waiting_for_effect:
+		waiting_for_effect = false
+		hide_guide()
+		effect_confirmed.emit()
 		return
 	match step:
 		Step.OVERVIEW: show_step(Step.PROGRESS)
@@ -137,6 +195,9 @@ func finish_practice() -> void:
 		return
 	leaving = true
 	game_over = true
+	if waiting_for_effect:
+		waiting_for_effect = false
+		effect_confirmed.emit()
 	PlayerState.battle_tutorial_seen = true
 	SceneFade.change_to(SceneFade.starter_deck_entry_scene())
 
@@ -157,7 +218,7 @@ func _process(_delta: float) -> void:
 	var hint: String = LESSONS[step][1]
 	if selected_card != null:
 		hint = "点击一个亮起的卡槽出牌。右键可取消选中的牌。"
-	if guide_body.text != hint:
+	if not waiting_for_effect and guide_body.text != hint:
 		guide_body.text = hint
 		layout_guide()
 	var viewport_rect := Rect2(Vector2.ZERO, guide.size)
@@ -182,7 +243,7 @@ func lesson_target() -> Rect2:
 				var rect := slot.get_global_rect()
 				targets = targets.merge(rect) if targets.has_area() else rect
 		return targets
-	if card_effect_resolving or step == Step.END_TURN:
+	if waiting_for_effect or card_effect_resolving or step == Step.END_TURN:
 		var meter := progress_fill if step == Step.PROGRESS else health_fill
 		return (meter.get_parent() as Control).get_global_rect()
 	if step == Step.OVERVIEW or step == Step.COMPLETE:
