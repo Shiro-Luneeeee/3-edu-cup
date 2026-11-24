@@ -7,6 +7,17 @@ const YUE_GOLDFISH_CARD := 101
 const YUE_EMPTY_FISHBOWL_CARD := 102
 const YUE_OATH_CARD := 103
 const YUE_FINAL_PROMISE_CARD := 104
+const FUSHIMI_DIRECTORY := "res://images/card_fu"
+const FUSHIMI_PEN_CARD := 200
+const FUSHIMI_TUTORING_CARD := 201
+const FUSHIMI_NIGHT_WALK_CARD := 202
+const FUSHIMI_TOGETHER_CARD := 203
+const FUSHIMI_LAST_BATTLE_CARD := 204
+# Card numbers determine artwork and chapter order. The IDs above are stored in saves.
+const FUSHIMI_CARDS_BY_NUMBER := [
+	FUSHIMI_PEN_CARD, FUSHIMI_TUTORING_CARD, FUSHIMI_TOGETHER_CARD,
+	FUSHIMI_NIGHT_WALK_CARD, FUSHIMI_LAST_BATTLE_CARD,
+]
 const CARDS := {
 	0: ["预习", 0], 1: ["解题", 0], 2: ["深呼吸", 0],
 	3: ["认真听讲", 1], 4: ["课间休息", 1], 5: ["合作", 1],
@@ -22,6 +33,11 @@ const CARDS := {
 	YUE_EMPTY_FISHBOWL_CARD: ["空鱼缸", 0],
 	YUE_OATH_CARD: ["阳奈里的誓约", 1],
 	YUE_FINAL_PROMISE_CARD: ["高考前的约定", 0],
+	FUSHIMI_PEN_CARD: ["夜姬的钢笔", 5],
+	FUSHIMI_TUTORING_CARD: ["一起努力", 0],
+	FUSHIMI_TOGETHER_CARD: ["同舟共济", 0],
+	FUSHIMI_NIGHT_WALK_CARD: ["深夜的同行", 2],
+	FUSHIMI_LAST_BATTLE_CARD: ["最后一次战役", 3],
 }
 enum Upgrade { INCREASE, DECREASE, BOOST_PROGRESS, BOOST_DEFENSE }
 
@@ -35,6 +51,8 @@ const NUMBER_NAMES := {
 	"health_per_hand": "每张手牌改变心态",
 	"recover_max_cost": "可取回卡牌的最高花费",
 	"cost_reduction": "降低卡牌花费",
+	"discard_progress": "弃牌时提供的进度",
+	"progress_per_discard": "每次弃牌增加的进度",
 }
 const CARD_NUMBERS := {
 	0: {"draw": 1}, 1: {"progress": 3}, 2: {"block": 3}, 3: {"progress": 6},
@@ -53,6 +71,11 @@ const CARD_NUMBERS := {
 	YUE_EMPTY_FISHBOWL_CARD: {"recover_max_cost": 0},
 	YUE_OATH_CARD: {"cost_reduction": 1},
 	YUE_FINAL_PROMISE_CARD: {},
+	FUSHIMI_PEN_CARD: {"progress": 80, "cost_reduction": 1},
+	FUSHIMI_TUTORING_CARD: {},
+	FUSHIMI_TOGETHER_CARD: {},
+	FUSHIMI_NIGHT_WALK_CARD: {"progress": 20, "discard_progress": 10},
+	FUSHIMI_LAST_BATTLE_CARD: {"progress": 20, "progress_per_discard": 10},
 }
 # Regions around Arabic numerals in the original effect text, in card texture pixels.
 const NUMBER_REGIONS := {
@@ -83,6 +106,9 @@ const NUMBER_REGIONS := {
 	YUE_GOLDFISH_CARD: {"starting_energy_gain": Rect2i(343, 1174, 44, 69)},
 	YUE_EMPTY_FISHBOWL_CARD: {"recover_max_cost": Rect2i(391, 1092, 51, 70)},
 	YUE_OATH_CARD: {"cost_reduction": Rect2i(662, 1014, 38, 63)},
+	FUSHIMI_PEN_CARD: {"progress": Rect2i(270, 934, 92, 65), "cost_reduction": Rect2i(534, 1043, 62, 55)},
+	FUSHIMI_NIGHT_WALK_CARD: {"progress": Rect2i(262, 934, 93, 69), "discard_progress": Rect2i(507, 1019, 90, 68)},
+	FUSHIMI_LAST_BATTLE_CARD: {"progress": Rect2i(269, 945, 95, 66), "progress_per_discard": Rect2i(815, 1109, 128, 67)},
 }
 
 
@@ -128,8 +154,9 @@ static func upgraded_numbers(card_id: int, values: Dictionary, operation: int, f
 				var delta := 1 if operation == Upgrade.INCREASE else -1
 				updated[field] = maxi(minimum_number(field), int(updated[field]) + delta)
 		Upgrade.BOOST_PROGRESS:
-			if allowed.has("progress"):
-				updated["progress"] = boosted_number(int(updated["progress"]))
+			for progress_field in ["progress", "discard_progress", "progress_per_discard"]:
+				if allowed.has(progress_field):
+					updated[progress_field] = boosted_number(int(updated[progress_field]))
 		Upgrade.BOOST_DEFENSE:
 			for defense_field in ["block", "heal", "health_set", "health_change", "health_per_hand"]:
 				if allowed.has(defense_field) and int(updated[defense_field]) > 0:
@@ -143,6 +170,9 @@ static func boosted_number(value: int) -> int:
 
 
 static func texture(card_id: int) -> Texture2D:
+	if card_id >= FUSHIMI_PEN_CARD:
+		var number := FUSHIMI_CARDS_BY_NUMBER.find(card_id)
+		return load("%s/%d.png" % [FUSHIMI_DIRECTORY, number]) as Texture2D
 	if card_id >= YUE_FIRST_CARD:
 		return load("%s/%d.png" % [YUE_DIRECTORY, card_id - YUE_FIRST_CARD]) as Texture2D
 	return load("%s/%d.png" % [DIRECTORY, card_id]) as Texture2D
@@ -150,7 +180,11 @@ static func texture(card_id: int) -> Texture2D:
 
 static func yue_story_card(chapter_index: int) -> int:
 	var card_id := YUE_FIRST_CARD + chapter_index
-	return card_id if chapter_index >= 0 and CARDS.has(card_id) else -1
+	return card_id if chapter_index >= 0 and card_id <= YUE_FINAL_PROMISE_CARD else -1
+
+
+static func fushimi_story_card(chapter_index: int) -> int:
+	return FUSHIMI_CARDS_BY_NUMBER[chapter_index] if chapter_index >= 0 and chapter_index < FUSHIMI_CARDS_BY_NUMBER.size() else -1
 
 
 static func exhausts_on_play(card_id: int) -> bool:

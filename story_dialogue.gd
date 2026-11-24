@@ -1,7 +1,6 @@
 extends Control
 
 signal completed
-signal preview_cancelled
 
 const LISTENING_TINT := Color(0.60, 0.57, 0.64)
 const BACKGROUND_FADE_TIME := 0.32
@@ -18,7 +17,7 @@ const BACKGROUND_FADE_TIME := 0.32
 
 var line_index := -1
 var background_fade: Tween
-var preview_only := false
+var preview_end_text := ""
 
 
 func _ready() -> void:
@@ -54,7 +53,7 @@ func advance() -> void:
 	dialogue.text = str(line["text"]).replace("/name", PlayerState.player_name)
 	next_button.text = "继续  ›"
 	if line_index == story_lines.size() - 1:
-		next_button.text = "查看专属卡  ›" if preview_only else final_button_text()
+		next_button.text = final_button_text() if preview_end_text.is_empty() else preview_end_text
 
 
 func show_background(texture: Texture2D) -> Tween:
@@ -131,11 +130,6 @@ func _gui_input(event: InputEvent) -> void:
 
 
 func _unhandled_key_input(event: InputEvent) -> void:
-	if preview_only and event is InputEventKey and event.pressed and not event.is_echo():
-		if event.keycode == KEY_I or event.is_action_pressed("ui_cancel"):
-			get_viewport().set_input_as_handled()
-			preview_cancelled.emit()
-			return
 	if not event.is_echo() and (event.is_action_pressed("ui_accept") or event.is_action_pressed("ui_select")):
 		get_viewport().set_input_as_handled()
 		advance()

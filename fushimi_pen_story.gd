@@ -79,7 +79,7 @@ func lines() -> Array:
 
 
 func final_button_text() -> String:
-	return "回到学校  ›"
+	return "查看专属卡  ›"
 
 
 func place_portrait() -> void:

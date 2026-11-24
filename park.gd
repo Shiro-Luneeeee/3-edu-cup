@@ -54,22 +54,13 @@ func open_character(character: String) -> void:
 		if chapter == SocialCharacters.YueChapter.GOLDFISH and PlayerState.yue_goldfish_seen:
 			show_story_card_offer(chapter)
 		elif chapter == SocialCharacters.YueChapter.CONFESSION:
-			show_confession_confirmation()
+			request_confession_confirmation(SocialCharacters.YUE, confirm_confession)
 		else:
 			var scene: PackedScene = [MEETING_SCENE, GOLDFISH_SCENE, FAREWELL_SCENE][chapter]
 			SceneFade.play_action(show_story.bind(scene, chapter))
 
 
-func show_confession_confirmation() -> void:
-	story_card_offer = STORY_CARD_OFFER_SCENE.instantiate() as StoryCardOffer
-	story_card_offer.decided.connect(confirm_confession, CONNECT_ONE_SHOT)
-	add_child(story_card_offer)
-	story_card_offer.show_confession_confirmation(SocialCharacters.YUE)
-
-
 func confirm_confession(accepted: bool) -> void:
-	story_card_offer.hide()
-	story_card_offer.queue_free()
 	if accepted and PlayerState.yue_story_chapter() == SocialCharacters.YueChapter.CONFESSION:
 		SceneFade.play_action(show_story.bind(CONFESSION_SCENE, SocialCharacters.YueChapter.CONFESSION))
 
