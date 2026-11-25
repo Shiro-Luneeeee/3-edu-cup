@@ -1,7 +1,0 @@
-[gd_scene format=3]
-
-[ext_resource type="PackedScene" path="res://story_dialogue.tscn" id="1_layout"]
-[ext_resource type="Script" path="res://fushimi_confession.gd" id="2_story"]
-
-[node name="FushimiConfession" instance=ExtResource("1_layout")]
-script = ExtResource("2_story")

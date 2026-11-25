@@ -11,19 +11,19 @@ config_version=5
 [application]
 
 config/name="三教杯demo"
-run/main_scene="res://main_menu.tscn"
+run/main_scene="res://scenes/main_menu.tscn"
 config/features=PackedStringArray("4.8", "Forward Plus")
-config/icon="res://icon.png"
+config/icon="res://images/app/icon.png"
 
 [autoload]
 
 UiSounds="*res://audio/sfx/ui_sounds.gd"
-SceneFade="*res://scene_fade.gd"
-PlayerState="*res://player_state.gd"
-StudyProgress="*res://study_progress.gd"
-SaveManager="*res://save_manager.gd"
-StatRewards="*res://stat_rewards.gd"
-LocalDialogue="*res://local_dialogue.gd"
+SceneFade="*res://scripts/scene_fade.gd"
+PlayerState="*res://scripts/player_state.gd"
+StudyProgress="*res://scripts/study_progress.gd"
+SaveManager="*res://scripts/save_manager.gd"
+StatRewards="*res://scripts/stat_rewards.gd"
+LocalDialogue="*res://scripts/local_dialogue.gd"
 
 [display]
 

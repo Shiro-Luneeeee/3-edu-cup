@@ -1,0 +1,20 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/map_destination.tscn" id="1_destination"]
+[ext_resource type="Texture2D" path="res://images/playground.png" id="2_background"]
+[ext_resource type="Script" path="res://scripts/map_activity.gd" id="3_activity"]
+[ext_resource type="Script" path="res://scripts/map_activity_data.gd" id="4_data"]
+
+[sub_resource type="Resource" id="Resource_main_activity"]
+script = ExtResource("4_data")
+hotspot_points = PackedVector2Array(1237, 815, 1242, 806, 1253, 799, 1270, 793, 1293, 789, 1310, 790, 1325, 795, 1336, 802, 1342, 812, 1346, 817, 1376, 819, 1385, 819, 1400, 823, 1415, 826, 1433, 829, 1446, 833, 1450, 838, 1448, 844, 1444, 848, 1434, 846, 1417, 844, 1398, 840, 1379, 836, 1372, 833, 1372, 828, 1344, 825, 1340, 832, 1332, 839, 1321, 844, 1303, 848, 1282, 849, 1264, 847, 1251, 842, 1242, 835, 1238, 825)
+status_text = "打球中..."
+money_change = -5
+physical_gain = 20
+
+[node name="Gym" instance=ExtResource("1_destination")]
+script = ExtResource("3_activity")
+activities = Array[ExtResource("4_data")]([SubResource("Resource_main_activity")])
+
+[node name="Background" parent="." index="0"]
+texture = ExtResource("2_background")

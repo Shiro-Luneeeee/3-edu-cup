@@ -1,0 +1,11 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/map_destination.tscn" id="1_destination"]
+[ext_resource type="Texture2D" path="res://images/classroom.png" id="2_background"]
+[ext_resource type="Script" path="res://scripts/classroom.gd" id="3_classroom"]
+
+[node name="Classroom" instance=ExtResource("1_destination")]
+script = ExtResource("3_classroom")
+
+[node name="Background" parent="." index="0"]
+texture = ExtResource("2_background")

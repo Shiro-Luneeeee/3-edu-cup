@@ -17,7 +17,6 @@ dest_files=["res://.godot/imported/gentle.png-7df60fdc8cf1a2c757ae92580e48815e.c
 
 compress/mode=0
 compress/high_quality=false
-compress/high_quality_mode=0
 compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
