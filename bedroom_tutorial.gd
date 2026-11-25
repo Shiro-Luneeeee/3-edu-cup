@@ -17,7 +17,7 @@ const STEPS := [
 	{"target": "PhoneButton", "title": "手机 · 世界的另一扇窗", "body": "桌上的手机连着卧室以外的生活。地图、社交、商店与画廊，都在这一方小小的屏幕里。"},
 	{"target": "PhoneOverlay/PhoneImage/AppRow/Map", "title": "地图 · 去见沿途的风", "body": "地图会带你去学校、公园与街角。看看头像落在哪里，也许某个人、某段故事，正在那里等你。"},
 	{"target": "PhoneOverlay/PhoneImage/AppRow/Chat", "title": "社交 · 给相遇留一页", "body": "认识的人会慢慢走进好友列表。你可以在这里回望关系、与他们自由对话；新的剧情仍要在相遇的地方亲自经历。"},
-	{"target": "PhoneOverlay/PhoneImage/SecondAppRow/Shop", "title": "商店 · 为明天备好行囊", "body": "回合会带来一些金钱，商店则让你把它换成需要的东西。选择合适的物品，为漫长旅途添一份底气。"},
+	{"target": "PhoneOverlay/PhoneImage/SecondAppRow/Shop", "title": "金钱与商店", "body": "开局金钱为 0，之后每轮开始获得 10 金钱。通过考试时，进度比目标多超过 20%，今后每轮收入 +1。超过 50% 则 +2。不同考试的奖励可以累加。"},
 	{"target": "PhoneOverlay/PhoneImage/AppRow/Gallery", "title": "画廊 · 留住路过的光", "body": "有些画面值得停下脚步再看一眼。画廊收着旅途中的影像，想念的时候，随时可以回来翻阅。"},
 	{"target": "ClockButton", "title": "时钟 · 让下一页开始", "body": "当你准备好，就轻触时钟。有牌局的回合，它会带你入场；平静的回合，它会陪你翻向下一季。"},
 	{"target": "ExitButton", "title": "归途 · 把今天收好", "body": "左下角的箭头通往存档页。离开前，把今天写进存档；下次回来，故事便能从这一页继续。"},

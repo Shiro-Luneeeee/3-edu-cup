@@ -32,7 +32,7 @@ const AVATAR_PATHS := {
 	YUE: "res://images/character/yue_chibi.png",
 	DAOXIANG: "res://images/character/daoxiang_chibi.png",
 	FUSHIMI: "res://images/character/fushimi_chibi.png",
-	SHIRAKAWA: "res://images/shirakawa_first_story/avatar.tres",
+	SHIRAKAWA: "res://images/character/shirakawa_chibi.png",
 }
 
 

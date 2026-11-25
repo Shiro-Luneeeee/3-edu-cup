@@ -11,10 +11,17 @@ script = ExtResource("2_main")
 stream = ExtResource("3_music")
 volume_db = -8.0
 
-[node name="background" type="Sprite2D" parent="." unique_id=1067543927]
-position = Vector2(577.24994, 324.25003)
-scale = Vector2(0.6880979, 0.6880978)
+[node name="BackgroundLayer" type="CanvasLayer" parent="."]
+layer = -1
+
+[node name="Background" type="TextureRect" parent="BackgroundLayer" unique_id=1067543927]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
 texture = ExtResource("1_kikvd")
+expand_mode = 1
 
 [node name="HudLayer" type="CanvasLayer" parent="." unique_id=591877711]
 
@@ -44,12 +51,10 @@ metadata/_edit_group_ = true
 [node name="HealthValueLabel" type="Label" parent="HudLayer/UI" unique_id=1674802968]
 z_index = 40
 layout_mode = 0
-anchor_top = 1.0
-anchor_bottom = 1.0
 offset_left = 66.0
-offset_top = -104.0
+offset_top = 170.0
 offset_right = 326.0
-offset_bottom = -72.0
+offset_bottom = 202.0
 theme_override_colors/font_color = Color(1, 0.960784, 0.862745, 1)
 theme_override_font_sizes/font_size = 21
 text = "20/20"

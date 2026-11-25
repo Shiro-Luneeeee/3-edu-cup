@@ -16,6 +16,7 @@
 [ext_resource type="AudioStreamMP3" path="res://audio/music/Mateus Asato - Kawaii.mp3" id="14_music"]
 [ext_resource type="Texture2D" path="res://images/ui/save_exit_arrow.png" id="15_exit_arrow"]
 [ext_resource type="PackedScene" path="res://player_hud.tscn" id="16_hud"]
+[ext_resource type="Script" path="res://player_profile.gd" id="17_profile"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_hotspot"]
 
@@ -377,7 +378,7 @@ anchor_bottom = 1.0
 offset_top = 3.0
 offset_bottom = 24.0
 mouse_filter = 2
-text = "个人资料"
+text = "个人信息"
 horizontal_alignment = 1
 
 [node name="Boot" type="TextureButton" parent="PhoneOverlay/PhoneImage/Dock"]
@@ -435,3 +436,12 @@ offset_bottom = 24.0
 mouse_filter = 2
 text = "电话"
 horizontal_alignment = 1
+
+[node name="PlayerProfile" type="ColorRect" parent="PhoneOverlay"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.12, 0.08, 0.16, 0.76)
+script = ExtResource("17_profile")

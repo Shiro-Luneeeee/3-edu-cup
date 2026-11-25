@@ -19,6 +19,7 @@ const HEALTH_TRACK_IN_TEXTURE := Rect2(237.0, 291.0, 1794.0, 155.0)
 const PROGRESS_TRACK_IN_TEXTURE := Rect2(390.0, 333.0, 1548.0, 129.0)
 const MAX_HAND_SIZE := 9
 const CARD_SIZE := Vector2(142, 199)
+const BOARD_SIZE := Vector2(1152, 648)
 const SLOT_POSITIONS := [Vector2(183, 334), Vector2(369, 334), Vector2(510, 334), Vector2(658, 334), Vector2(800, 334)]
 const SLOT_SIZES := [Vector2(172, 180), Vector2(130, 180), Vector2(132, 180), Vector2(142, 180), Vector2(170, 180)]
 const SLOT_STATUS := {
@@ -580,8 +581,7 @@ func create_progress_ui(parent: Control) -> void:
 
 func create_health_ui(parent: Control) -> void:
 	var holder := Control.new()
-	holder.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	holder.position = Vector2(24, -144)
+	holder.position = Vector2(24, 130)
 	holder.size = Vector2(330, 110)
 	holder.z_index = 20
 	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -719,8 +719,12 @@ func create_card_slots(parent: Control) -> void:
 	for slot_index in SLOT_POSITIONS.size():
 		var slot := Control.new()
 		slot.name = "CardSlot%d" % (slot_index + 1)
-		slot.position = SLOT_POSITIONS[slot_index]
-		slot.size = SLOT_SIZES[slot_index]
+		var slot_start: Vector2 = SLOT_POSITIONS[slot_index] / BOARD_SIZE
+		var slot_end: Vector2 = (SLOT_POSITIONS[slot_index] + SLOT_SIZES[slot_index]) / BOARD_SIZE
+		slot.anchor_left = slot_start.x
+		slot.anchor_top = slot_start.y
+		slot.anchor_right = slot_end.x
+		slot.anchor_bottom = slot_end.y
 		slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		slot.set_meta("blocked", false)
 		slot.set_meta("blocked_until", 0)
@@ -733,7 +737,8 @@ func create_card_slots(parent: Control) -> void:
 		var glow := ColorRect.new()
 		glow.name = "Glow"
 		glow.size = Vector2(96, 112)
-		glow.position = (slot.size - glow.size) / 2.0
+		glow.set_anchors_preset(Control.PRESET_CENTER)
+		glow.position = -glow.size / 2.0
 		glow.color = Color.WHITE
 		glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		glow.material = make_center_glow_material()
@@ -1251,7 +1256,7 @@ func consume_health(amount: float) -> void:
 func finish_final_exam(passed: bool) -> void:
 	game_over = true
 	if passed:
-		PlayerState.record_exam_pass()
+		PlayerState.record_exam_pass(progress, progress_target)
 		SaveManager.save_active_slot()
 	get_tree().change_scene_to_file.call_deferred(SceneFade.FINAL_EXAM_ENDING_SCENE)
 
@@ -1309,7 +1314,7 @@ func settle_game(automatic: bool) -> void:
 		return
 	game_over = true
 	match_settled = true
-	PlayerState.record_exam_pass()
+	var allowance_bonus := PlayerState.record_exam_pass(progress, progress_target)
 	set_slots_selectable(false)
 	if card_preview != null:
 		card_preview.hide()
@@ -1327,6 +1332,8 @@ func settle_game(automatic: bool) -> void:
 	match_rewards.summary = "进度 %s / %d    ·    心态 %s    ·    回合 %d    ·    下一轮回满精力" % [
 		format_value(progress), progress_target, format_value(health), turn,
 	]
+	if allowance_bonus > 0:
+		match_rewards.summary += "\n今后每轮收入 +%d" % allowance_bonus
 	match_rewards.continue_requested.connect(enter_next_round)
 	ui.add_child(match_rewards)
 

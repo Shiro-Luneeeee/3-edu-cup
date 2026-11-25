@@ -47,6 +47,8 @@ const ROUND_BOARD_WIDTH := 136.0
 @onready var phone_image: TextureRect = $PhoneOverlay/PhoneImage
 @onready var shop_app: TextureButton = $PhoneOverlay/PhoneImage/SecondAppRow/Shop
 @onready var power_app: TextureButton = $PhoneOverlay/PhoneImage/Dock/Boot
+@onready var profile_app: TextureButton = $PhoneOverlay/PhoneImage/Dock/Persona
+@onready var profile: Control = $PhoneOverlay/PlayerProfile
 @onready var gallery_app: TextureButton = $PhoneOverlay/PhoneImage/AppRow/Gallery
 @onready var map_app: TextureButton = $PhoneOverlay/PhoneImage/AppRow/Map
 @onready var social_app: TextureButton = $PhoneOverlay/PhoneImage/AppRow/Chat
@@ -75,6 +77,8 @@ func _ready() -> void:
 	bookshelf_button.pressed.connect(open_study)
 	shop_app.pressed.connect(open_shop)
 	power_app.pressed.connect(phone_overlay.hide)
+	profile_app.pressed.connect(profile.show)
+	phone_overlay.hidden.connect(profile.hide)
 	gallery_app.pressed.connect(open_gallery)
 	map_app.pressed.connect(open_map)
 	social_app.pressed.connect(open_social)
@@ -237,7 +241,10 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		return
 	if is_instance_valid(social_overlay):
 		return
-	if phone_overlay.visible and event.is_action_pressed("ui_cancel"):
+	if profile.visible and event.is_action_pressed("ui_cancel"):
+		profile.hide()
+		get_viewport().set_input_as_handled()
+	elif phone_overlay.visible and event.is_action_pressed("ui_cancel"):
 		phone_overlay.hide()
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("ui_cancel") and not event.is_echo():

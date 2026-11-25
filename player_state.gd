@@ -20,9 +20,9 @@ const STAT_FIXED_COST_LEVEL := 10
 const STAT_FIXED_LEVEL_COST := 200
 const DEFAULT_MAX_ENERGY := 20
 const DEFAULT_MAX_HEALTH := 20
-const DEFAULT_MONEY := 500
+const DEFAULT_MONEY := 0
 const DEFAULT_PLAYER_NAME := "樱白 满"
-const ROUND_ALLOWANCE := 60
+const ROUND_ALLOWANCE := 10
 const MIN_STARTER_DECK_SIZE := 10
 const MAX_STARTER_DECK_SIZE := 15
 const FIRST_UPGRADED_CARD_ID := 1000
@@ -60,6 +60,7 @@ var shirakawa_confession_seen := false
 var shirakawa_snow_seen := false
 var round_number := 1
 var passed_exams := 0
+var exam_allowance_bonus := 0
 var final_exam_started := false
 var final_exam_passed := false
 var intelligence := 0
@@ -130,6 +131,7 @@ func reset() -> void:
 	shirakawa_snow_seen = false
 	round_number = 1
 	passed_exams = 0
+	exam_allowance_bonus = 0
 	final_exam_started = false
 	final_exam_passed = false
 	_last_event_round = 0
@@ -192,6 +194,7 @@ func make_snapshot() -> Dictionary:
 		"shirakawa_snow_seen": shirakawa_snow_seen,
 		"round_number": round_number,
 		"passed_exams": passed_exams,
+		"exam_allowance_bonus": exam_allowance_bonus,
 		"final_exam_started": final_exam_started,
 		"final_exam_passed": final_exam_passed,
 		"last_event_round": _last_event_round,
@@ -254,6 +257,7 @@ func restore_snapshot(data: Dictionary) -> void:
 	shirakawa_snow_seen = bool(data.get("shirakawa_snow_seen", false))
 	round_number = clampi(int(data.get("round_number", 1)), 1, RoundCalendar.FINAL_EXAM_ROUND)
 	passed_exams = maxi(0, int(data.get("passed_exams", 0)))
+	exam_allowance_bonus = maxi(0, int(data.get("exam_allowance_bonus", 0)))
 	final_exam_passed = RoundCalendar.is_final_exam(round_number) and bool(data.get("final_exam_passed", false))
 	final_exam_started = RoundCalendar.is_final_exam(round_number) and (final_exam_passed or bool(data.get("final_exam_started", false)))
 	_last_event_round = clampi(int(data.get("last_event_round", round_number)), 0, round_number)
@@ -333,14 +337,21 @@ func restore_snapshot(data: Dictionary) -> void:
 	changed.emit()
 
 
-func record_exam_pass() -> void:
-	if final_exam_passed:
-		return
+func record_exam_pass(progress: float, target: int) -> int:
+	if final_exam_passed or target <= 0 or progress < target:
+		return 0
+	var bonus := 0
+	if progress * 100.0 > target * 150:
+		bonus = 2
+	elif progress * 100.0 > target * 120:
+		bonus = 1
+	exam_allowance_bonus += bonus
 	passed_exams += 1
 	if RoundCalendar.is_final_exam(round_number):
 		final_exam_started = true
 		final_exam_passed = true
 	changed.emit()
+	return bonus
 
 
 func advance_round() -> void:
@@ -349,7 +360,7 @@ func advance_round() -> void:
 		if _activity_available_rounds[activity_id] <= round_number:
 			_activity_available_rounds.erase(activity_id)
 	var product_effects := ShopProducts.recurring_effects(owned_products)
-	money += ROUND_ALLOWANCE + int(product_effects.get("money", 0))
+	money += ROUND_ALLOWANCE + exam_allowance_bonus + int(product_effects.get("money", 0))
 	intelligence += StudyProgress.get_level(StudyProgress.Subject.MATH) + int(product_effects.get("intelligence", 0))
 	emotional_intelligence += StudyProgress.get_level(StudyProgress.Subject.CHINESE) + int(product_effects.get("emotional_intelligence", 0))
 	physical_strength += int(product_effects.get("physical_strength", 0))
