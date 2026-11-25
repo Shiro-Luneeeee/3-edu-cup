@@ -22,6 +22,7 @@ var card_visuals: Array[Control] = []
 var card_tweens: Array[Tween] = []
 var selected_index := 0
 var preview_index := 0
+var scroll_hint: Panel
 
 
 func _ready() -> void:
@@ -31,6 +32,7 @@ func _ready() -> void:
 	layout_cards(false)
 	if Engine.is_editor_hint():
 		return
+	show_scroll_hint()
 	var music_stream := gallery_music.stream.duplicate() as AudioStreamMP3
 	music_stream.loop = true
 	gallery_music.stream = music_stream
@@ -42,6 +44,37 @@ func _ready() -> void:
 	next_button.pressed.connect(func() -> void: change_preview(1))
 	next_button.add_to_group("soft_selection")
 	animate_cards()
+
+
+func show_scroll_hint() -> void:
+	scroll_hint = Panel.new()
+	scroll_hint.name = "ScrollHint"
+	scroll_hint.z_index = 30
+	scroll_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	scroll_hint.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	scroll_hint.offset_left = -342.0
+	scroll_hint.offset_top = 170.0
+	scroll_hint.offset_right = -28.0
+	scroll_hint.offset_bottom = 232.0
+	var paper := StyleBoxFlat.new()
+	paper.bg_color = Color("fff2e2")
+	paper.border_color = Color("e4b5ad")
+	paper.set_border_width_all(2)
+	paper.set_corner_radius_all(18)
+	paper.shadow_color = Color(0.12, 0.08, 0.20, 0.4)
+	paper.shadow_size = 10
+	paper.shadow_offset = Vector2(4, 5)
+	scroll_hint.add_theme_stylebox_override("panel", paper)
+	add_child(scroll_hint)
+	var label := Label.new()
+	label.text = "试试拨动鼠标滚轮"
+	label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.add_theme_color_override("font_color", Color("684574"))
+	label.add_theme_font_size_override("font_size", 22)
+	scroll_hint.add_child(label)
 
 
 func load_character_images() -> void:
@@ -196,12 +229,16 @@ func _input(event: InputEvent) -> void:
 	if Engine.is_editor_hint() or image_paths.is_empty() or not (event is InputEventMouseButton) or not event.pressed:
 		return
 	if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+		if is_instance_valid(scroll_hint):
+			scroll_hint.hide()
 		if preview.visible:
 			change_preview(-1)
 		else:
 			select_photo(-1)
 		get_viewport().set_input_as_handled()
 	elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+		if is_instance_valid(scroll_hint):
+			scroll_hint.hide()
 		if preview.visible:
 			change_preview(1)
 		else:

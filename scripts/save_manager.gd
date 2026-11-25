@@ -15,6 +15,9 @@ var music_origin_scene := ""
 var keep_music_for_scene_change := false
 var scene_playlist: Array[AudioStreamMP3] = []
 var playlist_index := 0
+var playlist_resume_scene := ""
+var playlist_resume_index := 0
+var playlist_resume_position := 0.0
 var play_seconds := 0.0
 var active_slot := 0
 
@@ -28,6 +31,21 @@ func _process(delta: float) -> void:
 func start_new_game() -> void:
 	play_seconds = 0.0
 	active_slot = 0
+	reset_playlist_resume()
+
+
+func reset_playlist_resume() -> void:
+	if is_instance_valid(carried_music):
+		carried_music.stop()
+		carried_music.queue_free()
+		carried_music = null
+	music_origin_scene = ""
+	keep_music_for_scene_change = false
+	scene_playlist.clear()
+	playlist_index = 0
+	playlist_resume_scene = ""
+	playlist_resume_index = 0
+	playlist_resume_position = 0.0
 
 
 func open_load_page() -> void:
@@ -52,6 +70,7 @@ func use_scene_music(scene_path: String, scene_music: AudioStreamPlayer) -> Audi
 		if music_origin_scene == scene_path:
 			scene_music.queue_free()
 			return carried_music
+		remember_playlist_position()
 		carried_music.stop()
 		carried_music.queue_free()
 	scene_playlist.clear()
@@ -72,28 +91,30 @@ func use_scene_playlist(scene_path: String, scene_music: AudioStreamPlayer, trac
 		if music_origin_scene == scene_path:
 			scene_music.queue_free()
 			return carried_music
+		remember_playlist_position()
 		carried_music.stop()
 		carried_music.queue_free()
 	scene_playlist.clear()
 	for track in tracks:
 		if track is AudioStreamMP3:
 			scene_playlist.append(track)
-	playlist_index = 0
+	playlist_index = clampi(playlist_resume_index, 0, maxi(0, scene_playlist.size() - 1)) if playlist_resume_scene == scene_path else 0
+	var resume_position := playlist_resume_position if playlist_resume_scene == scene_path else 0.0
 	scene_music.reparent(self)
 	carried_music = scene_music
 	music_origin_scene = scene_path
 	scene_music.finished.connect(_advance_scene_playlist)
-	_play_scene_playlist_track()
+	_play_scene_playlist_track(resume_position)
 	return scene_music
 
 
-func _play_scene_playlist_track() -> void:
+func _play_scene_playlist_track(from_position: float = 0.0) -> void:
 	if not is_instance_valid(carried_music) or scene_playlist.is_empty():
 		return
 	var track := scene_playlist[playlist_index].duplicate() as AudioStreamMP3
 	track.loop = false
 	carried_music.stream = track
-	carried_music.play()
+	carried_music.play(from_position)
 
 
 func _advance_scene_playlist() -> void:
@@ -108,12 +129,21 @@ func release_scene_music(scene_path: String) -> void:
 		keep_music_for_scene_change = false
 		return
 	if music_origin_scene == scene_path and is_instance_valid(carried_music):
+		remember_playlist_position()
 		carried_music.stop()
 		carried_music.queue_free()
 		carried_music = null
 		music_origin_scene = ""
 		scene_playlist.clear()
 		playlist_index = 0
+
+
+func remember_playlist_position() -> void:
+	if scene_playlist.is_empty() or not is_instance_valid(carried_music):
+		return
+	playlist_resume_scene = music_origin_scene
+	playlist_resume_index = playlist_index
+	playlist_resume_position = carried_music.get_playback_position()
 
 
 func has_any_save() -> bool:
@@ -189,6 +219,7 @@ func load_slot(slot: int) -> bool:
 	var data := read_slot(slot)
 	if data.is_empty():
 		return false
+	reset_playlist_resume()
 	PlayerState.restore_snapshot(data["player"])
 	StudyProgress.restore_snapshot(data["study"])
 	play_seconds = maxf(0.0, float(data.get("play_seconds", 0)))

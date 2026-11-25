@@ -1,26 +1,11 @@
-[gd_scene format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/final_exam_ending.gd" id="1_ending"]
-[ext_resource type="Texture2D" path="res://images/exam_classroom_pastel.png" id="2_exam"]
-[ext_resource type="Theme" path="res://fonts/StoryTheme.tres" id="3_theme"]
+[ext_resource type="Theme" path="res://fonts/StoryTheme.tres" id="2_theme"]
+[ext_resource type="AudioStream" path="res://audio/music/Mateus Asato - Goodbye.mp3" id="3_goodbye"]
+[ext_resource type="AudioStream" path="res://audio/music/Mateus Asato - Otsukare!.mp3" id="4_otsukare"]
 
-[sub_resource type="StyleBoxFlat" id="Style_return"]
-content_margin_left = 20.0
-content_margin_right = 20.0
-bg_color = Color(0.14, 0.13, 0.15, 1)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_left = 10
-corner_radius_bottom_right = 10
-
-[sub_resource type="StyleBoxFlat" id="Style_hover"]
-content_margin_left = 20.0
-content_margin_right = 20.0
-bg_color = Color(0.24, 0.21, 0.25, 1)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_left = 10
-corner_radius_bottom_right = 10
+[sub_resource type="StyleBoxEmpty" id="Style_plain"]
 
 [node name="FinalExamEnding" type="Control"]
 layout_mode = 3
@@ -30,7 +15,8 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 clip_contents = true
-theme = ExtResource("3_theme")
+mouse_filter = 2
+theme = ExtResource("2_theme")
 script = ExtResource("1_ending")
 
 [node name="Black" type="ColorRect" parent="."]
@@ -39,75 +25,145 @@ anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
-color = Color(0, 0, 0, 1)
+color = Color(0.025, 0.025, 0.035, 1)
 
-[node name="ExamPreview" type="TextureRect" parent="."]
-visible = false
+[node name="CGMusic" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("3_goodbye")
+volume_db = -10.0
+
+[node name="CreditsMusic" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("4_otsukare")
+volume_db = -60.0
+
+[node name="StoryLayer" type="Control" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
-texture = ExtResource("2_exam")
+
+[node name="CGImage" type="TextureRect" parent="StoryLayer"]
+layout_mode = 1
+anchor_right = 0.73
+anchor_bottom = 1.0
+mouse_filter = 2
 expand_mode = 1
 stretch_mode = 6
 
-[node name="Monologue" type="Label" parent="."]
-modulate = Color(1, 1, 1, 0)
+[node name="Paper" type="TextureRect" parent="StoryLayer"]
 layout_mode = 1
-anchors_preset = 15
+anchor_left = 0.73
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
-theme_override_colors/font_color = Color(0.96, 0.94, 0.90, 1)
-theme_override_font_sizes/font_size = 30
-text = "终于结束了"
-horizontal_alignment = 1
-vertical_alignment = 1
+expand_mode = 1
+stretch_mode = 0
+
+[node name="Heading" type="Label" parent="StoryLayer/Paper"]
+layout_mode = 1
+offset_left = 34.0
+offset_top = 47.0
+offset_right = 278.0
+offset_bottom = 85.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.32, 0.28, 0.32, 1)
+theme_override_font_sizes/font_size = 20
+text = "写给十八岁的你"
+
+[node name="Title" type="Label" parent="StoryLayer/Paper"]
+layout_mode = 1
+offset_left = 34.0
+offset_top = 121.0
+offset_right = 278.0
+offset_bottom = 163.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.32, 0.27, 0.33, 1)
+theme_override_font_sizes/font_size = 27
+
+[node name="Body" type="Label" parent="StoryLayer/Paper"]
+layout_mode = 1
+offset_left = 34.0
+offset_top = 183.0
+offset_right = 280.0
+offset_bottom = 493.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.36, 0.32, 0.34, 1)
+theme_override_font_sizes/font_size = 18
+autowrap_mode = 3
+
+[node name="PageNumber" type="Label" parent="StoryLayer/Paper"]
+layout_mode = 1
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 34.0
+offset_top = -76.0
+offset_right = 286.0
+offset_bottom = -38.0
+grow_vertical = 0
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.49, 0.43, 0.45, 1)
+theme_override_font_sizes/font_size = 15
 
 [node name="Credits" type="Control" parent="."]
 visible = false
-modulate = Color(1, 1, 1, 0)
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
 
-[node name="CreditList" type="VBoxContainer" parent="Credits"]
+[node name="Paper" type="TextureRect" parent="Credits"]
 layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
+anchor_left = 0.25
+anchor_right = 0.75
 anchor_bottom = 1.0
-offset_left = 25.0
-offset_top = 32.0
-offset_right = -25.0
-offset_bottom = -100.0
 mouse_filter = 2
-theme_override_constants/separation = 16
-alignment = 1
+expand_mode = 1
+stretch_mode = 0
 
-[node name="Title" type="Label" parent="Credits/CreditList"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.96, 0.94, 0.90, 1)
-theme_override_font_sizes/font_size = 34
+[node name="Title" type="Label" parent="Credits/Paper"]
+layout_mode = 1
+anchor_right = 1.0
+offset_top = 75.0
+offset_bottom = 132.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.34, 0.27, 0.34, 1)
+theme_override_font_sizes/font_size = 39
+text = "致谢名单"
 horizontal_alignment = 1
-text = "制作名单"
 
-[node name="ReturnButton" type="Button" parent="Credits"]
-custom_minimum_size = Vector2(156, 39)
+[node name="Message" type="Label" parent="Credits/Paper"]
+layout_mode = 1
+anchor_right = 1.0
+offset_left = 60.0
+offset_top = 185.0
+offset_right = -60.0
+offset_bottom = 390.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.38, 0.32, 0.36, 1)
+theme_override_font_sizes/font_size = 22
+text = "感谢每一个与我们同行的人。\n\n你的陪伴，让这个夏天有了名字。\n\n正式署名待补充"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="ReturnButton" type="Button" parent="Credits/Paper"]
 layout_mode = 1
 anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = -78.0
-offset_top = -78.0
-offset_right = 78.0
-offset_bottom = -39.0
+offset_left = -100.0
+offset_top = -104.0
+offset_right = 100.0
+offset_bottom = -54.0
+grow_horizontal = 2
+grow_vertical = 0
 mouse_default_cursor_shape = 2
-theme_override_font_sizes/font_size = 18
-theme_override_styles/normal = SubResource("Style_return")
-theme_override_styles/hover = SubResource("Style_hover")
-theme_override_styles/pressed = SubResource("Style_hover")
+theme_override_colors/font_color = Color(0.37, 0.30, 0.36, 1)
+theme_override_colors/font_hover_color = Color(0.54, 0.33, 0.47, 1)
+theme_override_font_sizes/font_size = 21
+theme_override_styles/normal = SubResource("Style_plain")
+theme_override_styles/hover = SubResource("Style_plain")
+theme_override_styles/pressed = SubResource("Style_plain")
+theme_override_styles/focus = SubResource("Style_plain")
 text = "返回标题"

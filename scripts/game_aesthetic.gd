@@ -6,13 +6,11 @@ const GAMES := [
 	preload("res://data/games/pale_myth_heart_sky.tres"),
 ]
 const FULL_GAIN_PLAYS := 3
+const TARGET_POINTS := 500
 
 
 static func target_points() -> int:
-	var total := 0
-	for game in GAMES:
-		total += game.price * FULL_GAIN_PLAYS
-	return total
+	return TARGET_POINTS
 
 
 static func contains_game(game_id: String) -> bool:

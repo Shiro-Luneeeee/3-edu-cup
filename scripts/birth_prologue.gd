@@ -119,7 +119,8 @@ func show_page() -> void:
 		next_button.remove_from_group("silent_story_advance")
 	else:
 		next_button.add_to_group("silent_story_advance")
-	next_button.disabled = name_input.visible and name_input.text.strip_edges().is_empty()
+	# Empty input is valid: chosen_name() supplies the default name shown in the placeholder.
+	next_button.disabled = false
 
 func chosen_name() -> String:
 	var entered := name_input.text.strip_edges()

@@ -15,13 +15,14 @@ const PAGE_SUBTITLES := [
 	"调节整个游戏的音量",
 	"记住这些常用操作",
 	"开始下一场备考",
-	"三教杯 · 游戏信息",
+	"请允我如夏日般融化 · 游戏信息",
 	"输入调试命令，快速进入游戏"
 ]
 const PAGE_TEXTS := [
 	"",
 	"点击手牌，再点击亮起的卡槽出牌。\n\n空格：结束当前回合\nJ：跳过牌局并进入下一轮（无牌局奖励）\n鼠标右键：取消已选手牌",
 	"首次进入牌局前，先选出 10 至 15 张牌组成卡组。\n每局开场抽 5 张牌，之后每回合抽 2 张。\n牌库抽空时洗回弃牌。\n\n通过考试后，下一场的目标进度会上升。第五回合结束时未达标则失败。\n心态与格挡会随卡牌效果变化。",
+	"",
 	""
 ]
 
@@ -89,10 +90,15 @@ func animate_papers() -> void:
 func turn_page(direction: int) -> void:
 	if is_turning:
 		return
+	var target_index := page_index + direction
+	if target_index < 0 or target_index >= papers.size() or target_index == page_index:
+		return
 	is_turning = true
 	content.hide()
-	var target_index := posmod(page_index + direction, papers.size())
 	var next_front: TextureRect = papers[target_index]
+	# GUI hit testing follows sibling order, not CanvasItem.z_index.
+	# Keep the visible front paper last so its buttons receive clicks.
+	$PaperStack.move_child(next_front, $PaperStack.get_child_count() - 1)
 	var tween := create_tween().set_parallel(true)
 
 	for index in papers.size():
@@ -136,6 +142,8 @@ func update_page_content() -> void:
 	title_label.text = PAGE_TITLES[page_index]
 	subtitle_label.text = PAGE_SUBTITLES[page_index]
 	page_number.text = "%d / %d" % [page_index + 1, papers.size()]
+	previous_button.disabled = page_index == 0
+	next_button.disabled = page_index == papers.size() - 1
 	var is_audio_page := page_index == 0
 	volume_label.visible = is_audio_page
 	volume_slider.visible = is_audio_page

@@ -2,6 +2,9 @@ extends ColorRect
 
 const CardCatalog := preload("res://scripts/card_catalog.gd")
 const CardFace := preload("res://scripts/card_face.gd")
+const BOOK_SIZE := Vector2(1670, 942)
+
+@onready var book: TextureRect = $BookBoard
 
 @onready var cards: VBoxContainer = %Cards
 @onready var preview: CardFace = %Preview
@@ -17,6 +20,9 @@ var fields: Array[String] = []
 
 
 func _ready() -> void:
+	resized.connect(update_layout)
+	update_layout()
+	style_book_ui()
 	operation.add_item("选择一个数值 +1", CardCatalog.Upgrade.INCREASE)
 	operation.add_item("选择一个数值 -1", CardCatalog.Upgrade.DECREASE)
 	operation.add_item("进度 ×1.2", CardCatalog.Upgrade.BOOST_PROGRESS)
@@ -26,9 +32,25 @@ func _ready() -> void:
 	number.item_selected.connect(func(_index: int) -> void: update_preview())
 	apply_button.pressed.connect(apply_upgrade)
 	apply_button.add_to_group("card_upgrade_apply")
-	%Close.pressed.connect(close)
 	PlayerState.changed.connect(refresh_deck)
 	refresh_deck()
+
+
+func update_layout() -> void:
+	var factor := minf(size.x / BOOK_SIZE.x, size.y / BOOK_SIZE.y)
+	book.size = BOOK_SIZE
+	book.scale = Vector2.ONE * factor
+	book.position = (size - BOOK_SIZE * factor) * 0.5
+
+
+func style_book_ui() -> void:
+	var ink := Color("604374")
+	for label: Label in [%Points, %SelectedCard, %Changes, $BookBoard/Margin/Content/Header/Title, $BookBoard/Margin/Content/Body/DeckPanel/DeckContent/Title]:
+		label.add_theme_color_override("font_color", ink)
+	for button: Button in [%Apply]:
+		button.add_theme_color_override("font_color", ink)
+		button.add_theme_color_override("font_hover_color", Color("9a5d88"))
+		button.add_theme_color_override("font_pressed_color", ink)
 
 
 func refresh_deck() -> void:

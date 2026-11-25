@@ -10,7 +10,7 @@ config_version=5
 
 [application]
 
-config/name="三教杯demo"
+config/name="请允我如夏日般融化"
 run/main_scene="res://scenes/main_menu.tscn"
 config/features=PackedStringArray("4.8", "Forward Plus")
 config/icon="res://images/app/icon.png"

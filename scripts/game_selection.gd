@@ -12,6 +12,7 @@ const GAMES = [
 const FRONT_POSITION := Vector2(248, 164)
 const CARD_SIZE := Vector2(408, 363)
 const ANIMATION_TIME := 0.48
+const UNIVERTHM_URL := "https://github.com/Shiro-Luneeeee/20261027Univerthm/releases/tag/2.1.2"
 
 @onready var stage: Control = $Stage
 
@@ -96,11 +97,14 @@ func build_interface() -> void:
 	title_label = make_label("", Vector2(30, 28), Vector2(325, 81), 42, Color("604374"))
 	paper.add_child(title_label)
 	description_label = RichTextLabel.new()
+	description_label.bbcode_enabled = true
 	description_label.position = Vector2(31, 126)
 	description_label.size = Vector2(322, 115)
 	description_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	description_label.add_theme_font_size_override("normal_font_size", 19)
 	description_label.add_theme_color_override("default_color", Color("765d77"))
+	description_label.meta_underlined = true
+	description_label.meta_clicked.connect(_on_description_meta_clicked)
 	paper.add_child(description_label)
 	cost_label = make_label("", Vector2(31, 243), Vector2(322, 32), 19, Color("715584"))
 	paper.add_child(cost_label)
@@ -202,7 +206,10 @@ func update_information() -> void:
 	var entry: GameEntry = GAMES[selected_index]
 	title_label.text = entry.title
 	title_label.add_theme_font_size_override("font_size", 28 if entry.title.length() > 12 else (36 if entry.title.length() > 7 else 42))
-	description_label.text = entry.description
+	description_label.clear()
+	description_label.append_text(entry.description)
+	if entry.id == "univerthm":
+		description_label.append_text("\n\n[url=%s][color=#6277a8]友情链接：Univerthm 2.1.2[/color][/url]" % UNIVERTHM_URL)
 	description_label.scroll_to_line(0)
 	cost_label.text = "体力消耗：%d" % entry.energy_cost
 	effect_label.text = "完成效果：%s" % entry.effect_description
@@ -225,6 +232,11 @@ func update_information() -> void:
 		else:
 			action_button.text = "购买并游玩 · %d 金" % entry.price
 	page_label.text = "●".repeat(selected_index + 1) + "○".repeat(GAMES.size() - selected_index - 1)
+
+
+func _on_description_meta_clicked(meta: Variant) -> void:
+	if str(meta) == UNIVERTHM_URL:
+		OS.shell_open(UNIVERTHM_URL)
 
 
 func change_game(direction: int) -> void:
