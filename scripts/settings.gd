@@ -22,7 +22,7 @@ const PAGE_TEXTS := [
 	"",
 	"点击手牌，再点击亮起的卡槽出牌。\n\n空格：结束当前回合\nJ：跳过牌局并进入下一轮（无牌局奖励）\n鼠标右键：取消已选手牌",
 	"首次进入牌局前，先选出 10 至 15 张牌组成卡组。\n每局开场抽 5 张牌，之后每回合抽 2 张。\n牌库抽空时洗回弃牌。\n\n通过考试后，下一场的目标进度会上升。第五回合结束时未达标则失败。\n心态与格挡会随卡牌效果变化。",
-	"",
+	"“我能否将你比作夏日？”\n标题取意于莎士比亚的十四行诗。\n我们写下成长、相逢与告别，\n也写下穿过岁月仍愿同行的心。\n愿这个夏天，在你的记忆里长明。\n\n合作与交流 QQ：1784527778",
 	""
 ]
 
@@ -156,6 +156,7 @@ func update_page_content() -> void:
 	debug_feedback.visible = is_debug_page
 	if not is_audio_page:
 		page_body.text = PAGE_TEXTS[page_index]
+	page_body.add_theme_font_size_override("font_size", 19 if page_index == 3 else 21)
 	if is_debug_page:
 		debug_input.grab_focus()
 

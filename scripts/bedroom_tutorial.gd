@@ -14,7 +14,7 @@ const STEPS := [
 	{"target": "BookshelfButton", "title": "书架 · 把日子读成光", "body": "从书架走进学习。语文滋养情商，数学磨亮智力，英语积攒升级点；每一页都要花些体力，却会在往后的回合留下回响。"},
 	{"target": "GamepadButton", "title": "游戏机 · 在快乐里成长", "body": "这里可以购买并游玩收藏的游戏。不同游戏会带来不同的成长；玩得越多，游戏审美也会慢慢积满，最终拓宽体力的上限。"},
 	{"target": "NotebookButton", "title": "笔记本 · 整理手中的牌", "body": "卡牌是牌局里的句子，升级点能替它们改写笔画。组好卡组后，来这里强化卡牌，再带着它们走向下一场对局。"},
-	{"target": "PhoneButton", "title": "手机 · 世界的另一扇窗", "body": "桌上的手机连着卧室以外的生活。地图、社交、商店与画廊，都在这一方小小的屏幕里。"},
+	{"target": "PhoneButton", "title": "手机 · 世界的另一扇窗", "body": "桌上的手机连着卧室以外的生活。地图、社交、商店、画廊与电台，都在这一方小小的屏幕里。"},
 	{"target": "PhoneOverlay/PhoneImage/AppRow/Map", "title": "地图 · 去见沿途的风", "body": "地图会带你去学校、公园与街角。看看头像落在哪里，也许某个人、某段故事，正在那里等你。"},
 	{"target": "PhoneOverlay/PhoneImage/AppRow/Chat", "title": "社交 · 给相遇留一页", "body": "认识的人会慢慢走进好友列表。你可以在这里回望关系、与他们自由对话；新的剧情仍要在相遇的地方亲自经历。"},
 	{"target": "PhoneOverlay/PhoneImage/SecondAppRow/Shop", "title": "金钱与商店", "body": "开局金钱为 0，之后每轮开始获得 10 金钱。通过考试时，进度比目标多超过 20%，今后每轮收入 +1。超过 50% 则 +2。不同考试的奖励可以累加。"},

@@ -132,21 +132,30 @@ theme_override_font_sizes/font_size = 39
 text = "致谢名单"
 horizontal_alignment = 1
 
-[node name="CreditText" type="RichTextLabel" parent="Credits/Paper"]
+[node name="CreditViewport" type="Control" parent="Credits/Paper"]
 layout_mode = 1
 anchor_right = 1.0
 offset_left = 48.0
-offset_top = 124.0
+offset_top = 116.0
 offset_right = -48.0
-offset_bottom = 530.0
-mouse_filter = 0
+offset_bottom = 532.0
+clip_contents = true
+mouse_filter = 2
+
+[node name="CreditText" type="RichTextLabel" parent="Credits/Paper/CreditViewport"]
+layout_mode = 1
+anchor_right = 1.0
+offset_top = 1000.0
+offset_bottom = 1000.0
+mouse_filter = 2
 bbcode_enabled = true
-scroll_active = true
+fit_content = true
+scroll_active = false
 autowrap_mode = 3
 theme_override_colors/default_color = Color(0.38, 0.32, 0.36, 1)
 theme_override_font_sizes/normal_font_size = 19
 theme_override_constants/line_separation = 5
-text = "[center][b]制作团队 · 月都工房[/b][/center]\n\n[b]策划[/b]  @平泉奈  @ShiroLune\n[b]原创音效[/b]  @derelict\n[b]音乐音频[/b]  @ShiroLuneee  @derelict\n[b]剧情[/b]  @平泉奈  @ShiroLuneee  @滕飞扬  @DanyouDy  @derelict\n[b]美术[/b]  @平泉奈  @ShiroLuneee  @GPT\n[b]玩法与调整[/b]  @平泉奈\n[b]程序[/b]  @derelict  @平泉奈  @Shiroluneee\n[b]宣传PV[/b]  @ShiroLuneee  @DanyouDy\n\n合作与交流：QQ 1784527778\n\n[center][b]感谢参与游戏测试与手感打磨的朋友们[/b][/center]\n@薄荷  @滕飞扬  @稻叶粽子\n@滑稽huaji  @lennonsun  @几米基米\n\n[center]2026.11.25[/center]"
+text = "[center][b]制作团队[/b]\n\n月都工房\n\n\n[b]策划[/b]\n\n@平泉奈\n@ShiroLune\n\n\n[b]原创音效[/b]\n\n@derelict\n\n\n[b]音乐音频[/b]\n\n@ShiroLuneee\n@derelict\n\n\n[b]剧情[/b]\n\n@平泉奈\n@ShiroLuneee\n@滕飞扬\n@DanyouDy\n@derelict\n\n\n[b]美术[/b]\n\n@平泉奈\n@ShiroLuneee\n@GPT\n\n\n[b]玩法与调整[/b]\n\n@平泉奈\n\n\n[b]程序[/b]\n\n@derelict\n@平泉奈\n@Shiroluneee\n\n\n[b]宣传PV[/b]\n\n@ShiroLuneee\n@DanyouDy\n\n\n合作与交流\n\nQQ 1784527778\n\n\n[b]感谢参与游戏测试与手感打磨的朋友们[/b]\n\n@薄荷\n@滕飞扬\n@稻叶粽子\n@滑稽huaji\n@lennonsun\n@几米基米\n\n\n2026.11.25[/center]"
 
 [node name="ReturnButton" type="Button" parent="Credits/Paper"]
 layout_mode = 1

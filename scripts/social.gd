@@ -7,11 +7,13 @@ const FushimiPortraits := preload("res://scripts/fushimi_portraits.gd")
 const SHIRAKAWA_PORTRAIT := preload("res://images/high_school_intro/shirakawa_social_portrait.tres")
 const PRESENTATION_SIZE := Vector2(1672.0, 941.0)
 const CHAT_SCENE := preload("res://scenes/social_chat.tscn")
+const NOTICE_SCENE := preload("res://scenes/model_notice.tscn")
 
 var selected_character := ""
 var chat_overlay: Control
 var socialize_button: Button
 var social_feedback: Label
+var notice_overlay: Control
 
 @onready var presentation: Control = %Presentation
 @onready var contacts: ItemList = get_node_or_null("%Contacts")
@@ -34,6 +36,8 @@ func _ready() -> void:
 	fit_presentation()
 	affection_bar.max_value = PlayerState.AFFECTION_PER_LEVEL
 	refresh_details()
+	if not PlayerState.social_affection_notice_seen:
+		show_affection_notice()
 	var known := PlayerState.known_social_characters()
 	if known.is_empty():
 		details.hide()
@@ -71,6 +75,15 @@ func create_socialize_controls() -> void:
 	details.add_child(social_feedback)
 
 
+func show_affection_notice() -> void:
+	notice_overlay = NOTICE_SCENE.instantiate() as Control
+	add_child(notice_overlay)
+	(notice_overlay.get_node("Center/Letter/Content/Heading") as Label).text = "社交手记"
+	notice_overlay.call("show_message", "与已认识的朋友自由对话，成功收到一次回复，好感度就会增加 2 点。\n\n每个角色每回合最多通过自由对话获得 10 点；达到上限后，仍可以继续聊天。下一回合会重新计算。\n\n自由对话不消耗精力，也不会推进剧情。")
+	PlayerState.social_affection_notice_seen = true
+	PlayerState.changed.emit()
+
+
 func fit_presentation() -> void:
 	var factor := minf(size.x / PRESENTATION_SIZE.x, size.y / PRESENTATION_SIZE.y)
 	presentation.scale = Vector2.ONE * factor
@@ -89,7 +102,7 @@ func show_contact(character: String) -> void:
 	contact_name.text = selected_character
 	var age := RoundCalendar.age(PlayerState.round_number)
 	if character == SocialCharacters.YUE:
-		if contacts == null:
+		if contacts == null or age >= RoundCalendar.MIDDLE_SCHOOL_AGE:
 			YuePortraits.show_onsite(portrait, age)
 		else:
 			YuePortraits.show_on(portrait, age)
@@ -140,4 +153,7 @@ func close() -> void:
 func _unhandled_key_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel") and not event.is_echo():
 		get_viewport().set_input_as_handled()
+		if is_instance_valid(notice_overlay) and notice_overlay.visible:
+			notice_overlay.hide()
+			return
 		close()

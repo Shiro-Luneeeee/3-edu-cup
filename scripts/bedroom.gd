@@ -13,6 +13,7 @@ const SHOP_SCENE := "res://scenes/shop.tscn"
 const MAP_SCENE := preload("res://scenes/map.tscn")
 const STUDY_SCENE := preload("res://scenes/study.tscn")
 const GALLERY_SCENE: PackedScene = preload("res://scenes/gallery.tscn")
+const RADIO_SCENE: PackedScene = preload("res://scenes/radio.tscn")
 const UPGRADE_SCENE := preload("res://scenes/card_upgrade.tscn")
 const SOCIAL_SCENE := preload("res://scenes/social.tscn")
 const TUTORIAL_SCENE := preload("res://scenes/bedroom_tutorial.tscn")
@@ -46,6 +47,7 @@ const ROUND_BOARD_WIDTH := 136.0
 @onready var phone_overlay: ColorRect = $PhoneOverlay
 @onready var phone_image: TextureRect = $PhoneOverlay/PhoneImage
 @onready var shop_app: TextureButton = $PhoneOverlay/PhoneImage/SecondAppRow/Shop
+@onready var radio_app: TextureButton = $PhoneOverlay/PhoneImage/SecondAppRow/Radio
 @onready var power_app: TextureButton = $PhoneOverlay/PhoneImage/Dock/Boot
 @onready var profile_app: TextureButton = $PhoneOverlay/PhoneImage/Dock/Persona
 @onready var profile: Control = $PhoneOverlay/PlayerProfile
@@ -55,6 +57,7 @@ const ROUND_BOARD_WIDTH := 136.0
 
 var highlight_tweens: Dictionary[Polygon2D, Tween] = {}
 var gallery_overlay: Control
+var radio_overlay: Control
 var study_overlay: Control
 var map_overlay: Control
 var upgrade_overlay: Control
@@ -80,6 +83,7 @@ func _ready() -> void:
 	phone_button.pressed.connect(phone_overlay.show)
 	bookshelf_button.pressed.connect(open_study)
 	shop_app.pressed.connect(open_shop)
+	radio_app.pressed.connect(open_radio)
 	power_app.pressed.connect(phone_overlay.hide)
 	profile_app.pressed.connect(profile.show)
 	phone_overlay.hidden.connect(profile.hide)
@@ -205,6 +209,26 @@ func resume_music_after_gallery() -> void:
 	gallery_overlay = null
 	bedroom_music.stream_paused = false
 
+
+func open_radio() -> void:
+	if is_instance_valid(radio_overlay):
+		return
+	SceneFade.play_action(show_radio_overlay, 1.0, false)
+
+
+func show_radio_overlay() -> void:
+	phone_overlay.hide()
+	bedroom_music.stream_paused = true
+	radio_overlay = RADIO_SCENE.instantiate() as Control
+	add_child(radio_overlay)
+	radio_overlay.tree_exited.connect(resume_music_after_radio)
+
+
+func resume_music_after_radio() -> void:
+	radio_overlay = null
+	if is_instance_valid(bedroom_music):
+		bedroom_music.stream_paused = false
+
 func update_layout() -> void:
 	var image_scale := minf(size.x / IMAGE_SIZE.x, size.y / IMAGE_SIZE.y)
 	var image_origin := (size - IMAGE_SIZE * image_scale) / 2.0
@@ -248,6 +272,8 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	if is_instance_valid(tutorial_overlay):
 		return
 	if is_instance_valid(social_overlay):
+		return
+	if is_instance_valid(radio_overlay):
 		return
 	if profile.visible and event.is_action_pressed("ui_cancel"):
 		profile.hide()

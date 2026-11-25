@@ -88,11 +88,11 @@ func reply(messages: Array) -> Dictionary:
 	if not available:
 		return {"ok": false, "error": reason}
 	var payload := {"model": MODEL_NAME, "messages": messages, "stream": false, "think": false,
-		"options": {"num_ctx": 4096, "num_predict": 180, "temperature": 0.72}}
+		"options": {"num_ctx": 4096, "num_predict": 240, "temperature": 0.72}}
 	var url := OLLAMA_URL + "/api/chat"
 	if backend == "llama":
 		url = BUNDLED_URL + "/v1/chat/completions"
-		payload = {"messages": messages, "stream": false, "max_tokens": 180, "temperature": 0.72,
+		payload = {"messages": messages, "stream": false, "max_tokens": 240, "temperature": 0.72,
 			"chat_template_kwargs": {"enable_thinking": false}}
 	var response := await _json_request(url, payload, HTTPClient.METHOD_POST, 80.0)
 	if not response.get("ok", false):

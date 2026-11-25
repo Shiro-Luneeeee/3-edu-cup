@@ -5,6 +5,82 @@ const CHARACTER_DIRECTORY := "res://images/character"
 const FRAME_TEXTURE := preload("res://images/gallery_frame.png")
 const PAPER_TEXTURE := preload("res://images/settings_letter.png")
 const CARD_SIZE := Vector2(270.0, 315.0)
+const STORY_CG := [
+	["summer_birth.png", "序章 · 夏日初生"],
+	["park_meeting/ants.png", "初遇 · 蚂蚁的路"],
+	["park_meeting/greeting.png", "初遇 · 你好呀"],
+	["park_meeting/promise.png", "初遇 · 拉钩"],
+	["yue_goldfish/bag.png", "阳奈里 · 小金鱼"],
+	["yue_goldfish/gift.png", "阳奈里 · 礼物"],
+	["yue_goldfish/sunset.png", "阳奈里 · 池边夕阳"],
+	["yue_farewell/room.png", "阳奈里 · 鱼缸旁"],
+	["yue_farewell/fishbowl.png", "阳奈里 · 告别"],
+	["yue_farewell/closeup.png", "阳奈里 · 回望"],
+	["yue_confession/smile.jpg", "阳奈里 · 重逢"],
+	["yue_confession/pouting.png", "阳奈里 · 闹别扭"],
+	["yue_confession/attentive.png", "阳奈里 · 倾听"],
+	["yue_confession/surprised.jpg", "阳奈里 · 心动"],
+	["yue_confession/shy.png", "阳奈里 · 害羞"],
+	["yue_confession/reciprocal.png", "阳奈里 · 回应"],
+	["yue_confession/playful.png", "阳奈里 · 笑意"],
+	["yue_final_promise/worried.jpg", "阳奈里 · 忧虑"],
+	["yue_final_promise/protest.jpg", "阳奈里 · 不许"],
+	["yue_final_promise/relieved.jpg", "阳奈里 · 安心"],
+	["yue_final_promise/teasing.jpg", "阳奈里 · 约定"],
+	["fushimi_pen_story/stationery.png", "伏见宫 · 那支钢笔"],
+	["fushimi_tutoring/quiz.png", "伏见宫 · 小测验"],
+	["fushimi_tutoring/tutoring.png", "伏见宫 · 补习"],
+	["fushimi_tutoring/farewell.png", "伏见宫 · 放学后"],
+	["fushimi_bookshop/storefront.png", "伏见宫 · 旧书店"],
+	["fushimi_bookshop/reading.png", "伏见宫 · 绘本"],
+	["fushimi_bookshop/caught.png", "伏见宫 · 被发现"],
+	["fushimi_bookshop/embarrassed.png", "伏见宫 · 脸红"],
+	["fushimi_bookshop/smile.png", "伏见宫 · 微笑"],
+	["fushimi_confession/hallway.png", "伏见宫 · 走廊"],
+	["fushimi_confession/exam.png", "伏见宫 · 晚自习"],
+	["fushimi_confession/listening.png", "伏见宫 · 心事"],
+	["fushimi_confession/smile.png", "伏见宫 · 释然"],
+	["fushimi_confession/surprised.png", "伏见宫 · 意外"],
+	["fushimi_confession/path.png", "伏见宫 · 夜路"],
+	["fushimi_confession/holding_hands.png", "伏见宫 · 牵手"],
+	["fushimi_final_promise/railing.png", "伏见宫 · 天台"],
+	["fushimi_final_promise/stairs.png", "伏见宫 · 两罐牛奶"],
+	["fushimi_final_promise/milk.png", "伏见宫 · 温热"],
+	["fushimi_final_promise/talking.png", "伏见宫 · 夜谈"],
+	["fushimi_final_promise/worried.png", "伏见宫 · 忧心"],
+	["fushimi_final_promise/stern.png", "伏见宫 · 逞强"],
+	["fushimi_final_promise/holding_hands.png", "伏见宫 · 同行"],
+	["middle_school_intro/class_roster.png", "初中 · 分班表"],
+	["shirakawa_first_story/challenge.png", "白川 · 挑战"],
+	["shirakawa_first_story/pout.png", "白川 · 耍赖"],
+	["shirakawa_first_story/hallway_thanks.png", "白川 · 谢谢"],
+	["shirakawa_first_story/hallway_pout.png", "白川 · 不服气"],
+	["shirakawa_first_story/running.png", "白川 · 追逐"],
+	["shirakawa_first_story/hallway.png", "白川 · 长廊"],
+	["shirakawa_osmanthus/trail.png", "白川 · 秋游"],
+	["shirakawa_osmanthus/tree.png", "白川 · 桂花树"],
+	["shirakawa_osmanthus/rain.png", "白川 · 雨落桂花"],
+	["shirakawa_osmanthus/petal.png", "白川 · 花瓣"],
+	["shirakawa_osmanthus/promise.png", "白川 · 秋日誓言"],
+	["shirakawa_puppy/alley.png", "白川 · 小巷"],
+	["shirakawa_puppy/puppy.png", "白川 · 小毛球"],
+	["shirakawa_puppy/gentle.png", "白川 · 温柔"],
+	["shirakawa_puppy/promise.png", "白川 · 共同收养"],
+	["shirakawa_puppy/hug.png", "白川 · 拥抱"],
+	["shirakawa_confession/window.png", "白川 · 窗边"],
+	["shirakawa_confession/hesitant.png", "白川 · 犹豫"],
+	["shirakawa_confession/moved.png", "白川 · 心意"],
+	["shirakawa_confession/smile.png", "白川 · 答应"],
+	["shirakawa_snow/classroom.png", "白川 · 初雪"],
+	["shirakawa_snow/scarf.png", "白川 · 围巾"],
+	["shirakawa_snow/smile.png", "白川 · 暖意"],
+	["shirakawa_snow/snowflakes.png", "白川 · 雪花"],
+	["final_exam/Gaokao_POV_01_final_bell.png", "高考之后 · 铃响"],
+	["final_exam/Gaokao_POV_02_classroom.png", "高考之后 · 教室"],
+	["final_exam/Gaokao_POV_03_corridor.png", "高考之后 · 长廊"],
+	["final_exam/Gaokao_POV_04_gate.png", "高考之后 · 校门"],
+	["final_exam/Gaokao_POV_05_canopy.png", "高考之后 · 夏天"],
+]
 
 @onready var deck: Control = $PhotoDeck
 @onready var sleeves: Control = $PhotoDeck/Sleeves
@@ -18,6 +94,7 @@ const CARD_SIZE := Vector2(270.0, 315.0)
 @onready var close_button: Button = $Preview/CloseButton
 
 var image_paths: Array[String] = []
+var image_titles: Dictionary[String, String] = {}
 var card_visuals: Array[Control] = []
 var card_tweens: Array[Tween] = []
 var selected_index := 0
@@ -27,6 +104,8 @@ var scroll_hint: Panel
 
 func _ready() -> void:
 	load_character_images()
+	load_story_cg_images()
+	update_count_label()
 	build_sleeves()
 	build_cards()
 	layout_cards(false)
@@ -83,7 +162,21 @@ func load_character_images() -> void:
 	for file in files:
 		if file.get_extension().to_lower() in ["png", "jpg", "jpeg", "webp"]:
 			image_paths.append(CHARACTER_DIRECTORY.path_join(file))
-	update_count_label()
+
+
+func load_story_cg_images() -> void:
+	for entry in STORY_CG:
+		var path: String = "res://images/" + str(entry[0])
+		if not ResourceLoader.exists(path):
+			push_warning("Gallery CG missing: %s" % path)
+			continue
+		image_paths.append(path)
+		image_titles[path] = str(entry[1])
+
+
+func image_title(index: int) -> String:
+	var path := image_paths[index]
+	return image_titles.get(path, path.get_file().get_basename().replace("_", " "))
 
 
 func build_sleeves() -> void:
@@ -132,7 +225,7 @@ func make_card(index: int) -> Control:
 	var caption := Label.new()
 	caption.position = Vector2(27.0, 244.0)
 	caption.size = Vector2(216.0, 38.0)
-	caption.text = image_paths[index].get_file().get_basename().replace("_", " ")
+	caption.text = image_title(index)
 	caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	caption.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	caption.add_theme_color_override("font_color", Color(0.27, 0.23, 0.27))
@@ -159,7 +252,7 @@ func animate_cards() -> void:
 		var final_y := card.position.y
 		card.position.y += size.y + 110.0
 		var tween := create_tween()
-		tween.tween_property(card, "position:y", final_y, 1.35).set_delay(index * 0.16).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		tween.tween_property(card, "position:y", final_y, 1.35).set_delay(minf(index * 0.16, 0.8)).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 		card_tweens.append(tween)
 
 
@@ -216,7 +309,7 @@ func select_photo_to(index: int) -> void:
 func update_count_label() -> void:
 	if image_paths.is_empty():
 		return
-	var name := image_paths[selected_index].get_file().get_basename().replace("_", " ")
+	var name := image_title(selected_index)
 	count_label.text = "%d / %d  ·  %s  ·  滚轮切换，点击照片查看" % [selected_index + 1, image_paths.size(), name]
 
 
