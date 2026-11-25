@@ -41,11 +41,11 @@ const SECTIONS := [
 	{
 		"label": SocialCharacters.SHIRAKAWA,
 		"chapters": [
-			{"title": "课间的买刀买马", "scene": preload("res://scenes/shirakawa_first_story.tscn")},
-			{"title": "小巷里的小毛球", "scene": preload("res://scenes/shirakawa_puppy.tscn")},
-			{"title": "秋天最后的颜色", "scene": preload("res://scenes/shirakawa_osmanthus.tscn")},
-			{"title": "教室里的告白", "scene": preload("res://scenes/shirakawa_confession.tscn"), "confession": true},
-			{"title": "温暖的甜", "scene": preload("res://scenes/shirakawa_snow.tscn")},
+			{"title": "课间的买刀买马", "scene": preload("res://scenes/shirakawa_first_story.tscn"), "card": CardCatalog.SHIRAKAWA_GAME_CARD},
+			{"title": "小巷里的小毛球", "scene": preload("res://scenes/shirakawa_puppy.tscn"), "card": CardCatalog.SHIRAKAWA_FAVOR_CARD},
+			{"title": "秋天最后的颜色", "scene": preload("res://scenes/shirakawa_osmanthus.tscn"), "card": CardCatalog.SHIRAKAWA_PUPPY_CARD},
+			{"title": "教室里的告白", "scene": preload("res://scenes/shirakawa_confession.tscn"), "card": CardCatalog.SHIRAKAWA_OSMANTHUS_CARD, "confession": true},
+			{"title": "温暖的甜", "scene": preload("res://scenes/shirakawa_snow.tscn"), "card": CardCatalog.SHIRAKAWA_SNOW_CARD},
 		],
 	},
 ]

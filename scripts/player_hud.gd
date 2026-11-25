@@ -2,7 +2,6 @@ extends Control
 
 const IMAGE_SIZE := Vector2(1672, 941)
 const POINT_BOARD_TEXTURE: Texture2D = preload("res://images/ui/point_board.png")
-const HERO_PORTRAIT_TEXTURE: Texture2D = preload("res://images/character/ShiroLune_cutout.png")
 const POINT_BOARD_SIZE := Vector2(580.0, 290.0)
 # Slot bounds in point_board.png, from top to bottom.
 const STAT_TRACK_RECTS := [
@@ -90,23 +89,6 @@ func create_point_board() -> void:
 	point_board_material.set_shader_parameter("extra_track_rects", PackedVector4Array([STAT_TRACK_RECTS[1], STAT_TRACK_RECTS[2]]))
 	point_board.material = point_board_material
 	add_child(point_board)
-
-	var portrait_clip := Control.new()
-	portrait_clip.name = "HeroPortraitClip"
-	portrait_clip.position = Vector2(34.0, 82.0)
-	portrait_clip.size = Vector2(108.0, 108.0)
-	portrait_clip.clip_contents = true
-	portrait_clip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	point_board.add_child(portrait_clip)
-	var portrait := TextureRect.new()
-	portrait.name = "HeroPortrait"
-	portrait.texture = HERO_PORTRAIT_TEXTURE
-	portrait.position = Vector2(-3.0, -2.0)
-	portrait.size = Vector2(114.0, 114.0)
-	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	portrait_clip.add_child(portrait)
 
 	for index in STAT_TRACK_RECTS.size():
 		var value_label := create_stat_label("StatValue%d" % index)

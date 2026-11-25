@@ -7,6 +7,7 @@ const BEDROOM_SCENE := "res://scenes/bedroom.tscn"
 const CATEGORIES := ["推荐", "学习", "娱乐", "其他"]
 const CATEGORY_ICONS := ["★", "▤", "♫", "···"]
 const ShopProducts := preload("res://scripts/shop_products.gd")
+const SocialCharacters := preload("res://scripts/social_characters.gd")
 
 @export var clothing_only := false
 
@@ -19,6 +20,7 @@ var preview_layer: Control
 var balance_label: Label
 var purchase_button: Button
 var purchase_message: Label
+var gift_picker: ColorRect
 var category_buttons: Array[TextureButton] = []
 var category_labels: Array[Label] = []
 var category_icons: Array[Label] = []
@@ -277,7 +279,7 @@ func select_product(index: int) -> void:
 	var description := make_catalog_label(product["description"], Vector2(28, 390), Vector2(415, 123), 19, Color("8a7188"))
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	preview_layer.add_child(description)
-	var effect_description := "购买时  %s" % effect_text(product["effects"])
+	var effect_description := "送礼时  好感 +%d" % product["gift_affection"] if product.has("gift_affection") else "购买时  %s" % effect_text(product["effects"])
 	if product.has("round_effects"):
 		effect_description += "\n每回合  %s" % effect_text(product["round_effects"])
 	var effect_label := make_catalog_label(effect_description, Vector2(28, 511), Vector2(420, 58), 19, Color("674b86"))
@@ -285,7 +287,8 @@ func select_product(index: int) -> void:
 	preview_layer.add_child(effect_label)
 	var cost_label := make_catalog_label("花费：%d 金" % product["price"], Vector2(28, 573), Vector2(220, 36), 21, Color("946b53"))
 	preview_layer.add_child(cost_label)
-	purchase_message = make_catalog_label("", Vector2(28, 609), Vector2(250, 28), 16, Color("a65166"))
+	purchase_message = make_catalog_label("", Vector2(28, 609), Vector2(250, 42), 16, Color("a65166"))
+	purchase_message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	preview_layer.add_child(purchase_message)
 	purchase_button = Button.new()
 	purchase_button.text = "购买"
@@ -318,20 +321,103 @@ func update_purchase_display() -> void:
 	var product := products[selected_product_index]
 	var product_id := ShopProducts.product_id(product)
 	var owned: bool = not product.get("repeatable", false) and PlayerState.owned_products.has(product_id)
-	purchase_button.disabled = owned or PlayerState.money < product["price"]
-	purchase_button.text = "已拥有" if owned else ("金钱不足" if purchase_button.disabled else "购买")
+	var needs_recipient := product.has("gift_affection")
+	var no_recipient := needs_recipient and PlayerState.affection_gift_targets().is_empty()
+	var can_afford: bool = PlayerState.money >= product["price"]
+	purchase_button.disabled = owned or no_recipient or not can_afford
+	if owned:
+		purchase_button.text = "已拥有"
+	elif no_recipient:
+		purchase_button.text = "无送礼对象"
+	elif not can_afford:
+		purchase_button.text = "金钱不足"
+	else:
+		purchase_button.text = "购买并送礼" if needs_recipient else "购买"
 
 
 func buy_selected_product() -> void:
-	if not visible_products.has(selected_product_index):
+	if not visible_products.has(selected_product_index) or purchase_button.disabled or is_instance_valid(gift_picker):
 		return
 	var product := products[selected_product_index]
+	if product.has("gift_affection"):
+		show_gift_picker(product)
+		return
 	var product_id := ShopProducts.product_id(product)
 	if PlayerState.try_buy_product(product_id, product["price"], product.get("repeatable", false), product["effects"]):
 		UiSounds.play_purchase()
 		purchase_message.text = "购买成功，回合收益从下轮开始" if product.has("round_effects") else "购买成功，效果已生效"
 	else:
 		purchase_message.text = "无法购买"
+
+
+func show_gift_picker(product: Dictionary) -> void:
+	var recipients := PlayerState.affection_gift_targets()
+	if recipients.is_empty():
+		update_purchase_display()
+		return
+
+	gift_picker = ColorRect.new()
+	gift_picker.name = "GiftPicker"
+	gift_picker.color = Color(0.12, 0.07, 0.20, 0.66)
+	gift_picker.size = BOARD_SIZE
+	gift_picker.z_index = 20
+	gift_picker.mouse_filter = Control.MOUSE_FILTER_STOP
+	catalogue.add_child(gift_picker)
+
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	gift_picker.add_child(center)
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size.x = 480
+	var style := make_row_style(true)
+	style.bg_color = Color("fff0e6")
+	for side in [SIDE_LEFT, SIDE_TOP, SIDE_RIGHT, SIDE_BOTTOM]:
+		style.set_content_margin(side, 24)
+	panel.add_theme_stylebox_override("panel", style)
+	center.add_child(panel)
+
+	var options := VBoxContainer.new()
+	options.add_theme_constant_override("separation", 12)
+	panel.add_child(options)
+	var heading := make_catalog_label("选择收礼人", Vector2.ZERO, Vector2.ZERO, 28, Color("604374"))
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	options.add_child(heading)
+	var price := make_catalog_label("选定后支付 %d 金" % product["price"], Vector2.ZERO, Vector2.ZERO, 19, Color("946b53"))
+	price.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	options.add_child(price)
+	for character in recipients:
+		var gain := mini(int(product["gift_affection"]), PlayerState.MAX_AFFECTION - PlayerState.affection_total(character))
+		var option := Button.new()
+		option.text = "%s   好感 +%d" % [character, gain]
+		option.icon = SocialCharacters.avatar(character)
+		option.add_theme_constant_override("icon_max_width", 46)
+		option.add_theme_font_size_override("font_size", 23)
+		option.custom_minimum_size.y = 58
+		option.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		option.pressed.connect(buy_gift_for.bind(character, product))
+		options.add_child(option)
+	var cancel := Button.new()
+	cancel.text = "取消"
+	cancel.custom_minimum_size.y = 42
+	cancel.pressed.connect(close_gift_picker)
+	options.add_child(cancel)
+	cancel.grab_focus()
+
+
+func buy_gift_for(character: String, product: Dictionary) -> void:
+	if not is_instance_valid(gift_picker):
+		return
+	close_gift_picker()
+	var gain := PlayerState.try_buy_affection_gift(character, product["price"], product["gift_affection"])
+	if gain > 0:
+		UiSounds.play_purchase()
+	purchase_message.text = "%s好感 +%d" % [character, gain] if gain > 0 else "无法购买"
+
+
+func close_gift_picker() -> void:
+	gift_picker.hide()
+	gift_picker.queue_free()
+	gift_picker = null
 
 
 func make_fitted_texture(texture: Texture2D, box: Rect2) -> TextureRect:
@@ -368,7 +454,9 @@ func make_row_style(selected: bool) -> StyleBoxFlat:
 
 
 func close_shop() -> void:
-	if clothing_only:
+	if is_instance_valid(gift_picker):
+		close_gift_picker()
+	elif clothing_only:
 		SceneFade.play_action(queue_free, -1.0)
 	else:
 		SceneFade.change_to(BEDROOM_SCENE, -1.0)

@@ -50,7 +50,8 @@ var next_turn_energy_change := 0
 var battle_card_sources: Dictionary[int, int] = {}
 var free_cards: Dictionary[int, bool] = {}
 var promise_draw_cards: Dictionary[int, bool] = {}
-var pen_discounts: Dictionary[int, int] = {}
+var card_discounts: Dictionary[int, int] = {}
+var turn_end_progress_per_discard := 0.0
 var discard_progress_bonuses: Dictionary[int, int] = {}
 var end_turn_copies: Array[int] = []
 var battle_cost_reduction := 0
@@ -103,7 +104,8 @@ var progress_texture := preload("res://images/米色网格便签进度条界面.
 var energy_texture := preload("res://images/复古纸张能量徽章图标.png")
 var attack_textures: Array[Texture2D] = [
 	preload("res://images/attack/1.png"), preload("res://images/attack/2.png"),
-	preload("res://images/attack/3.png"), preload("res://images/attack/4.png")
+	preload("res://images/attack/3.png"), preload("res://images/attack/4.png"),
+	preload("res://images/attack/5.png"), preload("res://images/attack/6.png"),
 ]
 
 func _ready() -> void:
@@ -213,6 +215,7 @@ func end_turn() -> void:
 	for card_id in end_turn_copies:
 		give_drawn_card(card_id)
 	end_turn_copies.clear()
+	progress += discard_pile.size() * turn_end_progress_per_discard
 	if turn >= FINAL_TURN:
 		settle_game(true)
 		return
@@ -281,7 +284,7 @@ func show_turn_banner() -> void:
 	showing_turn_banner = false
 
 func resolve_attack(attack_id: int) -> void:
-	var damage: int = ExamDifficulty.BASE_ATTACK_DAMAGE[attack_id] + enemy_damage_bonus
+	var damage := ExamDifficulty.attack_damage(attack_id, enemy_damage_bonus)
 	var art := TextureRect.new()
 	art.texture = attack_textures[attack_id]
 	art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
@@ -294,9 +297,10 @@ func resolve_attack(attack_id: int) -> void:
 	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	art.z_index = 55
 	ui.add_child(art)
-	if enemy_damage_bonus > 0:
+	var base_damage: int = ExamDifficulty.BASE_ATTACK_DAMAGE[attack_id]
+	if damage > base_damage:
 		var caption := Label.new()
-		caption.text = "本场伤害 %d（基础 %d + %d）" % [damage, ExamDifficulty.BASE_ATTACK_DAMAGE[attack_id], enemy_damage_bonus]
+		caption.text = "本场伤害 %d（基础 %d + %d）" % [damage, base_damage, damage - base_damage]
 		caption.position = Vector2(-40, art.size.y + 10)
 		caption.size = Vector2(310, 30)
 		caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -312,8 +316,10 @@ func resolve_attack(attack_id: int) -> void:
 	consume_health(damage)
 	if not game_over:
 		match attack_id:
-			1: discard_random_hand_card()
-			2, 3: block_random_slot()
+			ExamDifficulty.Attack.HAND_DISCARD: discard_random_hand_card()
+			ExamDifficulty.Attack.SLOT_LOCK: block_random_slot()
+			ExamDifficulty.Attack.ENERGY_LOSS: energy = maxi(0, energy - 1)
+			ExamDifficulty.Attack.HAND_RETURN: return_random_hand_card_to_deck()
 	update_values()
 	var exit_tween := create_tween().set_parallel(true)
 	exit_tween.tween_property(art, "modulate:a", 0.0, 0.3)
@@ -325,6 +331,17 @@ func discard_random_hand_card() -> void:
 	if hand.is_empty():
 		return
 	apply_hand_discard_effects([discard_hand_card(randi_range(0, hand.size() - 1))])
+
+func return_random_hand_card_to_deck() -> void:
+	if hand.is_empty():
+		return
+	var index := randi_range(0, hand.size() - 1)
+	deck.append(hand.pop_at(index))
+	var card := hand_holder.get_child(index)
+	hand_holder.remove_child(card)
+	card.queue_free()
+	card_preview.hide()
+	rearrange_remaining_hand()
 
 func discard_hand_card(index: int, animate_layout: bool = true) -> int:
 	var card: Control = hand_holder.get_child(index)
@@ -378,7 +395,7 @@ func apply_hand_discard_effects(discarded: Array[int]) -> void:
 		match PlayerState.card_base_id(source):
 			CardCatalog.FUSHIMI_PEN_CARD:
 				var reduction := int(PlayerState.card_numbers(source)["cost_reduction"])
-				pen_discounts[card_id] = pen_discounts.get(card_id, 0) + reduction
+				card_discounts[card_id] = card_discounts.get(card_id, 0) + reduction
 				discard_pile.erase(card_id)
 				give_drawn_card(card_id)
 			CardCatalog.FUSHIMI_NIGHT_WALK_CARD:
@@ -517,7 +534,11 @@ func source_card_id(card_id: int) -> int:
 func battle_card_cost(card_id: int) -> int:
 	if free_cards.has(card_id):
 		return 0
-	return maxi(0, PlayerState.card_cost(source_card_id(card_id)) - battle_cost_reduction - pen_discounts.get(card_id, 0))
+	var source := source_card_id(card_id)
+	var discount: int = battle_cost_reduction + card_discounts.get(card_id, 0)
+	if PlayerState.card_base_id(source) == CardCatalog.SHIRAKAWA_SNOW_CARD:
+		discount += discard_pile.size()
+	return maxi(0, PlayerState.card_cost(source) - discount)
 
 func battle_card_numbers(card_id: int) -> Dictionary:
 	var values := PlayerState.card_numbers(source_card_id(card_id))
@@ -1031,6 +1052,7 @@ func resolve_play(card_id: int, slot: Control, multiplier: float, repetitions: i
 	if (not oath_applied or battle_card_cost(card_id) == 0) and not CardCatalog.exhausts_on_play(PlayerState.card_base_id(source_card_id(card_id))):
 		discard_pile.append(card_id)
 		played_discards.append(card_id)
+	update_values()
 	return finish_turn
 
 func apply_card_effect(card_id: int, slot: Control, multiplier: float) -> bool:
@@ -1169,6 +1191,39 @@ func apply_card_effect(card_id: int, slot: Control, multiplier: float) -> bool:
 			if discarded > 0:
 				await get_tree().create_timer(0.55).timeout
 				await draw_cards(roundi(discarded * multiplier))
+		CardCatalog.SHIRAKAWA_GAME_CARD:
+			for index in mini(deck.size(), roundi(int(values["mill"]) * multiplier)):
+				discard_pile.append(deck.pop_back())
+			if not discard_pile.is_empty() and hand.size() < MAX_HAND_SIZE:
+				var chosen := await request_card_choice(discard_pile, false, "从弃牌区选择一张牌加入手牌")
+				discard_pile.erase(chosen)
+				played_discards.erase(chosen)
+				give_drawn_card(chosen)
+		CardCatalog.SHIRAKAWA_FAVOR_CARD:
+			energy = 0
+			var minimum_cost := int(values["minimum_cost"])
+			var candidates := discard_pile.filter(func(id: int) -> bool: return battle_card_cost(id) >= minimum_cost)
+			deck.append_array(discard_pile)
+			if not discard_pile.is_empty():
+				deck.shuffle()
+			discard_pile.clear()
+			played_discards.clear()
+			update_values()
+			if not candidates.is_empty():
+				var chosen := await request_card_choice(candidates, false, "选择一张花费至少为 %d 的牌，降至 0 费并置于卡组顶" % minimum_cost)
+				deck.erase(chosen)
+				deck.append(make_card_free(chosen))
+		CardCatalog.SHIRAKAWA_PUPPY_CARD:
+			turn_end_progress_per_discard += int(values["turn_end_progress_per_card"]) * multiplier
+		CardCatalog.SHIRAKAWA_OSMANTHUS_CARD:
+			var reduction := roundi(int(values["cost_reduction"]) * multiplier)
+			while not deck.is_empty():
+				var copy_id := identify_card_copy(deck.pop_back())
+				card_discounts[copy_id] = card_discounts.get(copy_id, 0) + reduction
+				discard_pile.append(copy_id)
+		CardCatalog.SHIRAKAWA_SNOW_CARD:
+			progress = maxf(progress, progress_target)
+			settle_game(true)
 	update_values()
 	return false
 
@@ -1363,6 +1418,10 @@ func set_end_button_hover(hovered: bool) -> void:
 	end_button_tween.tween_property(art, "modulate", Color(1.35, 1.25, 1.15) if hovered else Color.WHITE, 0.16)
 
 func update_values() -> void:
+	for card: Control in hand_holder.get_children():
+		var card_id: int = card.get_meta("card_id")
+		if PlayerState.card_base_id(source_card_id(card_id)) == CardCatalog.SHIRAKAWA_SNOW_CARD:
+			set_battle_card_face(card.get_node("CardArt"), card_id)
 	if not game_over and progress >= progress_target and not end_button.visible:
 		end_button.modulate.a = 0.0
 		end_button.scale = Vector2(0.85, 0.85)

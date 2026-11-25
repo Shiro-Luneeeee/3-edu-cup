@@ -95,7 +95,7 @@ const EVENTS := {
 
 
 static func draw_event(round_number: int, previous_event: String) -> String:
-	if randf() >= TRIGGER_CHANCE:
+	if round_number <= 1 or randf() >= TRIGGER_CHANCE:
 		return ""
 	var current_age := RoundCalendar.age(round_number)
 	var candidates: Array[String] = []

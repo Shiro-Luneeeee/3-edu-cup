@@ -13,6 +13,12 @@ const FUSHIMI_TUTORING_CARD := 201
 const FUSHIMI_NIGHT_WALK_CARD := 202
 const FUSHIMI_TOGETHER_CARD := 203
 const FUSHIMI_LAST_BATTLE_CARD := 204
+const SHIRAKAWA_DIRECTORY := "res://images/card_bai"
+const SHIRAKAWA_GAME_CARD := 300
+const SHIRAKAWA_FAVOR_CARD := 301
+const SHIRAKAWA_PUPPY_CARD := 302
+const SHIRAKAWA_OSMANTHUS_CARD := 303
+const SHIRAKAWA_SNOW_CARD := 304
 # Card numbers determine artwork and chapter order. The IDs above are stored in saves.
 const FUSHIMI_CARDS_BY_NUMBER := [
 	FUSHIMI_PEN_CARD, FUSHIMI_TUTORING_CARD, FUSHIMI_TOGETHER_CARD,
@@ -38,6 +44,11 @@ const CARDS := {
 	FUSHIMI_TOGETHER_CARD: ["同舟共济", 0],
 	FUSHIMI_NIGHT_WALK_CARD: ["深夜的同行", 2],
 	FUSHIMI_LAST_BATTLE_CARD: ["最后一次战役", 3],
+	SHIRAKAWA_GAME_CARD: ["买刀买马", 1],
+	SHIRAKAWA_FAVOR_CARD: ["花雪的偏爱", 0],
+	SHIRAKAWA_PUPPY_CARD: ["小毛球的约定", 2],
+	SHIRAKAWA_OSMANTHUS_CARD: ["不枯萎的桂花", 3],
+	SHIRAKAWA_SNOW_CARD: ["温暖的初雪", 15],
 }
 enum Upgrade { INCREASE, DECREASE, BOOST_PROGRESS, BOOST_DEFENSE }
 
@@ -76,6 +87,11 @@ const CARD_NUMBERS := {
 	FUSHIMI_TOGETHER_CARD: {},
 	FUSHIMI_NIGHT_WALK_CARD: {"progress": 20, "discard_progress": 10},
 	FUSHIMI_LAST_BATTLE_CARD: {"progress": 20, "progress_per_discard": 10},
+	SHIRAKAWA_GAME_CARD: {"mill": 5},
+	SHIRAKAWA_FAVOR_CARD: {"minimum_cost": 2},
+	SHIRAKAWA_PUPPY_CARD: {"turn_end_progress_per_card": 2},
+	SHIRAKAWA_OSMANTHUS_CARD: {"cost_reduction": 1},
+	SHIRAKAWA_SNOW_CARD: {},
 }
 # Regions around Arabic numerals in the original effect text, in card texture pixels.
 const NUMBER_REGIONS := {
@@ -170,6 +186,8 @@ static func boosted_number(value: int) -> int:
 
 
 static func texture(card_id: int) -> Texture2D:
+	if card_id >= SHIRAKAWA_GAME_CARD:
+		return load("%s/%d.png" % [SHIRAKAWA_DIRECTORY, card_id - SHIRAKAWA_GAME_CARD]) as Texture2D
 	if card_id >= FUSHIMI_PEN_CARD:
 		var number := FUSHIMI_CARDS_BY_NUMBER.find(card_id)
 		return load("%s/%d.png" % [FUSHIMI_DIRECTORY, number]) as Texture2D
@@ -185,6 +203,11 @@ static func yue_story_card(chapter_index: int) -> int:
 
 static func fushimi_story_card(chapter_index: int) -> int:
 	return FUSHIMI_CARDS_BY_NUMBER[chapter_index] if chapter_index >= 0 and chapter_index < FUSHIMI_CARDS_BY_NUMBER.size() else -1
+
+
+static func shirakawa_story_card(chapter_index: int) -> int:
+	var card_id := SHIRAKAWA_GAME_CARD + chapter_index
+	return card_id if chapter_index >= 0 and card_id <= SHIRAKAWA_SNOW_CARD else -1
 
 
 static func exhausts_on_play(card_id: int) -> bool:

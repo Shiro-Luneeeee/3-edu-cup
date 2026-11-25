@@ -2,21 +2,22 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bam3x1rmnud0w"
-path="res://.godot/imported/ShiroLune_cutout.png-0e769516606fddae8fb8e4af88048bc8.ctex"
+uid="uid://68rsysyttt68"
+path="res://.godot/imported/4.png-1258de65e664efc778e6f3adb7ea93ee.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://images/character/ShiroLune_cutout.png"
-dest_files=["res://.godot/imported/ShiroLune_cutout.png-0e769516606fddae8fb8e4af88048bc8.ctex"]
+source_file="res://images/card_bai/4.png"
+dest_files=["res://.godot/imported/4.png-1258de65e664efc778e6f3adb7ea93ee.ctex"]
 
 [params]
 
 compress/mode=0
 compress/high_quality=false
+compress/high_quality_mode=0
 compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0

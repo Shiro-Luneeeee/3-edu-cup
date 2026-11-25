@@ -6,11 +6,12 @@ const GAMES := [
 	preload("res://data/games/pale_myth_heart_sky.tres"),
 ]
 const FULL_GAIN_PLAYS := 3
-const TARGET_POINTS := 500
+const REWARD_POINTS_STEP := 625
+const MAX_REWARD_POINTS := 2000
 
 
-static func target_points() -> int:
-	return TARGET_POINTS
+static func target_points(rewards_claimed: int) -> int:
+	return mini(MAX_REWARD_POINTS, REWARD_POINTS_STEP * (rewards_claimed + 1))
 
 
 static func contains_game(game_id: String) -> bool:

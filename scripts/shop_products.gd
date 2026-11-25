@@ -23,7 +23,17 @@ const CLOTHING_PRODUCTS := [
 		"description": "一件浅杏色双排扣风衣，出门见朋友时穿着正合适。",
 		"image": "res://images/shop_items/shop-trench-coat.png",
 		"price": 120,
+		"repeatable": false,
 		"effects": {"social_efficiency_percent": 10},
+	},
+	{
+		"id": "clothing:scarf",
+		"name": "围巾",
+		"description": "一条柔软的浅杏色格纹围巾。可以重复购买，送给已解锁的社交角色。",
+		"image": "res://images/shop_items/shop-scarf.png",
+		"price": 100,
+		"repeatable": true,
+		"gift_affection": 50,
 	},
 ]
 

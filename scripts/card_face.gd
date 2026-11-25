@@ -10,6 +10,7 @@ const YUE_OATH_COST_REGION := Rect2i(127, 44, 80, 114)
 const FUSHIMI_COST_REGION := Rect2i(83, 63, 94, 113)
 const FUSHIMI_NIGHT_WALK_COST_REGION := Rect2i(75, 53, 90, 118)
 const FUSHIMI_LAST_COST_REGION := Rect2i(74, 53, 94, 113)
+const SHIRAKAWA_COST_REGION := Rect2i(87, 48, 128, 125)
 const SIGNED_FIELDS := ["health_change", "health_per_hand", "next_energy_change", "starting_energy_gain"]
 
 const DIGIT_FONT := preload("res://fonts/StoryFont.tres")
@@ -56,6 +57,8 @@ func draw_edits() -> void:
 			cost_region = YUE_OATH_COST_REGION
 		elif base_id == CardCatalog.FUSHIMI_NIGHT_WALK_CARD:
 			cost_region = FUSHIMI_NIGHT_WALK_COST_REGION
+		elif base_id >= CardCatalog.SHIRAKAWA_GAME_CARD:
+			cost_region = SHIRAKAWA_COST_REGION
 		elif is_fushimi:
 			cost_region = FUSHIMI_LAST_COST_REGION if base_id == CardCatalog.FUSHIMI_LAST_BATTLE_CARD else FUSHIMI_COST_REGION
 		var ink := Color("fff9ed") if is_yue else Color("203659")

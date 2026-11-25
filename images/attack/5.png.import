@@ -2,21 +2,22 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bujs8vl16u2xk"
-path="res://.godot/imported/ShiroLune_reference_scene.png-ab288acd996fc4cf990533b3909054fd.ctex"
+uid="uid://6x3i7cmtn6cv"
+path="res://.godot/imported/5.png-32d5cb91c24d328b5a4c936896353a17.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://images/character/ShiroLune_reference_scene.png"
-dest_files=["res://.godot/imported/ShiroLune_reference_scene.png-ab288acd996fc4cf990533b3909054fd.ctex"]
+source_file="res://images/attack/5.png"
+dest_files=["res://.godot/imported/5.png-32d5cb91c24d328b5a4c936896353a17.ctex"]
 
 [params]
 
 compress/mode=0
 compress/high_quality=false
+compress/high_quality_mode=0
 compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0

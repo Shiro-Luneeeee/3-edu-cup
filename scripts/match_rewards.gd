@@ -21,9 +21,6 @@ const REWARD_ART := {
 	Reward.MAX_HEALTH: preload("res://images/deck/8.png"),
 	Reward.ENERGY_SUPPLY: preload("res://images/deck/9.png"),
 }
-const CHARACTER_ART := {
-	"ShiroLune": preload("res://images/character/ShiroLune_cutout.png"),
-}
 const OFFER_SIZE := 3
 const CARD_ASPECT := 1.4
 const MONEY_REWARD := 30
@@ -171,12 +168,10 @@ func show_card_targets(reward: int) -> void:
 
 
 func affection_targets() -> Dictionary:
-	var targets := CHARACTER_ART.duplicate()
+	var targets := {}
 	for character in PlayerState.known_social_characters():
-		targets[character] = SocialCharacters.avatar(character)
-	for character: String in targets.keys():
-		if PlayerState.affection_total(character) == PlayerState.MAX_AFFECTION:
-			targets.erase(character)
+		if PlayerState.affection_total(character) < PlayerState.MAX_AFFECTION:
+			targets[character] = SocialCharacters.avatar(character)
 	return targets
 
 

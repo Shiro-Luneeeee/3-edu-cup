@@ -33,22 +33,37 @@ func open_character(character: String) -> void:
 			play_fushimi_story(chapter)
 	elif character == SocialCharacters.SHIRAKAWA:
 		if PlayerState.shirakawa_snow_available():
-			SceneFade.play_action(show_dialogue.bind(SHIRAKAWA_SNOW, PlayerState.finish_shirakawa_snow))
+			play_shirakawa_story(SHIRAKAWA_SNOW, 4, PlayerState.finish_shirakawa_snow)
 		elif PlayerState.shirakawa_confession_available():
 			request_confession_confirmation(SocialCharacters.SHIRAKAWA, confirm_shirakawa_confession)
 		elif PlayerState.shirakawa_third_story_available():
-			SceneFade.play_action(show_dialogue.bind(SHIRAKAWA_OSMANTHUS, PlayerState.finish_shirakawa_third_story))
+			play_shirakawa_story(SHIRAKAWA_OSMANTHUS, 2, PlayerState.finish_shirakawa_third_story)
 		elif PlayerState.shirakawa_second_story_available():
-			SceneFade.play_action(show_dialogue.bind(SHIRAKAWA_PUPPY, PlayerState.finish_shirakawa_second_story))
+			play_shirakawa_story(SHIRAKAWA_PUPPY, 1, PlayerState.finish_shirakawa_second_story)
 		else:
-			SceneFade.play_action(show_dialogue.bind(SHIRAKAWA_FIRST_STORY, PlayerState.finish_shirakawa_first_story))
+			play_shirakawa_story(SHIRAKAWA_FIRST_STORY, 0, PlayerState.finish_shirakawa_first_story)
 	else:
 		SceneFade.play_action(show_story.bind(FINAL_PROMISE_SCENE, PlayerState.yue_story_chapter()))
 
 
 func confirm_shirakawa_confession(accepted: bool) -> void:
 	if accepted and PlayerState.shirakawa_confession_available():
-		SceneFade.play_action(show_dialogue.bind(SHIRAKAWA_CONFESSION, PlayerState.finish_shirakawa_confession))
+		play_shirakawa_story(SHIRAKAWA_CONFESSION, 3, PlayerState.finish_shirakawa_confession)
+
+
+func play_shirakawa_story(scene: PackedScene, chapter: int, complete: Callable) -> void:
+	SceneFade.play_action(show_dialogue.bind(scene, show_shirakawa_card_offer.bind(chapter, complete)))
+
+
+func show_shirakawa_card_offer(chapter: int, complete: Callable) -> void:
+	var card_id := CardCatalog.shirakawa_story_card(chapter)
+	offer_story_card(SocialCharacters.SHIRAKAWA, card_id, complete_shirakawa_chapter.bind(card_id, complete))
+
+
+func complete_shirakawa_chapter(add_to_deck: bool, card_id: int, complete: Callable) -> void:
+	if add_to_deck:
+		PlayerState.add_story_card(card_id)
+	complete.call()
 
 
 func confirm_fushimi_confession(accepted: bool) -> void:

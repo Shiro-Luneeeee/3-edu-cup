@@ -71,7 +71,7 @@ var money := DEFAULT_MONEY
 var owned_products: Array[String] = []
 var game_aesthetic_points := 0
 var game_play_counts: Dictionary[String, int] = {}
-var game_aesthetic_reward_claimed := false
+var game_aesthetic_rewards_claimed := 0
 var daoxiang_act := 0
 var daoxiang_last_age := 0
 var daoxiang_reply := ""
@@ -148,7 +148,7 @@ func reset() -> void:
 	owned_products.clear()
 	game_aesthetic_points = 0
 	game_play_counts.clear()
-	game_aesthetic_reward_claimed = false
+	game_aesthetic_rewards_claimed = 0
 	daoxiang_act = 0
 	daoxiang_last_age = 0
 	daoxiang_reply = ""
@@ -208,7 +208,7 @@ func make_snapshot() -> Dictionary:
 		"owned_products": owned_products.duplicate(),
 		"game_aesthetic_points": game_aesthetic_points,
 		"game_play_counts": game_play_counts.duplicate(),
-		"game_aesthetic_reward_claimed": game_aesthetic_reward_claimed,
+		"game_aesthetic_rewards_claimed": game_aesthetic_rewards_claimed,
 		"daoxiang_act": daoxiang_act,
 		"daoxiang_last_age": daoxiang_last_age,
 		"daoxiang_reply": daoxiang_reply,
@@ -287,14 +287,16 @@ func restore_snapshot(data: Dictionary) -> void:
 	for product_id in data.get("owned_products", []):
 		if product_id is String and not owned_products.has(product_id):
 			owned_products.append(product_id)
-	game_aesthetic_points = clampi(int(data.get("game_aesthetic_points", 0)), 0, GameAesthetic.target_points())
+	var legacy_aesthetic_claimed := bool(data.get("game_aesthetic_reward_claimed", false))
+	game_aesthetic_rewards_claimed = maxi(0, int(data.get("game_aesthetic_rewards_claimed", int(legacy_aesthetic_claimed))))
+	# The old one-time reward kept its spent points on the full meter.
+	game_aesthetic_points = 0 if legacy_aesthetic_claimed and not data.has("game_aesthetic_rewards_claimed") else maxi(0, int(data.get("game_aesthetic_points", 0)))
 	game_play_counts.clear()
 	var saved_game_plays: Variant = data.get("game_play_counts", {})
 	if saved_game_plays is Dictionary:
 		for game_id in saved_game_plays:
 			if game_id is String and GameAesthetic.contains_game(game_id):
 				game_play_counts[game_id] = clampi(int(saved_game_plays[game_id]), 0, 100000)
-	game_aesthetic_reward_claimed = bool(data.get("game_aesthetic_reward_claimed", false))
 	daoxiang_act = clampi(int(data.get("daoxiang_act", 0)), 0, 3)
 	daoxiang_last_age = maxi(0, int(data.get("daoxiang_last_age", 0)))
 	daoxiang_reply = str(data.get("daoxiang_reply", ""))
@@ -642,6 +644,23 @@ func known_social_characters() -> Array[String]:
 	return known
 
 
+func affection_gift_targets() -> Array[String]:
+	return known_social_characters().filter(func(character: String) -> bool:
+		return affection_total(character) < MAX_AFFECTION
+	)
+
+
+func try_buy_affection_gift(character: String, price: int, amount: int) -> int:
+	if price < 0 or amount <= 0 or money < price or character not in affection_gift_targets():
+		return 0
+	var current := affection_total(character)
+	var gain := mini(amount, MAX_AFFECTION - current)
+	money -= price
+	character_affection[character] = current + gain
+	changed.emit()
+	return gain
+
+
 func social_locations() -> Dictionary[String, String]:
 	var locations := SocialCharacters.locations_for_round(round_number, park_meeting_seen, yue_story_chapter(), fushimi_pen_seen)
 	if available_daoxiang_act() > 0:
@@ -808,11 +827,15 @@ func reward_game(stat: String, amount: int) -> void:
 	changed.emit()
 
 
+func game_aesthetic_target() -> int:
+	return GameAesthetic.target_points(game_aesthetic_rewards_claimed)
+
+
 func game_aesthetic_gain(game_id: String, price: int) -> int:
-	if not GameAesthetic.contains_game(game_id) or game_aesthetic_points >= GameAesthetic.target_points():
+	if not GameAesthetic.contains_game(game_id):
 		return 0
 	var completed_plays: int = game_play_counts.get(game_id, 0)
-	return mini(GameAesthetic.gain(price, completed_plays), GameAesthetic.target_points() - game_aesthetic_points)
+	return GameAesthetic.gain(price, completed_plays)
 
 
 func record_game_play(game_id: String, price: int) -> Dictionary:
@@ -821,10 +844,12 @@ func record_game_play(game_id: String, price: int) -> Dictionary:
 	var gain := game_aesthetic_gain(game_id, price)
 	game_aesthetic_points += gain
 	game_play_counts[game_id] = game_play_counts.get(game_id, 0) + 1
-	var reward_unlocked := game_aesthetic_points >= GameAesthetic.target_points() and not game_aesthetic_reward_claimed
+	var target := game_aesthetic_target()
+	var reward_unlocked := game_aesthetic_points >= target
 	if reward_unlocked:
-		game_aesthetic_reward_claimed = true
-		set_max_energy(max_energy * 2, true)
+		game_aesthetic_points -= target
+		game_aesthetic_rewards_claimed += 1
+		set_max_energy(max_energy + 2, true)
 	else:
 		changed.emit()
 	return {"gain": gain, "reward_unlocked": reward_unlocked}
