@@ -17,6 +17,7 @@ const TURN_DRAW_COUNT := 2
 const STARTING_ENERGY := 3
 const HEALTH_TRACK_IN_TEXTURE := Rect2(237.0, 291.0, 1794.0, 155.0)
 const PROGRESS_TRACK_IN_TEXTURE := Rect2(390.0, 333.0, 1548.0, 129.0)
+const METER_TRACK_CENTER_Y := 79.0
 const MAX_HAND_SIZE := 9
 const CARD_SIZE := Vector2(142, 199)
 const BOARD_SIZE := Vector2(1152, 648)
@@ -64,6 +65,7 @@ var block := 0.0
 var turn := 1
 var hand_holder: Control
 var card_preview: Control
+var card_preview_tween: Tween
 var slot_layer: Control
 var selected_card: Control
 var deck_choice_overlay: Control
@@ -587,13 +589,14 @@ func create_progress_ui(parent: Control) -> void:
 	meter.texture = progress_texture
 	meter.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	meter.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	meter.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	meter.position = Vector2(24, 4)
+	meter.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	meter.position.x = -210
 	meter.size = Vector2(420, 140)
 	meter.z_index = 20
 	meter.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	parent.add_child(meter)
 	var track := get_meter_track(meter, PROGRESS_TRACK_IN_TEXTURE)
+	meter.position.y = METER_TRACK_CENTER_Y - track.get_center().y
 	progress_track_width = track.size.x
 	progress_fill = make_rounded_meter_fill(Color(0.96, 0.64, 0.25, 0.82), track)
 	meter.add_child(progress_fill)
@@ -602,7 +605,7 @@ func create_progress_ui(parent: Control) -> void:
 
 func create_health_ui(parent: Control) -> void:
 	var holder := Control.new()
-	holder.position = Vector2(24, 130)
+	holder.position.x = 24
 	holder.size = Vector2(330, 110)
 	holder.z_index = 20
 	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -617,6 +620,7 @@ func create_health_ui(parent: Control) -> void:
 	holder.add_child(bar)
 
 	var track := get_meter_track(bar, HEALTH_TRACK_IN_TEXTURE)
+	holder.position.y = METER_TRACK_CENTER_Y - track.get_center().y
 	health_track_width = track.size.x
 	health_fill = make_rounded_meter_fill(Color("b9363e"), track)
 	health_fill.name = "HealthFill"
@@ -1616,6 +1620,7 @@ func create_card_preview(parent: Control) -> void:
 	detail_card.set_anchors_preset(Control.PRESET_CENTER)
 	detail_card.position = Vector2(-135, -190)
 	detail_card.size = Vector2(270, 380)
+	detail_card.pivot_offset = detail_card.size * 0.5
 	detail_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	card_preview.add_child(detail_card)
 
@@ -1625,8 +1630,14 @@ func show_card_preview(card: Control) -> void:
 	card.z_index = 10
 	var tween := create_tween().set_parallel(true)
 	tween.tween_property(card, "scale", Vector2(1.25, 1.25), 0.16).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	var detail_card := card_preview.get_node("DetailCard") as CardFace
+	if card_preview_tween and card_preview_tween.is_running():
+		card_preview_tween.kill()
+	set_battle_card_face(detail_card, int(card.get_meta("card_id")))
+	detail_card.scale = Vector2.ONE * 0.8
 	card_preview.show()
-	set_battle_card_face(card_preview.get_node("DetailCard"), int(card.get_meta("card_id")))
+	card_preview_tween = create_tween().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	card_preview_tween.tween_property(detail_card, "scale", Vector2.ONE, 0.10)
 
 func hide_card_preview(card: Control) -> void:
 	card.z_index = int(card.get_meta("hand_index"))

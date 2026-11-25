@@ -17,6 +17,7 @@ dest_files=["res://.godot/imported/promise.png-a2d77c779966708462e4f2f8c646b5a1.
 
 compress/mode=0
 compress/high_quality=false
+compress/high_quality_mode=0
 compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0

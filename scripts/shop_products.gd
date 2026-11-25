@@ -1,5 +1,8 @@
 extends RefCounted
 
+const MALE_UNIFORM_ID := "clothing:male_school_uniform"
+const MALE_UNIFORM_STAT_BONUS := 10
+
 const PRODUCTS := [
 	{"name": "红色头绳", "description": "一抹鲜亮的红，系住今天的好心情。", "category": 3, "image": "res://images/shop_items/shop-red-hair-ribbon.png", "price": 30, "effects": {"max_health": 2}},
 	{"name": "五千年高考三千年模拟", "description": "厚厚的题目，适合慢慢啃。", "category": 1, "image": "res://images/shop_items/shop-5000-years-gaokao-3000-years-mock.png", "price": 70, "effects": {"intelligence": 12}, "round_effects": {"intelligence": 2}},
@@ -34,6 +37,15 @@ const CLOTHING_PRODUCTS := [
 		"price": 100,
 		"repeatable": true,
 		"gift_affection": 50,
+	},
+	{
+		"id": MALE_UNIFORM_ID,
+		"name": "校服（男款）",
+		"description": "深蓝色西装式校服上衣，搭配白衬衫和条纹领带。购买后永久提高智商与情商获取效率。",
+		"image": "res://images/shop_items/shop-male-school-uniform.png",
+		"price": 200,
+		"repeatable": false,
+		"effects": {"mental_stat_efficiency_percent": MALE_UNIFORM_STAT_BONUS},
 	},
 ]
 

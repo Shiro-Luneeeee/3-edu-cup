@@ -40,7 +40,7 @@ func show_event(event_id: String) -> void:
 		var effects: Dictionary = option["effects"]
 		var shortage := PlayerState.round_event_shortage(effects)
 		var button := Button.new()
-		button.text = "%s\n%s" % [option["title"], Events.describe_effects(effects)]
+		button.text = "%s\n%s" % [option["title"], describe_rewards(effects)]
 		if not shortage.is_empty():
 			button.text += "    ·    " + shortage
 		button.disabled = not shortage.is_empty()
@@ -55,16 +55,29 @@ func show_event(event_id: String) -> void:
 
 
 func select_option(index: int) -> void:
-	if not PlayerState.try_resolve_round_event(index):
+	if index < 0 or index >= event_options.size():
 		return
 	var option: Dictionary = event_options[index]
+	var rewards_text := describe_rewards(option["effects"])
+	if not PlayerState.try_resolve_round_event(index):
+		return
 	story.text = option["result"]
-	outcome.text = Events.describe_effects(option["effects"])
+	outcome.text = rewards_text
 	options.hide()
 	outcome.show()
 	continue_button.show()
 	scroll.scroll_vertical = 0
 	continue_button.grab_focus()
+
+
+func describe_rewards(effects: Dictionary) -> String:
+	var rewards := effects.duplicate()
+	var mental_gains := PlayerState.preview_mental_stat_gain(int(effects.get("intelligence", 0)), int(effects.get("emotional_intelligence", 0)))
+	if effects.has("intelligence"):
+		rewards["intelligence"] = mental_gains.x
+	if effects.has("emotional_intelligence"):
+		rewards["emotional_intelligence"] = mental_gains.y
+	return Events.describe_effects(rewards)
 
 
 func fit_panel() -> void:

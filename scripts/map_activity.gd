@@ -16,6 +16,7 @@ var activity_overlay: ColorRect
 var activity_progress: ProgressBar
 var activity_audio := AudioStreamPlayer.new()
 var linked_overlay: Control
+var companion_picker: ColorRect
 var hovered_hotspot := -1
 var pressed_hotspot := -1
 var active_hotspot := -1
@@ -41,7 +42,7 @@ func _ready() -> void:
 
 
 func can_open_character(character: String) -> bool:
-	return active_hotspot < 0 and not is_instance_valid(linked_overlay) and super.can_open_character(character)
+	return active_hotspot < 0 and not is_instance_valid(linked_overlay) and not is_instance_valid(companion_picker) and super.can_open_character(character)
 
 
 func create_highlight(points: PackedVector2Array) -> void:
@@ -104,7 +105,7 @@ func hotspot_at(position_in_scene: Vector2) -> int:
 
 
 func _gui_input(event: InputEvent) -> void:
-	if active_hotspot >= 0 or is_instance_valid(linked_overlay):
+	if active_hotspot >= 0 or is_instance_valid(linked_overlay) or is_instance_valid(companion_picker):
 		return
 	if event is InputEventMouseMotion:
 		pointer = event.position
@@ -144,7 +145,7 @@ func update_hover() -> void:
 	var activity := activities[hovered_hotspot]
 	var available_round := PlayerState.activity_available_round(activity.cooldown_id)
 	hint_label.text = activity_hint_text(activity, available_round)
-	if available_round > PlayerState.round_number:
+	if available_round > PlayerState.round_number or (activity.affection_gain > 0 and PlayerState.known_social_characters().is_empty()):
 		mouse_default_cursor_shape = Control.CURSOR_FORBIDDEN
 	hover_hint.reset_size()
 	var hint_size := hover_hint.get_combined_minimum_size()
@@ -173,7 +174,13 @@ func activity_hint_text(activity: Activity, available_round: int) -> String:
 		effects.append("金钱 %d" % activity.money_change)
 	if activity.energy_change > 0:
 		effects.append("精力 +%d" % activity.energy_change)
+	if activity.affection_gain > 0:
+		effects.append("好感度 +%d" % activity.affection_gain)
 	var text := "    ".join(effects)
+	if activity.affection_gain > 0:
+		text = "%s\n%s\n每回合一次" % [activity.status_text, text]
+		if PlayerState.known_social_characters().is_empty():
+			text += "\n需要先认识一位社交对象"
 	if available_round > PlayerState.round_number:
 		text += "\n冷却中 · 第 %d 回合可再次行动" % available_round
 	if PlayerState.current_energy + activity.energy_change < 0:
@@ -184,13 +191,25 @@ func activity_hint_text(activity: Activity, available_round: int) -> String:
 
 
 func start_activity(index: int) -> void:
-	if active_hotspot >= 0 or is_instance_valid(linked_overlay):
+	if active_hotspot >= 0 or is_instance_valid(linked_overlay) or is_instance_valid(companion_picker):
 		return
 	var activity := activities[index]
 	if activity.overlay_scene != null:
 		SceneFade.play_action(show_linked_overlay.bind(activity.overlay_scene))
 		return
 	if not PlayerState.can_apply_map_activity(activity):
+		return
+	if activity.affection_gain > 0:
+		var companions := PlayerState.known_social_characters()
+		if not companions.is_empty():
+			show_companion_picker(index, companions)
+		return
+	run_activity(index)
+
+
+func run_activity(index: int, companion: String = "") -> void:
+	var activity := activities[index]
+	if active_hotspot >= 0 or not PlayerState.can_apply_map_activity(activity):
 		return
 	active_hotspot = index
 	activity_progress.value = 0.0
@@ -204,12 +223,70 @@ func start_activity(index: int) -> void:
 	progress_tween.tween_property(activity_progress, "value", activity_progress.max_value, ACTIVITY_DURATION)
 	await progress_tween.finished
 	activity_audio.stop()
-	PlayerState.try_apply_map_activity(activity)
+	PlayerState.try_apply_map_activity(activity, companion)
 	activity_overlay.hide()
 	active_hotspot = -1
 	pointer = get_local_mouse_position()
 	hovered_hotspot = hotspot_at(pointer) if Rect2(Vector2.ZERO, size).has_point(pointer) else -1
 	update_hover()
+
+
+func show_companion_picker(index: int, companions: Array[String]) -> void:
+	clear_hover()
+	companion_picker = ColorRect.new()
+	companion_picker.name = "CompanionPicker"
+	companion_picker.color = Color(0.15, 0.09, 0.22, 0.60)
+	companion_picker.z_index = 12
+	companion_picker.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	add_child(companion_picker)
+
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	companion_picker.add_child(center)
+	var panel := PanelContainer.new()
+	panel.custom_minimum_size.x = minf(400.0, size.x - 32.0)
+	panel.add_theme_stylebox_override("panel", hover_hint.get_theme_stylebox("panel"))
+	center.add_child(panel)
+
+	var options := VBoxContainer.new()
+	options.add_theme_constant_override("separation", 10)
+	panel.add_child(options)
+	var title := Label.new()
+	title.text = "选择一起逛街的角色"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 24)
+	options.add_child(title)
+
+	for character in companions:
+		var button := Button.new()
+		button.text = character
+		button.icon = SocialCharacters.avatar(character)
+		button.add_theme_constant_override("icon_max_width", 42)
+		button.custom_minimum_size.y = 52
+		button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		button.pressed.connect(choose_companion.bind(index, character))
+		options.add_child(button)
+
+	var cancel := Button.new()
+	cancel.text = "取消"
+	cancel.custom_minimum_size.y = 38
+	cancel.pressed.connect(close_companion_picker)
+	options.add_child(cancel)
+	cancel.grab_focus()
+
+
+func choose_companion(index: int, character: String) -> void:
+	if not is_instance_valid(companion_picker):
+		return
+	close_companion_picker()
+	if character in PlayerState.known_social_characters():
+		run_activity(index, character)
+
+
+func close_companion_picker() -> void:
+	companion_picker.hide()
+	companion_picker.queue_free()
+	companion_picker = null
 
 
 func show_linked_overlay(scene: PackedScene) -> void:
@@ -219,6 +296,11 @@ func show_linked_overlay(scene: PackedScene) -> void:
 
 
 func _unhandled_key_input(event: InputEvent) -> void:
+	if is_instance_valid(companion_picker):
+		if event.is_action_pressed("ui_cancel") and not event.is_echo():
+			get_viewport().set_input_as_handled()
+			close_companion_picker()
+		return
 	if is_instance_valid(linked_overlay):
 		return
 	if active_hotspot >= 0 and event.is_action_pressed("ui_cancel"):

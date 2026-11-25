@@ -311,6 +311,8 @@ func effect_text(effects: Dictionary) -> String:
 			parts.append("%s +%d" % [names[key], effects[key]])
 	if effects.has("social_efficiency_percent"):
 		parts.append("社交效率 +%d%%" % effects["social_efficiency_percent"])
+	if effects.has("mental_stat_efficiency_percent"):
+		parts.append("智商、情商获取效率 +%d%%" % effects["mental_stat_efficiency_percent"])
 	return "、".join(parts)
 
 

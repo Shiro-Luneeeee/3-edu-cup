@@ -37,9 +37,11 @@ mouse_filter = 2
 [node name="ProgressValueLabel" type="Label" parent="HudLayer/UI" unique_id=1000896404]
 z_index = 40
 layout_mode = 1
-offset_left = 110.0
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -124.0
 offset_top = 63.0
-offset_right = 397.0
+offset_right = 163.0
 offset_bottom = 95.0
 theme_override_colors/font_color = Color(0.298039, 0.207843, 0.141176, 1)
 theme_override_font_sizes/font_size = 22
@@ -52,9 +54,9 @@ metadata/_edit_group_ = true
 z_index = 40
 layout_mode = 0
 offset_left = 66.0
-offset_top = 170.0
+offset_top = 63.0
 offset_right = 326.0
-offset_bottom = 202.0
+offset_bottom = 95.0
 theme_override_colors/font_color = Color(1, 0.960784, 0.862745, 1)
 theme_override_font_sizes/font_size = 21
 text = "20/20"
@@ -82,11 +84,11 @@ horizontal_alignment = 1
 
 [node name="TurnValueLabel" type="Label" parent="HudLayer/UI" unique_id=137953784]
 z_index = 40
-layout_mode = 0
-offset_left = 500.0
-offset_top = 68.0
-offset_right = 1080.0
-offset_bottom = 160.0
+layout_mode = 1
+anchor_left = 0.705
+anchor_top = 0.105
+anchor_right = 0.92
+anchor_bottom = 0.20
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.75)
 theme_override_constants/shadow_offset_x = 3
@@ -94,6 +96,7 @@ theme_override_constants/shadow_offset_y = 3
 theme_override_font_sizes/font_size = 48
 text = "回合数：1"
 horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="end" type="Button" parent="HudLayer/UI" unique_id=992411168]
 visible = false

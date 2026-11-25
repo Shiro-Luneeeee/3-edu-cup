@@ -211,7 +211,7 @@ func update_information() -> void:
 		description_label.append_text("\n\n[url=%s][color=#6277a8]友情链接：Univerthm 2.1.2[/color][/url]" % UNIVERTHM_URL)
 	description_label.scroll_to_line(0)
 	cost_label.text = "体力消耗：%d" % entry.energy_cost
-	effect_label.text = "完成效果：%s" % entry.effect_description
+	effect_label.text = "完成效果：%s" % play_reward_text(entry)
 	balance_label.text = "余额：%d 金" % PlayerState.money
 	if aesthetic_progress_tween and aesthetic_progress_tween.is_running():
 		aesthetic_progress_tween.kill()
@@ -347,11 +347,20 @@ func show_play_story(entry: GameEntry) -> void:
 	story.add_theme_font_size_override("normal_font_size", 23)
 	story.add_theme_color_override("default_color", Color("765d77"))
 	panel.add_child(story)
-	var result := make_label("游玩结束  ·  " + entry.effect_description, Vector2(43, 289), Vector2(630, 35), 21, Color("715584"))
+	var result := make_label("游玩结束  ·  " + play_reward_text(entry), Vector2(43, 289), Vector2(630, 35), 21, Color("715584"))
 	panel.add_child(result)
 	var done := make_button("结束游玩", Vector2(222, 348), Vector2(276, 55))
 	done.pressed.connect(finish_play_story)
 	panel.add_child(done)
+
+
+func play_reward_text(entry: GameEntry) -> String:
+	match entry.reward_stat:
+		"intelligence":
+			return "智商经验 +%d" % PlayerState.preview_mental_stat_gain(entry.reward_amount, 0).x
+		"emotional_intelligence":
+			return "情商 +%d" % PlayerState.preview_mental_stat_gain(0, entry.reward_amount).y
+	return entry.effect_description
 
 
 func finish_play_story() -> void:

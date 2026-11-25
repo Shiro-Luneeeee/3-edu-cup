@@ -10,6 +10,8 @@ const CHAT_SCENE := preload("res://scenes/social_chat.tscn")
 
 var selected_character := ""
 var chat_overlay: Control
+var socialize_button: Button
+var social_feedback: Label
 
 @onready var presentation: Control = %Presentation
 @onready var contacts: ItemList = get_node_or_null("%Contacts")
@@ -24,6 +26,7 @@ var chat_overlay: Control
 
 func _ready() -> void:
 	resized.connect(fit_presentation)
+	create_socialize_controls()
 	PlayerState.changed.connect(refresh_details)
 	chat_button.text = "自由对话"
 	chat_button.pressed.connect(open_free_chat)
@@ -46,6 +49,26 @@ func _ready() -> void:
 			contacts.add_item(character, SocialCharacters.avatar(character))
 		contacts.select(index)
 	show_contact(known[index])
+
+
+func create_socialize_controls() -> void:
+	socialize_button = chat_button.duplicate(0) as Button
+	socialize_button.name = "Socialize"
+	socialize_button.unique_name_in_owner = false
+	socialize_button.text = "聊天"
+	socialize_button.tooltip_text = "精力 -%d\n好感度 +%d" % [
+		SocialCharacters.CHAT_ENERGY_COST, SocialCharacters.CHAT_AFFECTION_GAIN
+	]
+	socialize_button.pressed.connect(socialize)
+	details.add_child(socialize_button)
+	details.move_child(socialize_button, chat_button.get_index())
+
+	social_feedback = Label.new()
+	social_feedback.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	social_feedback.add_theme_color_override("font_color", Color("67496d"))
+	social_feedback.add_theme_font_size_override("font_size", 23)
+	social_feedback.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	details.add_child(social_feedback)
 
 
 func fit_presentation() -> void:
@@ -86,6 +109,19 @@ func refresh_details() -> void:
 	affection_bar.value = progress.y
 	var progress_text := "已满" if maxed else "%d/%d" % [progress.y, PlayerState.AFFECTION_PER_LEVEL]
 	affection_readout.text = "好感度  %d 级  ·  %s" % [progress.x, progress_text]
+	var cost := SocialCharacters.CHAT_ENERGY_COST
+	socialize_button.disabled = maxed or PlayerState.current_energy < cost
+	social_feedback.text = "当前精力 %s" % PlayerState.energy_text()
+	if maxed:
+		social_feedback.text += "  ·  好感已满"
+	elif PlayerState.current_energy < cost:
+		social_feedback.text += "  ·  精力不足"
+
+
+func socialize() -> void:
+	if selected_character.is_empty() or is_instance_valid(chat_overlay) or SceneFade.curtain.visible:
+		return
+	PlayerState.try_socialize(selected_character)
 
 
 func open_free_chat() -> void:

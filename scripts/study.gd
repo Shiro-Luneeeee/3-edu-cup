@@ -162,19 +162,29 @@ func update_thought() -> void:
 
 func perform_selected_action() -> void:
 	var old_level := StudyProgress.get_level(selected_subject)
+	var reward := action_reward()
 	if StudyProgress.perform_action(selected_subject):
 		if StudyProgress.get_level(selected_subject) > old_level:
 			action_thoughts.erase(selected_subject)
 		else:
 			action_thoughts[selected_subject] = SMALL_DISCOVERIES[selected_subject]
 		update_thought()
-		update_action_reward(true)
+		update_action_reward(reward)
 
 
-func update_action_reward(completed: bool = false) -> void:
+func action_reward() -> int:
+	var amount := StudyProgress.ACTION_REWARD
+	match selected_subject:
+		StudyProgress.Subject.MATH: return PlayerState.preview_mental_stat_gain(amount, 0).x
+		StudyProgress.Subject.CHINESE: return PlayerState.preview_mental_stat_gain(0, amount).y
+	return amount
+
+
+func update_action_reward(completed_reward: int = -1) -> void:
+	var completed := completed_reward >= 0
 	var prefix := "已完成   " if completed else ""
 	reward_label.text = "%s%s +%d   ·   经验 +%d" % [
-		prefix, SUBJECT_REWARDS[selected_subject], StudyProgress.ACTION_REWARD, StudyProgress.ACTION_EXPERIENCE
+		prefix, SUBJECT_REWARDS[selected_subject], completed_reward if completed else action_reward(), StudyProgress.ACTION_EXPERIENCE
 	]
 
 

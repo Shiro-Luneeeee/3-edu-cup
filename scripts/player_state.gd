@@ -88,6 +88,7 @@ var _last_event_round := 0
 var _last_event_id := ""
 var _pending_event_id := ""
 var _activity_available_rounds: Dictionary[String, int] = {}
+var _mental_stat_bonus_remainder := Vector2i.ZERO
 var _card_upgrades: Dictionary[int, Dictionary] = {}
 var _next_upgraded_card_id := FIRST_UPGRADED_CARD_ID
 
@@ -139,6 +140,7 @@ func reset() -> void:
 	_pending_event_id = ""
 	intelligence = 0
 	emotional_intelligence = 0
+	_mental_stat_bonus_remainder = Vector2i.ZERO
 	physical_strength = 0
 	upgrade_points = 0
 	round_energy_bonus = 0
@@ -201,6 +203,8 @@ func make_snapshot() -> Dictionary:
 		"last_event_id": _last_event_id,
 		"intelligence": intelligence,
 		"emotional_intelligence": emotional_intelligence,
+		"intelligence_bonus_remainder": _mental_stat_bonus_remainder.x,
+		"emotional_intelligence_bonus_remainder": _mental_stat_bonus_remainder.y,
 		"physical_strength": physical_strength,
 		"stat_curve_version": STAT_CURVE_VERSION,
 		"upgrade_points": upgrade_points,
@@ -273,6 +277,10 @@ func restore_snapshot(data: Dictionary) -> void:
 	var uses_legacy_curve := data.has("claimed_stat_levels") and int(data.get("stat_curve_version", 1)) == 1
 	intelligence = restore_stat_experience(int(data.get("intelligence", 0)), uses_legacy_curve)
 	emotional_intelligence = restore_stat_experience(int(data.get("emotional_intelligence", 0)), uses_legacy_curve)
+	_mental_stat_bonus_remainder = Vector2i(
+		clampi(int(data.get("intelligence_bonus_remainder", 0)), 0, 99),
+		clampi(int(data.get("emotional_intelligence_bonus_remainder", 0)), 0, 99)
+	)
 	physical_strength = restore_stat_experience(int(data.get("physical_strength", 0)), uses_legacy_curve)
 	claimed_stat_levels.fill(0)
 	var saved_levels: Variant = data.get("claimed_stat_levels", [])
@@ -363,8 +371,10 @@ func advance_round() -> void:
 			_activity_available_rounds.erase(activity_id)
 	var product_effects := ShopProducts.recurring_effects(owned_products)
 	money += ROUND_ALLOWANCE + exam_allowance_bonus + int(product_effects.get("money", 0))
-	intelligence += StudyProgress.get_level(StudyProgress.Subject.MATH) + int(product_effects.get("intelligence", 0))
-	emotional_intelligence += StudyProgress.get_level(StudyProgress.Subject.CHINESE) + int(product_effects.get("emotional_intelligence", 0))
+	add_mental_stat_experience(
+		StudyProgress.get_level(StudyProgress.Subject.MATH) + int(product_effects.get("intelligence", 0)),
+		StudyProgress.get_level(StudyProgress.Subject.CHINESE) + int(product_effects.get("emotional_intelligence", 0))
+	)
 	physical_strength += int(product_effects.get("physical_strength", 0))
 	upgrade_points += StudyProgress.get_level(StudyProgress.Subject.ENGLISH) + int(product_effects.get("upgrade_points", 0))
 	round_energy_bonus = 0
@@ -429,12 +439,33 @@ func try_resolve_round_event(option_index: int) -> bool:
 		return false
 	_pending_event_id = ""
 	money += int(effects.get("money", 0))
-	intelligence += int(effects.get("intelligence", 0))
-	emotional_intelligence += int(effects.get("emotional_intelligence", 0))
+	add_mental_stat_experience(int(effects.get("intelligence", 0)), int(effects.get("emotional_intelligence", 0)))
 	physical_strength += int(effects.get("physical_strength", 0))
 	upgrade_points += int(effects.get("upgrade_points", 0))
 	set_energy(current_energy + int(effects.get("current_energy", 0)), true)
 	return true
+
+
+@warning_ignore("integer_division")
+func add_mental_stat_experience(intelligence_gain: int, emotional_gain: int) -> void:
+	var bonus := mental_stat_bonus_units(intelligence_gain, emotional_gain)
+	# Carry fractional bonuses between rewards so small gains still count.
+	_mental_stat_bonus_remainder = Vector2i(bonus.x % 100, bonus.y % 100)
+	intelligence += intelligence_gain + bonus.x / 100
+	emotional_intelligence += emotional_gain + bonus.y / 100
+
+
+@warning_ignore("integer_division")
+func preview_mental_stat_gain(intelligence_gain: int, emotional_gain: int) -> Vector2i:
+	var bonus := mental_stat_bonus_units(intelligence_gain, emotional_gain)
+	return Vector2i(intelligence_gain + bonus.x / 100, emotional_gain + bonus.y / 100)
+
+
+func mental_stat_bonus_units(intelligence_gain: int, emotional_gain: int) -> Vector2i:
+	if not owned_products.has(ShopProducts.MALE_UNIFORM_ID):
+		return Vector2i.ZERO
+	var positive_gains := Vector2i(maxi(0, intelligence_gain), maxi(0, emotional_gain))
+	return _mental_stat_bonus_remainder + positive_gains * ShopProducts.MALE_UNIFORM_STAT_BONUS
 
 
 func stat_experience_required(level: int) -> int:
@@ -554,8 +585,9 @@ func try_buy_product(product_id: String, price: int, repeatable: bool, effects: 
 	money -= price
 	if not repeatable:
 		owned_products.append(product_id)
-	intelligence = maxi(0, intelligence + int(effects.get("intelligence", 0)))
-	emotional_intelligence = maxi(0, emotional_intelligence + int(effects.get("emotional_intelligence", 0)))
+	add_mental_stat_experience(int(effects.get("intelligence", 0)), int(effects.get("emotional_intelligence", 0)))
+	intelligence = maxi(0, intelligence)
+	emotional_intelligence = maxi(0, emotional_intelligence)
 	physical_strength = maxi(0, physical_strength + int(effects.get("physical_strength", 0)))
 	upgrade_points = maxi(0, upgrade_points + int(effects.get("upgrade_points", 0)))
 	social_efficiency_percent = maxi(0, social_efficiency_percent + int(effects.get("social_efficiency_percent", 0)))
@@ -818,8 +850,8 @@ func reward_game(stat: String, amount: int) -> void:
 	if amount <= 0:
 		return
 	match stat:
-		"intelligence": intelligence += amount
-		"emotional_intelligence": emotional_intelligence += amount
+		"intelligence": add_mental_stat_experience(amount, 0)
+		"emotional_intelligence": add_mental_stat_experience(0, amount)
 		"physical_strength": physical_strength += amount
 		_:
 			push_error("Unknown game reward: %s" % stat)
@@ -874,8 +906,7 @@ func energy_text() -> String:
 func try_apply_action(energy_cost: int, intelligence_gain: int, emotional_gain: int, upgrade_point_gain: int) -> bool:
 	if energy_cost < 0 or current_energy < energy_cost:
 		return false
-	intelligence += intelligence_gain
-	emotional_intelligence += emotional_gain
+	add_mental_stat_experience(intelligence_gain, emotional_gain)
 	upgrade_points += upgrade_point_gain
 	set_energy(current_energy - energy_cost)
 	return true
@@ -894,13 +925,17 @@ func can_apply_map_activity(activity: MapActivity) -> bool:
 	)
 
 
-func try_apply_map_activity(activity: MapActivity) -> bool:
+func try_apply_map_activity(activity: MapActivity, companion: String = "") -> bool:
 	if not can_apply_map_activity(activity):
+		return false
+	if activity.affection_gain > 0 and companion not in known_social_characters():
 		return false
 	if activity.cooldown_rounds > 0 and not activity.cooldown_id.is_empty():
 		_activity_available_rounds[activity.cooldown_id] = round_number + activity.cooldown_rounds
 	money += activity.money_change
 	physical_strength += activity.physical_gain
 	max_health += activity.max_health_gain
+	if activity.affection_gain > 0:
+		character_affection[companion] = mini(affection_total(companion) + activity.affection_gain, MAX_AFFECTION)
 	set_energy(current_energy + activity.energy_change, activity.energy_change > 0)
 	return true

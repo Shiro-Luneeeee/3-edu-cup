@@ -13,9 +13,19 @@ status_text = "服装店"
 overlay_scene = ExtResource("5_shop")
 energy_change = 0
 
+[sub_resource type="Resource" id="Resource_gift_shop"]
+script = ExtResource("4_data")
+hotspot_points = PackedVector2Array(1671, 172, 1608, 219, 1552, 267, 1490, 329, 1455, 380, 1427, 430, 1384, 467, 1384, 502, 1405, 493, 1405, 617, 1419, 651, 1443, 662, 1455, 718, 1414, 731, 1414, 874, 1432, 889, 1511, 921, 1617, 941, 1671, 941)
+status_text = "逛街"
+energy_change = -5
+money_change = -10
+affection_gain = 25
+cooldown_id = "shopping_mall:gift_shop"
+cooldown_rounds = 1
+
 [node name="ShoppingMall" instance=ExtResource("1_destination")]
 script = ExtResource("3_activity")
-activities = Array[ExtResource("4_data")]([SubResource("Resource_clothing_store")])
+activities = Array[ExtResource("4_data")]([SubResource("Resource_clothing_store"), SubResource("Resource_gift_shop")])
 
 [node name="Background" parent="." index="0"]
 texture = ExtResource("2_background")
