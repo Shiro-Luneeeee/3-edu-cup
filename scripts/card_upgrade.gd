@@ -14,6 +14,7 @@ const BOOK_SIZE := Vector2(1670, 942)
 @onready var number: OptionButton = %Number
 @onready var changes: Label = %Changes
 @onready var apply_button: Button = %Apply
+@onready var close_button: Button = $BookBoard/CloseButton
 
 var selected_index := 0
 var fields: Array[String] = []
@@ -31,6 +32,7 @@ func _ready() -> void:
 	operation.item_selected.connect(func(_index: int) -> void: update_preview())
 	number.item_selected.connect(func(_index: int) -> void: update_preview())
 	apply_button.pressed.connect(apply_upgrade)
+	close_button.pressed.connect(close)
 	apply_button.add_to_group("card_upgrade_apply")
 	PlayerState.changed.connect(refresh_deck)
 	refresh_deck()

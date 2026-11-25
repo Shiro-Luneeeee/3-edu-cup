@@ -29,6 +29,8 @@ const FIRST_UPGRADED_CARD_ID := 1000
 const AFFECTION_PER_LEVEL := 100
 const MAX_AFFECTION_LEVEL := 10
 const MAX_AFFECTION := AFFECTION_PER_LEVEL * MAX_AFFECTION_LEVEL
+const FREE_CHAT_AFFECTION_GAIN := 2
+const FREE_CHAT_AFFECTION_ROUND_CAP := 10
 
 var max_energy := DEFAULT_MAX_ENERGY
 var current_energy := DEFAULT_MAX_ENERGY
@@ -78,6 +80,8 @@ var daoxiang_reply := ""
 var card_deck: Array[int] = []
 var character_affection: Dictionary[String, int] = {}
 var social_chat_history: Dictionary = {}
+var free_chat_affection_this_round: Dictionary[String, int] = {}
+var social_affection_notice_seen := false
 var social_efficiency_percent := 0
 var claimed_stat_levels: Array[int] = [0, 0, 0]
 
@@ -157,6 +161,8 @@ func reset() -> void:
 	_next_upgraded_card_id = FIRST_UPGRADED_CARD_ID
 	character_affection.clear()
 	social_chat_history.clear()
+	free_chat_affection_this_round.clear()
+	social_affection_notice_seen = false
 	social_efficiency_percent = 0
 	claimed_stat_levels.fill(0)
 	_activity_available_rounds.clear()
@@ -218,6 +224,8 @@ func make_snapshot() -> Dictionary:
 		"card_upgrades": _card_upgrades.duplicate(true),
 		"character_affection": character_affection.duplicate(),
 		"social_chat_history": social_chat_history.duplicate(true),
+		"free_chat_affection_this_round": free_chat_affection_this_round.duplicate(),
+		"social_affection_notice_seen": social_affection_notice_seen,
 		"social_efficiency_percent": social_efficiency_percent,
 		"claimed_stat_levels": claimed_stat_levels.duplicate(),
 		"activity_available_rounds": _activity_available_rounds.duplicate(),
@@ -322,6 +330,14 @@ func restore_snapshot(data: Dictionary) -> void:
 			var affection: Variant = saved_affection[character]
 			if character is String and (affection is int or affection is float):
 				character_affection[character] = clampi(int(affection), 0, MAX_AFFECTION)
+	free_chat_affection_this_round.clear()
+	var saved_free_chat_affection: Variant = data.get("free_chat_affection_this_round", {})
+	if saved_free_chat_affection is Dictionary:
+		for character in known_social_characters():
+			var earned: Variant = saved_free_chat_affection.get(character, 0)
+			if earned is int or earned is float:
+				free_chat_affection_this_round[character] = clampi(int(earned), 0, FREE_CHAT_AFFECTION_ROUND_CAP)
+	social_affection_notice_seen = bool(data.get("social_affection_notice_seen", false))
 	social_chat_history.clear()
 	var saved_chats: Variant = data.get("social_chat_history", {})
 	if saved_chats is Dictionary:
@@ -358,6 +374,7 @@ func record_exam_pass(progress: float, target: int) -> int:
 
 func advance_round() -> void:
 	round_number += 1
+	free_chat_affection_this_round.clear()
 	for activity_id in _activity_available_rounds.keys():
 		if _activity_available_rounds[activity_id] <= round_number:
 			_activity_available_rounds.erase(activity_id)
@@ -590,6 +607,19 @@ func add_character_affection(character: String, base_amount: int) -> int:
 	var gain := affection_gain_for(character, base_amount)
 	if gain > 0:
 		character_affection[character] = affection_total(character) + gain
+	return gain
+
+
+func record_free_chat_affection(character: String) -> int:
+	if character not in known_social_characters():
+		return 0
+	var earned: int = free_chat_affection_this_round.get(character, 0)
+	var gain := mini(FREE_CHAT_AFFECTION_GAIN, mini(FREE_CHAT_AFFECTION_ROUND_CAP - earned, MAX_AFFECTION - affection_total(character)))
+	if gain <= 0:
+		return 0
+	free_chat_affection_this_round[character] = earned + gain
+	character_affection[character] = affection_total(character) + gain
+	changed.emit()
 	return gain
 
 

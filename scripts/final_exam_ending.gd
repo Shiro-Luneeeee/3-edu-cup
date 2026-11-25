@@ -3,6 +3,7 @@ extends Control
 signal preview_finished
 
 const MAIN_MENU_SCENE := "res://scenes/main_menu.tscn"
+const CREDIT_SCROLL_SPEED := 28.0
 const PAPER_SOURCE := preload("res://images/aged_blank_a4_paper.png")
 const CG_IMAGES := [
 	preload("res://images/final_exam/Gaokao_POV_01_final_bell.png"),
@@ -28,6 +29,8 @@ const CG_TEXTS := [
 @onready var page_label: Label = $StoryLayer/Paper/PageNumber
 @onready var credits: Control = $Credits
 @onready var credits_paper: TextureRect = $Credits/Paper
+@onready var credit_viewport: Control = $Credits/Paper/CreditViewport
+@onready var credit_text: RichTextLabel = $Credits/Paper/CreditViewport/CreditText
 @onready var return_button: Button = $Credits/Paper/ReturnButton
 @onready var cg_music: AudioStreamPlayer = $CGMusic
 @onready var credits_music: AudioStreamPlayer = $CreditsMusic
@@ -36,6 +39,7 @@ var preview := false
 var page_index := 0
 var transitioning := true
 var showing_credits := false
+var credit_scroll: Tween
 
 
 func _ready() -> void:
@@ -89,6 +93,14 @@ func show_credits() -> void:
 	story_layer.hide()
 	credits.modulate.a = 0.0
 	credits.show()
+	await get_tree().process_frame
+	if not is_inside_tree():
+		return
+	var text_height := maxf(1.0, float(credit_text.get_content_height()))
+	credit_text.size.y = text_height
+	credit_text.position.y = credit_viewport.size.y
+	credit_scroll = create_tween().set_trans(Tween.TRANS_LINEAR)
+	credit_scroll.tween_property(credit_text, "position:y", -text_height, (credit_viewport.size.y + text_height) / CREDIT_SCROLL_SPEED)
 	var otsukare := credits_music.stream.duplicate() as AudioStreamMP3
 	otsukare.loop = true
 	credits_music.stream = otsukare

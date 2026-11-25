@@ -1,4 +1,4 @@
-[gd_scene load_steps=19 format=3]
+[gd_scene load_steps=20 format=3]
 
 [ext_resource type="Script" path="res://scripts/bedroom.gd" id="1_script"]
 [ext_resource type="Texture2D" path="res://images/bedroom.png" id="2_background"]
@@ -17,6 +17,7 @@
 [ext_resource type="Texture2D" path="res://images/ui/save_exit_arrow.png" id="15_exit_arrow"]
 [ext_resource type="PackedScene" path="res://scenes/player_hud.tscn" id="16_hud"]
 [ext_resource type="Script" path="res://scripts/player_profile.gd" id="17_profile"]
+[ext_resource type="Texture2D" path="res://images/radio.png" id="18_radio"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_hotspot"]
 
@@ -283,7 +284,7 @@ horizontal_alignment = 1
 layout_mode = 1
 anchor_left = 0.15
 anchor_top = 0.275
-anchor_right = 0.616667
+anchor_right = 0.85
 anchor_bottom = 0.367
 mouse_filter = 2
 theme_override_constants/separation = 0
@@ -342,6 +343,34 @@ offset_top = 3.0
 offset_bottom = 24.0
 mouse_filter = 2
 text = "商店"
+horizontal_alignment = 1
+
+[node name="Radio" type="TextureButton" parent="PhoneOverlay/PhoneImage/SecondAppRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+mouse_default_cursor_shape = 2
+script = ExtResource("12_app_motion")
+
+[node name="Art" type="TextureRect" parent="PhoneOverlay/PhoneImage/SecondAppRow/Radio"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+texture = ExtResource("18_radio")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="AppName" type="Label" parent="PhoneOverlay/PhoneImage/SecondAppRow/Radio"]
+layout_mode = 1
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 3.0
+offset_bottom = 24.0
+mouse_filter = 2
+text = "电台"
 horizontal_alignment = 1
 
 [node name="Dock" type="HBoxContainer" parent="PhoneOverlay/PhoneImage"]
