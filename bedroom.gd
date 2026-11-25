@@ -65,9 +65,13 @@ func _ready() -> void:
 	resized.connect(update_layout)
 	connect_highlight(clock_button, clock_highlight)
 	connect_highlight(phone_button, phone_highlight)
+	phone_button.add_to_group("phone_view_button")
 	connect_highlight(bookshelf_button, bookshelf_highlight)
+	bookshelf_button.add_to_group("study_button")
 	connect_highlight(gamepad_button, gamepad_highlight)
+	gamepad_button.add_to_group("game_selection_button")
 	connect_highlight(notebook_button, notebook_highlight)
+	notebook_button.add_to_group("card_upgrade_button")
 	clock_button.pressed.connect(use_clock)
 	gamepad_button.pressed.connect(open_game_selection)
 	notebook_button.pressed.connect(open_card_upgrades)
@@ -115,6 +119,10 @@ func update_player_display() -> void:
 	round_label.text = "%d 岁" % RoundCalendar.age(current_round)
 	round_board.tooltip_text = "第 %d 轮  ·  %s" % [current_round, RoundCalendar.season_and_grade(current_round)]
 	clock_button.tooltip_text = "开始牌局" if RoundCalendar.has_card_match(current_round) else "进入下一轮"
+	if RoundCalendar.has_card_match(current_round):
+		clock_button.add_to_group("match_start_entry_button")
+	else:
+		clock_button.remove_from_group("match_start_entry_button")
 	clock_button.disabled = PlayerState.final_exam_started
 	if RoundCalendar.is_final_exam(current_round):
 		clock_button.tooltip_text = "高考已结束" if PlayerState.final_exam_started else "参加高考"
@@ -130,14 +138,14 @@ func open_game_selection() -> void:
 	if SceneFade.curtain.visible:
 		return
 	SaveManager.keep_scene_music_on_exit()
-	SceneFade.change_to(GAME_SELECTION_SCENE)
+	SceneFade.change_to(GAME_SELECTION_SCENE, 1.0, 0, false)
 
 
 func use_clock() -> void:
 	if PlayerState.final_exam_started:
 		return
 	if RoundCalendar.has_card_match(PlayerState.round_number):
-		SceneFade.change_to(PREPARATION_SCENE)
+		SceneFade.change_to(PREPARATION_SCENE, 1.0, 0, false)
 	else:
 		SceneFade.advance_to_next_round()
 
@@ -162,7 +170,7 @@ func show_social() -> void:
 
 func open_study() -> void:
 	if not is_instance_valid(study_overlay):
-		SceneFade.play_action(show_study_overlay)
+		SceneFade.play_action(show_study_overlay, 1.0, false)
 
 func show_study_overlay() -> void:
 	study_overlay = STUDY_SCENE.instantiate() as Control
@@ -170,7 +178,7 @@ func show_study_overlay() -> void:
 
 func open_card_upgrades() -> void:
 	if not is_instance_valid(upgrade_overlay):
-		SceneFade.play_action(show_card_upgrades)
+		SceneFade.play_action(show_card_upgrades, 1.0, false)
 
 func show_card_upgrades() -> void:
 	upgrade_overlay = UPGRADE_SCENE.instantiate() as Control
@@ -242,4 +250,4 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("ui_cancel") and not event.is_echo():
 		get_viewport().set_input_as_handled()
-		SaveManager.open_save_page()
+		SaveManager.open_save_page(false)

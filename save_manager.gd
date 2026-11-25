@@ -36,10 +36,10 @@ func open_load_page() -> void:
 	SceneFade.change_to(SAVE_PAGE_SCENE)
 
 
-func open_save_page() -> void:
+func open_save_page(with_sound: bool = true) -> void:
 	page_mode = PageMode.SAVE_AND_EXIT
 	keep_music_for_scene_change = true
-	SceneFade.change_to(SAVE_PAGE_SCENE)
+	SceneFade.change_to(SAVE_PAGE_SCENE, 1.0, 0, with_sound)
 
 
 func keep_scene_music_on_exit() -> void:

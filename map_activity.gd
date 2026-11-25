@@ -14,6 +14,7 @@ var hover_hint := PanelContainer.new()
 var hint_label := Label.new()
 var activity_overlay: ColorRect
 var activity_progress: ProgressBar
+var activity_audio := AudioStreamPlayer.new()
 var linked_overlay: Control
 var hovered_hotspot := -1
 var pressed_hotspot := -1
@@ -23,6 +24,7 @@ var pointer := Vector2.ZERO
 
 func _ready() -> void:
 	super._ready()
+	add_child(activity_audio)
 	highlights.name = "ActivityHighlights"
 	highlights.z_index = 2
 	add_child(highlights)
@@ -194,10 +196,14 @@ func start_activity(index: int) -> void:
 	activity_progress.value = 0.0
 	activity_overlay.get_node("%Status").text = activity.status_text
 	activity_overlay.show()
+	if not activity.sound_effect_id.is_empty():
+		preload("res://audio/sfx/sound_library.gd").configure(activity_audio, activity.sound_effect_id)
+		activity_audio.play()
 	update_hover()
 	var progress_tween := create_tween()
 	progress_tween.tween_property(activity_progress, "value", activity_progress.max_value, ACTIVITY_DURATION)
 	await progress_tween.finished
+	activity_audio.stop()
 	PlayerState.try_apply_map_activity(activity)
 	activity_overlay.hide()
 	active_hotspot = -1

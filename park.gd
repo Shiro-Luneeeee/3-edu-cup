@@ -31,6 +31,7 @@ func _ready() -> void:
 	var jogging := Activity.new()
 	jogging.hotspot_points = PackedVector2Array(ROAD_POINTS)
 	jogging.status_text = "慢跑中..."
+	jogging.sound_effect_id = "running"
 	jogging.physical_gain = 10
 	activities.append(jogging)
 	super._ready()

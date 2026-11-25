@@ -28,6 +28,8 @@ func show_offer(character: String, card_id: int, preview_only: bool = false) -> 
 	card_art.texture = CardCatalog.texture(card_id)
 	if preview_only:
 		%Warning.text = "预览中的选择不会写入存档。"
+	else:
+		UiSounds.play_story_card_reward()
 
 
 func show_confession_confirmation(character: String, preview_only: bool = false) -> void:

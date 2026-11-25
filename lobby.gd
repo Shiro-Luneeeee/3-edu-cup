@@ -22,6 +22,7 @@ func _ready() -> void:
 	var target := ExamDifficulty.progress_target(PlayerState.passed_exams)
 	var damage_bonus := ExamDifficulty.damage_bonus(PlayerState.passed_exams)
 	$LobbyPanel/Margin/Column/MatchInfo.text = "目标进度 %d   ·   敌方伤害 +%d\n初始心态：%d   ·   每回合能量：3\n点击手牌，再点击桌上的卡槽使用它。" % [target, damage_bonus, PlayerState.max_health]
+	start_button.add_to_group("silent_match_start")
 	start_button.pressed.connect(start_match)
 	cards_dialog.dialog_text = card_overview()
 	cards_button.pressed.connect(func() -> void: cards_dialog.popup_centered(Vector2i(620, 460)))
@@ -36,7 +37,8 @@ func start_match() -> void:
 	if not RoundCalendar.has_card_match(PlayerState.round_number):
 		SceneFade.change_to(BEDROOM_SCENE, -1.0)
 		return
-	SceneFade.change_to(MATCH_SCENE if PlayerState.has_starter_deck() else SceneFade.starter_deck_entry_scene())
+	UiSounds.play_match_start()
+	SceneFade.change_to(MATCH_SCENE if PlayerState.has_starter_deck() else SceneFade.starter_deck_entry_scene(), 1.0, 0, false)
 
 
 func card_overview() -> String:

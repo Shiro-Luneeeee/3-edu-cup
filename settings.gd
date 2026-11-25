@@ -128,6 +128,7 @@ func turn_page(direction: int) -> void:
 
 func handle_paper_click(event: InputEvent, index: int) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed and index != page_index:
+		UiSounds.play_click()
 		turn_page(index - page_index)
 
 

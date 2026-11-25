@@ -61,6 +61,7 @@ func _ready() -> void:
 		button.stretch_mode = TextureButton.STRETCH_SCALE
 		button.focus_mode = Control.FOCUS_NONE
 		button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		button.add_to_group("soft_selection")
 		button.pressed.connect(select_category.bind(index))
 		button.z_index = 2
 		add_child(button)
@@ -238,6 +239,7 @@ func refresh_catalogue() -> void:
 		button.clip_contents = true
 		button.focus_mode = Control.FOCUS_NONE
 		button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		button.add_to_group("soft_selection")
 		button.pressed.connect(select_product.bind(product_index))
 		list_layer.add_child(button)
 		product_buttons.append(button)
@@ -291,6 +293,7 @@ func select_product(index: int) -> void:
 	purchase_button.size = Vector2(155, 50)
 	purchase_button.focus_mode = Control.FOCUS_NONE
 	purchase_button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	purchase_button.add_to_group("purchase_button")
 	purchase_button.add_theme_font_size_override("font_size", 22)
 	purchase_button.pressed.connect(buy_selected_product)
 	preview_layer.add_child(purchase_button)
@@ -325,6 +328,7 @@ func buy_selected_product() -> void:
 	var product := products[selected_product_index]
 	var product_id := ShopProducts.product_id(product)
 	if PlayerState.try_buy_product(product_id, product["price"], product.get("repeatable", false), product["effects"]):
+		UiSounds.play_purchase()
 		purchase_message.text = "购买成功，回合收益从下轮开始" if product.has("round_effects") else "购买成功，效果已生效"
 	else:
 		purchase_message.text = "无法购买"

@@ -25,6 +25,7 @@ func _ready() -> void:
 	operation.item_selected.connect(func(_index: int) -> void: update_preview())
 	number.item_selected.connect(func(_index: int) -> void: update_preview())
 	apply_button.pressed.connect(apply_upgrade)
+	apply_button.add_to_group("card_upgrade_apply")
 	%Close.pressed.connect(close)
 	PlayerState.changed.connect(refresh_deck)
 	refresh_deck()
@@ -46,6 +47,7 @@ func refresh_deck() -> void:
 		button.custom_minimum_size.y = 41.0
 		button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 		button.toggle_mode = true
+		button.add_to_group("soft_selection")
 		button.pressed.connect(select_card.bind(index))
 		cards.add_child(button)
 	select_card(clampi(selected_index, 0, maxi(0, PlayerState.card_deck.size() - 1)))
@@ -114,6 +116,7 @@ func update_preview() -> void:
 
 func apply_upgrade() -> void:
 	if PlayerState.try_upgrade_card(selected_index, operation.get_selected_id(), selected_field()):
+		UiSounds.play_card_upgrade_success()
 		preview.set_card(PlayerState.card_deck[selected_index])
 		var next_upgrade := "\n再升级一次的变化\n" if not apply_button.disabled else "\n"
 		changes.text = "升级成功" + next_upgrade + changes.text

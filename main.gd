@@ -812,6 +812,7 @@ func select_card_from_hand(event: InputEvent, card: Control) -> void:
 	if not has_usable_slot():
 		selected_card = null
 		return
+	UiSounds.play_click()
 	card.get_node("HoverArea").accept_event()
 	hide_card_preview(card)
 	for hand_card in hand_holder.get_children():
@@ -929,6 +930,7 @@ func use_selected_card(event: InputEvent, slot: Control) -> bool:
 		return false
 	if slot.mouse_filter != Control.MOUSE_FILTER_STOP or not can_use_slot(slot):
 		return false
+	UiSounds.play_click()
 
 	var used_card := selected_card
 	var card_id: int = used_card.get_meta("card_id")
@@ -1310,6 +1312,7 @@ func settle_game(automatic: bool) -> void:
 	game_over = true
 	match_settled = true
 	PlayerState.record_exam_pass()
+	UiSounds.play_victory()
 	set_slots_selectable(false)
 	if card_preview != null:
 		card_preview.hide()

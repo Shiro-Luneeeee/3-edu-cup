@@ -17,6 +17,7 @@ config/icon="res://icon.png"
 
 [autoload]
 
+UiSounds="*res://audio/sfx/ui_sounds.gd"
 SceneFade="*res://scene_fade.gd"
 PlayerState="*res://player_state.gd"
 StudyProgress="*res://study_progress.gd"
@@ -30,6 +31,10 @@ window/size/window_width_override=1152
 window/size/window_height_override=648
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/sound_mixer/plugin.cfg")
 
 [gui]
 

@@ -113,9 +113,9 @@ func save_and_exit(slot: int) -> void:
 		show_notice("保存失败，请检查存档目录是否可写。")
 
 
-func go_back() -> void:
+func go_back(with_sound: bool = true) -> void:
 	var target := BEDROOM_SCENE if SaveManager.page_mode == SaveManager.PageMode.SAVE_AND_EXIT else MAIN_MENU_SCENE
-	SceneFade.change_to(target)
+	SceneFade.change_to(target, 1.0, 0, with_sound)
 
 
 func show_notice(message: String) -> void:
@@ -126,4 +126,4 @@ func show_notice(message: String) -> void:
 func _unhandled_key_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel") and not event.is_echo():
 		get_viewport().set_input_as_handled()
-		go_back()
+		go_back(false)

@@ -115,6 +115,11 @@ func show_page() -> void:
 	previous_button.visible = page > 0
 	previous_button.text = "重新落笔" if confirming else "上一页"
 	next_button.text = "就叫这个名字" if confirming else ("写下这个名字" if name_input.visible else "继续阅读  →")
+	if name_input.visible or confirming:
+		next_button.remove_from_group("silent_story_advance")
+	else:
+		next_button.add_to_group("silent_story_advance")
+	next_button.disabled = name_input.visible and name_input.text.strip_edges().is_empty()
 
 func chosen_name() -> String:
 	var entered := name_input.text.strip_edges()

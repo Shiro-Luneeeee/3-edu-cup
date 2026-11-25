@@ -22,6 +22,7 @@ const ROUND_INTRO_FADE_TIME := 0.28
 const ROUND_INTRO_HOLD_TIME := 1.8
 
 var curtain := ColorRect.new()
+var transition_player := AudioStreamPlayer.new()
 var paper_material := ShaderMaterial.new()
 var event_panel: RoundEvent
 var school_intro_panel: StoryDialogue
@@ -29,6 +30,8 @@ var story_preview_menu: StoryPreviewMenu
 
 func _ready() -> void:
 	layer = 100
+	preload("res://audio/sfx/sound_library.gd").configure(transition_player, "transition")
+	add_child(transition_player)
 	paper_material.shader = PAPER_SWEEP
 	curtain.material = paper_material
 	curtain.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -36,9 +39,11 @@ func _ready() -> void:
 	add_child(curtain)
 	curtain.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
-func change_to(scene_path: String, direction: float = 1.0, round_number: int = 0) -> void:
+func change_to(scene_path: String, direction: float = 1.0, round_number: int = 0, with_sound: bool = true) -> void:
 	if curtain.visible:
 		return
+	if direction > 0.0 and with_sound:
+		play_transition_sound()
 	paper_material.set_shader_parameter("direction", direction)
 	set_sweep_progress(0.0)
 	curtain.show()
@@ -118,9 +123,11 @@ func show_round_event() -> void:
 	event_panel.queue_free()
 	event_panel = null
 
-func play_action(action: Callable, direction: float = 1.0) -> void:
+func play_action(action: Callable, direction: float = 1.0, with_sound: bool = true) -> void:
 	if curtain.visible:
 		return
+	if direction > 0.0 and with_sound:
+		play_transition_sound()
 	paper_material.set_shader_parameter("direction", direction)
 	set_sweep_progress(0.0)
 	curtain.show()
@@ -129,6 +136,9 @@ func play_action(action: Callable, direction: float = 1.0) -> void:
 	await get_tree().process_frame
 	await move_paper(0.5, 1.0, REVEAL_TIME, Tween.EASE_IN_OUT)
 	curtain.hide()
+
+func play_transition_sound() -> void:
+	transition_player.play()
 
 func move_paper(from: float, to: float, duration: float, easing: Tween.EaseType) -> void:
 	var tween := create_tween().set_trans(Tween.TRANS_CUBIC).set_ease(easing)

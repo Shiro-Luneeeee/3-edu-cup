@@ -40,6 +40,7 @@ func _ready() -> void:
 		return
 	var index := maxi(0, known.find(selected_character))
 	if contacts != null:
+		contacts.add_to_group("soft_selection")
 		contacts.item_selected.connect(select_contact)
 		for character in known:
 			contacts.add_item(character, SocialCharacters.avatar(character))
@@ -56,6 +57,7 @@ func fit_presentation() -> void:
 
 
 func select_contact(index: int) -> void:
+	UiSounds.play_soft_click()
 	show_contact(contacts.get_item_text(index))
 
 

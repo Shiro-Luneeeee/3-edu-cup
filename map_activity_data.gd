@@ -2,6 +2,7 @@ extends Resource
 
 @export var hotspot_points := PackedVector2Array()
 @export var status_text := ""
+@export var sound_effect_id := ""
 @export var overlay_scene: PackedScene
 @export_range(-100, 100) var energy_change := -5
 @export_range(-100, 100) var money_change := 0

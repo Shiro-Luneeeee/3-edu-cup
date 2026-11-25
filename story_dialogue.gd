@@ -24,6 +24,7 @@ func _ready() -> void:
 	resized.connect(place_portrait)
 	dialogue_box.item_rect_changed.connect(place_portrait)
 	next_button.pressed.connect(advance)
+	next_button.add_to_group("silent_story_advance")
 	advance()
 
 

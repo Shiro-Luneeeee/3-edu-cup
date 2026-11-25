@@ -38,7 +38,9 @@ func _ready() -> void:
 	back_button.pressed.connect(close_gallery)
 	close_button.pressed.connect(func() -> void: preview.hide())
 	previous_button.pressed.connect(func() -> void: change_preview(-1))
+	previous_button.add_to_group("soft_selection")
 	next_button.pressed.connect(func() -> void: change_preview(1))
+	next_button.add_to_group("soft_selection")
 	animate_cards()
 
 
@@ -77,6 +79,7 @@ func make_card(index: int) -> Control:
 	visual.pivot_offset = Vector2(135.0, 285.0)
 	visual.mouse_filter = Control.MOUSE_FILTER_STOP
 	visual.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	visual.add_to_group("soft_selection")
 	visual.gui_input.connect(on_card_input.bind(index))
 	card_visuals.append(visual)
 
@@ -217,8 +220,8 @@ func change_preview(direction: int) -> void:
 	show_preview(preview_index + direction)
 
 
-func close_gallery() -> void:
-	SceneFade.play_action(queue_free)
+func close_gallery(with_sound: bool = true) -> void:
+	SceneFade.play_action(queue_free, 1.0, with_sound)
 
 
 func set_return_to_bedroom() -> void:
@@ -234,7 +237,7 @@ func _unhandled_key_input(event: InputEvent) -> void:
 			if preview.visible:
 				preview.hide()
 			else:
-				close_gallery()
+				close_gallery(false)
 		KEY_LEFT:
 			get_viewport().set_input_as_handled()
 			if preview.visible:

@@ -23,6 +23,7 @@ var last_story_characters: Array[String] = []
 
 
 func _ready() -> void:
+	add_to_group("map_location_surface")
 	for location: MapLocation in locations.get_children():
 		location.configure(map_image.texture)
 	var hint_style := StyleBoxFlat.new()
@@ -76,6 +77,7 @@ func refresh_character_markers() -> void:
 				continue
 			var badge := CharacterBadge.new()
 			badge.configure(SocialCharacters.avatar(character), character, MARKER_SIZE, character in story_characters)
+			badge.add_to_group("map_location_surface")
 			if character == SocialCharacters.DAOXIANG:
 				badge.tooltip_text = ""
 				badge.mouse_entered.connect(set_hovered_character.bind(character))
@@ -169,6 +171,7 @@ func enter_location(location: MapLocation) -> void:
 	if opening_destination or is_instance_valid(destination_overlay) or location.destination_scene == null:
 		return
 	opening_destination = true
+	UiSounds.play_soft_click()
 	var click_animation := location.play_click()
 	await click_animation.finished
 	await SceneFade.play_action(show_destination.bind(location.destination_scene))

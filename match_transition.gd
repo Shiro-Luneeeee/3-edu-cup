@@ -14,6 +14,7 @@ func begin(lobby_music: AudioStreamPlayer) -> void:
 	if started:
 		return
 	started = true
+	SceneFade.play_transition_sound()
 	black.modulate.a = 0.0
 	words.modulate.a = 0.0
 

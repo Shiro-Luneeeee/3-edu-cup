@@ -15,6 +15,8 @@ const ANIMATION_TIME := 0.48
 
 @onready var stage: Control = $Stage
 
+var game_play_sound := AudioStreamPlayer.new()
+
 var selected_index := 0
 var transitioning := false
 var launching := false
@@ -107,16 +109,19 @@ func build_interface() -> void:
 	aesthetic_detail_label = make_label("", Vector2(31, 307), Vector2(322, 29), 17, Color("875885"))
 	paper.add_child(aesthetic_detail_label)
 	action_button = make_button("", Vector2(35, 344), Vector2(315, 56))
+	action_button.add_to_group("game_play_button")
 	action_button.pressed.connect(activate_selected_game)
 	paper.add_child(action_button)
 
 	var previous := make_button("‹", Vector2(279, 559), Vector2(50, 49))
+	previous.add_to_group("soft_selection")
 	previous.pressed.connect(change_game.bind(-1))
 	stage.add_child(previous)
 	page_label = make_label("", Vector2(340, 565), Vector2(238, 34), 22, Color("fff0dc"))
 	page_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	stage.add_child(page_label)
 	var next := make_button("›", Vector2(588, 559), Vector2(50, 49))
+	next.add_to_group("soft_selection")
 	next.pressed.connect(change_game.bind(1))
 	stage.add_child(next)
 
@@ -177,6 +182,13 @@ func apply_selection() -> void:
 	for card_index in cards.size():
 		var depth := posmod(card_index - selected_index, cards.size())
 		var card := cards[card_index]
+		var cover_button: Button = card.get_node("CoverButton")
+		if card_index == selected_index:
+			cover_button.remove_from_group("soft_selection")
+			cover_button.add_to_group("game_play_button")
+		else:
+			cover_button.remove_from_group("game_play_button")
+			cover_button.add_to_group("soft_selection")
 		card.position = card_position(depth)
 		card.scale = card_scale(depth)
 		card.rotation = -0.025 * depth
@@ -274,15 +286,26 @@ func activate_selected_game() -> void:
 	if transitioning or launching:
 		return
 	var entry: GameEntry = GAMES[selected_index]
-	if not PlayerState.owns_game(entry.id) and not PlayerState.try_buy_game(entry.id, entry.price):
-		update_information()
-		return
+	var purchase_duration := 0.0
+	if not PlayerState.owns_game(entry.id):
+		if not PlayerState.try_buy_game(entry.id, entry.price):
+			update_information()
+			return
+		purchase_duration = UiSounds.play_purchase()
 	if not PlayerState.try_start_game(entry.id, entry.energy_cost):
 		update_information()
 		return
 	launching = true
 	pending_entry = entry
+	preload("res://audio/sfx/sound_library.gd").configure(game_play_sound, "playing_game")
+	if game_play_sound.get_parent() == null:
+		add_child(game_play_sound)
 	show_play_story(entry)
+	var current_story := story_overlay
+	if purchase_duration > 0.0:
+		await get_tree().create_timer(purchase_duration).timeout
+	if launching and is_instance_valid(current_story):
+		game_play_sound.play()
 
 
 func show_play_story(entry: GameEntry) -> void:
@@ -320,6 +343,7 @@ func show_play_story(entry: GameEntry) -> void:
 func finish_play_story() -> void:
 	if pending_entry == null:
 		return
+	game_play_sound.stop()
 	var previous_points := PlayerState.game_aesthetic_points
 	PlayerState.reward_game(pending_entry.reward_stat, pending_entry.reward_amount)
 	var aesthetic_result := PlayerState.record_game_play(pending_entry.id, pending_entry.price)

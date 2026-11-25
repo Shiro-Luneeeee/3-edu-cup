@@ -72,8 +72,10 @@ func _ready() -> void:
 	create_subject_list()
 	create_thought()
 	close_button.pressed.connect(close_study)
+	confirm_button.add_to_group("study_action_button")
 	confirm_button.pressed.connect(perform_selected_action)
 	for index in subject_buttons.size():
+		subject_buttons[index].add_to_group("study_subject_button")
 		subject_buttons[index].pressed.connect(select_subject.bind(index))
 	StudyProgress.changed.connect(update_progress)
 	PlayerState.changed.connect(update_action_availability)
