@@ -1,0 +1,75 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/round_intro.gd" id="1_intro"]
+[ext_resource type="FontVariation" path="res://fonts/StoryFont.tres" id="2_font"]
+
+[sub_resource type="LabelSettings" id="LabelSettings_age"]
+font = ExtResource("2_font")
+font_size = 88
+font_color = Color(1, 0.97, 0.89, 1)
+outline_size = 6
+outline_color = Color(0.16, 0.10, 0.21, 0.8)
+shadow_size = 6
+shadow_color = Color(0.12, 0.06, 0.19, 0.8)
+shadow_offset = Vector2(0, 4)
+
+[sub_resource type="LabelSettings" id="LabelSettings_details"]
+font = ExtResource("2_font")
+font_size = 32
+font_color = Color(1, 0.96, 0.90, 1)
+outline_size = 4
+outline_color = Color(0.16, 0.10, 0.21, 0.8)
+shadow_size = 3
+shadow_color = Color(0.12, 0.06, 0.19, 0.8)
+shadow_offset = Vector2(0, 2)
+
+[node name="RoundIntro" type="Control"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_intro")
+
+[node name="Background" type="TextureRect" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 6
+
+[node name="Shade" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+color = Color(0.12, 0.07, 0.19, 0.34)
+
+[node name="Center" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="Date" type="VBoxContainer" parent="Center"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 0
+
+[node name="Age" type="Label" parent="Center/Date"]
+unique_name_in_owner = true
+layout_mode = 2
+label_settings = SubResource("LabelSettings_age")
+horizontal_alignment = 1
+
+[node name="Details" type="Label" parent="Center/Date"]
+unique_name_in_owner = true
+layout_mode = 2
+label_settings = SubResource("LabelSettings_details")
+horizontal_alignment = 1

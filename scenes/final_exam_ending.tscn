@@ -1,0 +1,171 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/final_exam_ending.gd" id="1_ending"]
+[ext_resource type="Theme" path="res://fonts/StoryTheme.tres" id="2_theme"]
+[ext_resource type="AudioStream" path="res://audio/music/Mateus Asato - Goodbye.mp3" id="3_goodbye"]
+[ext_resource type="AudioStream" path="res://audio/music/Mateus Asato - Otsukare!.mp3" id="4_otsukare"]
+
+[sub_resource type="StyleBoxEmpty" id="Style_plain"]
+
+[node name="FinalExamEnding" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+clip_contents = true
+mouse_filter = 2
+theme = ExtResource("2_theme")
+script = ExtResource("1_ending")
+
+[node name="Black" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+color = Color(0.025, 0.025, 0.035, 1)
+
+[node name="CGMusic" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("3_goodbye")
+volume_db = -10.0
+
+[node name="CreditsMusic" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("4_otsukare")
+volume_db = -60.0
+
+[node name="StoryLayer" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="CGImage" type="TextureRect" parent="StoryLayer"]
+layout_mode = 1
+anchor_right = 0.73
+anchor_bottom = 1.0
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 6
+
+[node name="Paper" type="TextureRect" parent="StoryLayer"]
+layout_mode = 1
+anchor_left = 0.73
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 0
+
+[node name="Heading" type="Label" parent="StoryLayer/Paper"]
+layout_mode = 1
+offset_left = 34.0
+offset_top = 47.0
+offset_right = 278.0
+offset_bottom = 85.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.32, 0.28, 0.32, 1)
+theme_override_font_sizes/font_size = 20
+text = "写给十八岁的你"
+
+[node name="Title" type="Label" parent="StoryLayer/Paper"]
+layout_mode = 1
+offset_left = 34.0
+offset_top = 121.0
+offset_right = 278.0
+offset_bottom = 163.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.32, 0.27, 0.33, 1)
+theme_override_font_sizes/font_size = 27
+
+[node name="Body" type="Label" parent="StoryLayer/Paper"]
+layout_mode = 1
+offset_left = 34.0
+offset_top = 183.0
+offset_right = 280.0
+offset_bottom = 493.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.36, 0.32, 0.34, 1)
+theme_override_font_sizes/font_size = 18
+autowrap_mode = 3
+
+[node name="PageNumber" type="Label" parent="StoryLayer/Paper"]
+layout_mode = 1
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 34.0
+offset_top = -76.0
+offset_right = 286.0
+offset_bottom = -38.0
+grow_vertical = 0
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.49, 0.43, 0.45, 1)
+theme_override_font_sizes/font_size = 15
+
+[node name="Credits" type="Control" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="Paper" type="TextureRect" parent="Credits"]
+layout_mode = 1
+anchor_left = 0.25
+anchor_right = 0.75
+anchor_bottom = 1.0
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 0
+
+[node name="Title" type="Label" parent="Credits/Paper"]
+layout_mode = 1
+anchor_right = 1.0
+offset_top = 54.0
+offset_bottom = 110.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.34, 0.27, 0.34, 1)
+theme_override_font_sizes/font_size = 39
+text = "致谢名单"
+horizontal_alignment = 1
+
+[node name="CreditText" type="RichTextLabel" parent="Credits/Paper"]
+layout_mode = 1
+anchor_right = 1.0
+offset_left = 48.0
+offset_top = 124.0
+offset_right = -48.0
+offset_bottom = 530.0
+mouse_filter = 0
+bbcode_enabled = true
+scroll_active = true
+autowrap_mode = 3
+theme_override_colors/default_color = Color(0.38, 0.32, 0.36, 1)
+theme_override_font_sizes/normal_font_size = 19
+theme_override_constants/line_separation = 5
+text = "[center][b]制作团队 · 月都工房[/b][/center]\n\n[b]策划[/b]  @平泉奈  @ShiroLune\n[b]原创音效[/b]  @derelict\n[b]音乐音频[/b]  @ShiroLuneee  @derelict\n[b]剧情[/b]  @平泉奈  @ShiroLuneee  @滕飞扬  @DanyouDy  @derelict\n[b]美术[/b]  @平泉奈  @ShiroLuneee  @GPT\n[b]玩法与调整[/b]  @平泉奈\n[b]程序[/b]  @derelict  @平泉奈  @Shiroluneee\n[b]宣传PV[/b]  @ShiroLuneee  @DanyouDy\n\n合作与交流：QQ 1784527778\n\n[center][b]感谢参与游戏测试与手感打磨的朋友们[/b][/center]\n@薄荷  @滕飞扬  @稻叶粽子\n@滑稽huaji  @lennonsun  @几米基米\n\n[center]2026.11.25[/center]"
+
+[node name="ReturnButton" type="Button" parent="Credits/Paper"]
+layout_mode = 1
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -100.0
+offset_top = -104.0
+offset_right = 100.0
+offset_bottom = -54.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_default_cursor_shape = 2
+theme_override_colors/font_color = Color(0.37, 0.30, 0.36, 1)
+theme_override_colors/font_hover_color = Color(0.54, 0.33, 0.47, 1)
+theme_override_font_sizes/font_size = 21
+theme_override_styles/normal = SubResource("Style_plain")
+theme_override_styles/hover = SubResource("Style_plain")
+theme_override_styles/pressed = SubResource("Style_plain")
+theme_override_styles/focus = SubResource("Style_plain")
+text = "返回标题"

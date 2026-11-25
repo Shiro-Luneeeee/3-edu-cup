@@ -1,0 +1,169 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/gallery.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://images/gallery_background.png" id="2_background"]
+[ext_resource type="AudioStream" path="res://audio/music/Mateus Asato - Wasted Hit.mp3" id="5_music"]
+
+[node name="Gallery" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+script = ExtResource("1_script")
+
+[node name="GalleryMusic" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("5_music")
+volume_db = -8.0
+
+[node name="Background" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("2_background")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="HeaderShade" type="ColorRect" parent="."]
+layout_mode = 1
+anchor_right = 1.0
+offset_bottom = 105.0
+mouse_filter = 2
+color = Color(0.045, 0.18, 0.34, 0.42)
+
+[node name="Title" type="Label" parent="."]
+layout_mode = 1
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -210.0
+offset_top = 20.0
+offset_right = 210.0
+offset_bottom = 78.0
+grow_horizontal = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 0.97, 0.84, 1)
+theme_override_colors/font_outline_color = Color(0.06, 0.18, 0.35, 0.86)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 42
+text = "角色画廊"
+horizontal_alignment = 1
+
+[node name="BackButton" type="Button" parent="."]
+layout_mode = 1
+offset_left = 28.0
+offset_top = 27.0
+offset_right = 180.0
+offset_bottom = 78.0
+theme_override_font_sizes/font_size = 19
+text = "← 返回主界面"
+
+[node name="PhotoDeck" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 105.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Sleeves" type="Control" parent="PhotoDeck"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="CountLabel" type="Label" parent="."]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 34.0
+offset_top = -34.0
+offset_right = 300.0
+offset_bottom = -10.0
+grow_vertical = 0
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 0.97, 0.84, 1)
+theme_override_colors/font_outline_color = Color(0.06, 0.18, 0.35, 0.85)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 17
+
+[node name="Preview" type="Control" parent="."]
+visible = false
+z_index = 100
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+
+[node name="Shade" type="ColorRect" parent="Preview"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.025, 0.035, 0.055, 0.96)
+
+[node name="Art" type="TextureRect" parent="Preview"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+expand_mode = 1
+stretch_mode = 5
+
+[node name="PreviousButton" type="Button" parent="Preview"]
+layout_mode = 1
+anchor_top = 0.5
+anchor_bottom = 0.5
+offset_left = 45.0
+offset_top = -27.0
+offset_right = 145.0
+offset_bottom = 27.0
+grow_vertical = 2
+theme_override_font_sizes/font_size = 20
+text = "← 上一张"
+
+[node name="NextButton" type="Button" parent="Preview"]
+layout_mode = 1
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -145.0
+offset_top = -27.0
+offset_right = -45.0
+offset_bottom = 27.0
+grow_horizontal = 0
+grow_vertical = 2
+theme_override_font_sizes/font_size = 20
+text = "下一张 →"
+
+[node name="CloseButton" type="Button" parent="Preview"]
+layout_mode = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -154.0
+offset_top = 24.0
+offset_right = -28.0
+offset_bottom = 74.0
+grow_horizontal = 0
+theme_override_font_sizes/font_size = 19
+text = "关闭 ×"

@@ -1,0 +1,21 @@
+{
+  "running": {"label": "跑步", "path": "res://audio/sfx/running.wav", "volume_db": 4.5},
+  "ui_click": {"label": "通用点击", "path": "res://audio/sfx/ui_click.mp3", "volume_db": -2.0},
+  "transition": {"label": "进场转场", "path": "res://audio/sfx/transition.wav", "volume_db": 5.0},
+  "phone": {"label": "查看手机", "path": "res://audio/sfx/phone_alert.mp3", "volume_db": -6.5},
+  "game_selection": {"label": "打开游戏选择", "path": "res://audio/sfx/game.wav", "volume_db": -13.0},
+  "study": {"label": "打开学习", "path": "res://audio/sfx/study_paper.wav", "volume_db": 3.0},
+  "study_subject": {"label": "选择学科", "path": "res://audio/sfx/book.wav", "volume_db": 7.0},
+  "study_action": {"label": "确认学习行动", "path": "res://audio/sfx/learning.wav", "volume_db": 8.5},
+  "soft_click": {"label": "轻点击", "path": "res://audio/sfx/soft_click.wav", "volume_db": -15.0},
+  "snack": {"label": "吃零食", "path": "res://audio/sfx/snack.wav", "volume_db": -1.5},
+  "supermarket_work": {"label": "超市打工", "path": "res://audio/sfx/supermarket_work.mp3", "volume_db": -2.0},
+  "amusement_ride": {"label": "游乐园游玩", "path": "res://audio/sfx/amusement_ride.mp3", "volume_db": -2.0},
+  "playing_game": {"label": "游玩游戏", "path": "res://audio/sfx/playing_game.wav", "volume_db": -9.0},
+  "victory": {"label": "对局胜利", "path": "res://audio/sfx/victory.mp3", "volume_db": 0.0},
+  "open_card_upgrade": {"label": "打开卡牌升级", "path": "res://audio/sfx/open_card_upgrade.mp3", "volume_db": 0.0},
+  "card_upgrade_success": {"label": "确认升级卡牌成功", "path": "res://audio/sfx/card_upgrade_success.mp3", "volume_db": 0.0},
+  "story_card_reward": {"label": "获得专属卡", "path": "res://audio/sfx/story_card_reward.mp3", "volume_db": 0.0},
+  "match_start": {"label": "开始牌局", "path": "res://audio/sfx/match_start_bell.mp3", "volume_db": 0.0},
+  "purchase": {"label": "购买成功", "path": "res://audio/sfx/pay.wav", "volume_db": -2.0}
+}
