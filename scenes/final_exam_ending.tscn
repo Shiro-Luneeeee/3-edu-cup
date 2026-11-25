@@ -124,27 +124,29 @@ stretch_mode = 0
 [node name="Title" type="Label" parent="Credits/Paper"]
 layout_mode = 1
 anchor_right = 1.0
-offset_top = 75.0
-offset_bottom = 132.0
+offset_top = 54.0
+offset_bottom = 110.0
 mouse_filter = 2
 theme_override_colors/font_color = Color(0.34, 0.27, 0.34, 1)
 theme_override_font_sizes/font_size = 39
 text = "致谢名单"
 horizontal_alignment = 1
 
-[node name="Message" type="Label" parent="Credits/Paper"]
+[node name="CreditText" type="RichTextLabel" parent="Credits/Paper"]
 layout_mode = 1
 anchor_right = 1.0
-offset_left = 60.0
-offset_top = 185.0
-offset_right = -60.0
-offset_bottom = 390.0
-mouse_filter = 2
-theme_override_colors/font_color = Color(0.38, 0.32, 0.36, 1)
-theme_override_font_sizes/font_size = 22
-text = "感谢每一个与我们同行的人。\n\n你的陪伴，让这个夏天有了名字。\n\n正式署名待补充"
-horizontal_alignment = 1
-vertical_alignment = 1
+offset_left = 48.0
+offset_top = 124.0
+offset_right = -48.0
+offset_bottom = 530.0
+mouse_filter = 0
+bbcode_enabled = true
+scroll_active = true
+autowrap_mode = 3
+theme_override_colors/default_color = Color(0.38, 0.32, 0.36, 1)
+theme_override_font_sizes/normal_font_size = 19
+theme_override_constants/line_separation = 5
+text = "[center][b]制作团队 · 月都工房[/b][/center]\n\n[b]策划[/b]  @平泉奈  @ShiroLune\n[b]原创音效[/b]  @derelict\n[b]音乐音频[/b]  @ShiroLuneee  @derelict\n[b]剧情[/b]  @平泉奈  @ShiroLuneee  @滕飞扬  @DanyouDy  @derelict\n[b]美术[/b]  @平泉奈  @ShiroLuneee  @GPT\n[b]玩法与调整[/b]  @平泉奈\n[b]程序[/b]  @derelict  @平泉奈  @Shiroluneee\n[b]宣传PV[/b]  @ShiroLuneee  @DanyouDy\n\n合作与交流：QQ 1784527778\n\n[center][b]感谢参与游戏测试与手感打磨的朋友们[/b][/center]\n@薄荷  @滕飞扬  @稻叶粽子\n@滑稽huaji  @lennonsun  @几米基米\n\n[center]2026.11.25[/center]"
 
 [node name="ReturnButton" type="Button" parent="Credits/Paper"]
 layout_mode = 1
