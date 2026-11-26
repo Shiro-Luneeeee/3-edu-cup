@@ -76,6 +76,8 @@ func _input(event: InputEvent) -> void:
 			return
 		if event.keycode == KEY_J:
 			get_viewport().set_input_as_handled()
+			if SaveManager.debug_mode_enabled:
+				finish_practice()
 			return
 	super._input(event)
 

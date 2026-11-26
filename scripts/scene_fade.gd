@@ -164,7 +164,7 @@ func close_story_preview_menu(previous_focus: Control) -> void:
 		previous_focus.grab_focus()
 
 func _input(event: InputEvent) -> void:
-	if OS.is_debug_build() and not curtain.visible and not is_instance_valid(story_preview_menu) and event is InputEventKey and event.pressed and not event.is_echo() and event.keycode == KEY_I:
+	if SaveManager.debug_mode_enabled and not curtain.visible and not is_instance_valid(story_preview_menu) and not get_viewport().gui_get_focus_owner() is LineEdit and event is InputEventKey and event.pressed and not event.is_echo() and event.keycode == KEY_I:
 		get_viewport().set_input_as_handled()
 		open_story_preview_menu()
 		return

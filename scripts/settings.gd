@@ -20,7 +20,7 @@ const PAGE_SUBTITLES := [
 ]
 const PAGE_TEXTS := [
 	"",
-	"点击手牌，再点击亮起的卡槽出牌。\n\n空格：结束当前回合\nJ：跳过牌局并进入下一轮（无牌局奖励）\n鼠标右键：取消已选手牌",
+	"点击手牌，再点击亮起的卡槽出牌。\n\n空格：结束当前回合\n鼠标右键：取消已选手牌",
 	"首次进入牌局前，先选出 10 至 15 张牌组成卡组。\n每局开场抽 5 张牌，之后每回合抽 2 张。\n牌库抽空时洗回弃牌。\n\n通过考试后，下一场的目标进度会上升。第五回合结束时未达标则失败。\n心态与格挡会随卡牌效果变化。",
 	"“我能否将你比作夏日？”\n标题取意于莎士比亚的十四行诗。\n我们写下成长、相逢与告别，\n也写下穿过岁月仍愿同行的心。\n愿这个夏天，在你的记忆里长明。\n\n合作与交流 QQ：1784527778",
 	""
@@ -163,10 +163,22 @@ func update_page_content() -> void:
 
 func execute_debug_command() -> void:
 	var command := debug_input.text.strip_edges()
+	if command == "/debugmode":
+		SaveManager.debug_mode_enabled = true
+		debug_feedback.text = "调试模式已开启：I 总览剧情，J 跳过牌局。"
+		return
+	if command == "/full":
+		if SceneFade.curtain.visible:
+			return
+		StudyProgress.reset()
+		SaveManager.start_new_game()
+		PlayerState.set_debug_full_progress()
+		SceneFade.change_to("res://scenes/bedroom.tscn")
+		return
 	var age_pattern := RegEx.create_from_string("^/age\\s+([0-9]+)$")
 	var matched := age_pattern.search(command)
 	if matched == null:
-		debug_feedback.text = "命令格式：/age 10"
+		debug_feedback.text = "命令：/age 10、/full、/debugmode"
 		return
 	var age := int(matched.get_string(1))
 	if age < RoundCalendar.START_AGE or age > 99:

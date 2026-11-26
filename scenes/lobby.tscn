@@ -1,16 +1,76 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scripts/lobby.gd" id="1_script"]
-[ext_resource type="Texture2D" path="res://images/阳光下的考试桌面.png" id="2_background"]
+[ext_resource type="Texture2D" path="res://images/lobby_corridor_summer.png" id="2_background"]
 
 [sub_resource type="StyleBoxFlat" id="PanelStyle"]
-bg_color = Color(0.08, 0.13, 0.24, 0.9)
-corner_radius_top_left = 20
-corner_radius_top_right = 20
-corner_radius_bottom_right = 20
-corner_radius_bottom_left = 20
-shadow_color = Color(0, 0, 0, 0.32)
+bg_color = Color(1, 0.968, 0.93, 0.94)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.62, 0.48, 0.7, 0.92)
+corner_radius_top_left = 24
+corner_radius_top_right = 24
+corner_radius_bottom_right = 24
+corner_radius_bottom_left = 24
+shadow_color = Color(0.21, 0.16, 0.34, 0.34)
 shadow_size = 18
+shadow_offset = Vector2(0, 8)
+
+[sub_resource type="StyleBoxFlat" id="PrimaryNormal"]
+bg_color = Color(0.49, 0.35, 0.63, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.75, 0.61, 0.8, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+shadow_color = Color(0.3, 0.22, 0.38, 0.3)
+shadow_size = 5
+shadow_offset = Vector2(0, 3)
+
+[sub_resource type="StyleBoxFlat" id="PrimaryHover"]
+bg_color = Color(0.59, 0.39, 0.67, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.88, 0.72, 0.84, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+shadow_color = Color(0.3, 0.22, 0.38, 0.34)
+shadow_size = 7
+shadow_offset = Vector2(0, 4)
+
+[sub_resource type="StyleBoxFlat" id="SecondaryNormal"]
+bg_color = Color(1, 0.94, 0.9, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.67, 0.5, 0.67, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+
+[sub_resource type="StyleBoxFlat" id="SecondaryHover"]
+bg_color = Color(1, 0.88, 0.85, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.75, 0.44, 0.62, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
 
 [node name="Lobby" type="Control"]
 layout_mode = 3
@@ -41,89 +101,104 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.05, 0.07, 0.14, 0.45)
+color = Color(0.3, 0.22, 0.42, 0.16)
 
 [node name="LobbyPanel" type="PanelContainer" parent="."]
 layout_mode = 1
-anchor_left = 0.5
+anchor_left = 1.0
 anchor_top = 0.5
-anchor_right = 0.5
+anchor_right = 1.0
 anchor_bottom = 0.5
-offset_left = -350.0
-offset_top = -280.0
-offset_right = 350.0
-offset_bottom = 280.0
+offset_left = -500.0
+offset_top = -245.0
+offset_right = -30.0
+offset_bottom = 245.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_styles/panel = SubResource("PanelStyle")
 
 [node name="Margin" type="MarginContainer" parent="LobbyPanel"]
 layout_mode = 2
-theme_override_constants/margin_left = 36
-theme_override_constants/margin_top = 30
-theme_override_constants/margin_right = 36
-theme_override_constants/margin_bottom = 30
+theme_override_constants/margin_left = 48
+theme_override_constants/margin_top = 36
+theme_override_constants/margin_right = 48
+theme_override_constants/margin_bottom = 35
 
 [node name="Column" type="VBoxContainer" parent="LobbyPanel/Margin"]
 layout_mode = 2
-theme_override_constants/separation = 12
+theme_override_constants/separation = 14
+
+[node name="Eyebrow" type="Label" parent="LobbyPanel/Margin/Column"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.62, 0.4, 0.57, 1)
+theme_override_font_sizes/font_size = 16
+text = "夏日手记  ·  考前一页"
+horizontal_alignment = 1
 
 [node name="Title" type="Label" parent="LobbyPanel/Margin/Column"]
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.97, 0.88, 1)
-theme_override_font_sizes/font_size = 42
+theme_override_colors/font_color = Color(0.35, 0.25, 0.44, 1)
+theme_override_font_sizes/font_size = 44
 text = "牌局准备"
 horizontal_alignment = 1
 
 [node name="Subtitle" type="Label" parent="LobbyPanel/Margin/Column"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.82, 0.87, 1, 1)
-theme_override_font_sizes/font_size = 18
-text = "这一局，从你的第一张牌开始。"
+custom_minimum_size = Vector2(0, 58)
+theme_override_colors/font_color = Color(0.42, 0.32, 0.47, 1)
+theme_override_font_sizes/font_size = 21
+text = "光落在桌沿，下一页正等你写下。"
 horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+
+[node name="Divider" type="HSeparator" parent="LobbyPanel/Margin/Column"]
+layout_mode = 2
+theme_override_constants/separation = 8
 
 [node name="MatchInfo" type="Label" parent="LobbyPanel/Margin/Column"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.92, 0.93, 0.97, 1)
+theme_override_colors/font_color = Color(0.38, 0.31, 0.47, 1)
 theme_override_font_sizes/font_size = 18
-text = "点击手牌，再点击桌上的卡槽使用它。"
+text = "目标进度 100  ·  初始心态 20\n每回合能量 3  ·  对手伤害 +0"
 horizontal_alignment = 1
 
-[node name="Spacer" type="Control" parent="LobbyPanel/Margin/Column"]
-custom_minimum_size = Vector2(0, 10)
+[node name="FooterNote" type="Label" parent="LobbyPanel/Margin/Column"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.57, 0.43, 0.56, 1)
+theme_override_font_sizes/font_size = 16
+text = "选中手牌，再落在桌上的卡槽。"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="Spacer" type="Control" parent="LobbyPanel/Margin/Column"]
+custom_minimum_size = Vector2(0, 2)
+layout_mode = 2
+size_flags_vertical = 3
 mouse_filter = 2
 
 [node name="StartButton" type="Button" parent="LobbyPanel/Margin/Column"]
-custom_minimum_size = Vector2(0, 56)
+custom_minimum_size = Vector2(0, 60)
 layout_mode = 2
-theme_override_font_sizes/font_size = 22
-text = "进入牌局"
-
-[node name="CardsButton" type="Button" parent="LobbyPanel/Margin/Column"]
-custom_minimum_size = Vector2(0, 52)
-layout_mode = 2
-theme_override_font_sizes/font_size = 20
-text = "卡牌一览"
-
-[node name="RulesButton" type="Button" parent="LobbyPanel/Margin/Column"]
-custom_minimum_size = Vector2(0, 52)
-layout_mode = 2
-theme_override_font_sizes/font_size = 20
-text = "玩法说明"
+mouse_default_cursor_shape = 2
+theme_override_colors/font_color = Color(1, 0.97, 0.91, 1)
+theme_override_colors/font_hover_color = Color(1, 0.97, 0.91, 1)
+theme_override_colors/font_pressed_color = Color(1, 0.97, 0.91, 1)
+theme_override_font_sizes/font_size = 25
+theme_override_styles/normal = SubResource("PrimaryNormal")
+theme_override_styles/hover = SubResource("PrimaryHover")
+theme_override_styles/pressed = SubResource("PrimaryHover")
+text = "参加牌局"
 
 [node name="BackButton" type="Button" parent="LobbyPanel/Margin/Column"]
-custom_minimum_size = Vector2(0, 52)
+custom_minimum_size = Vector2(0, 60)
 layout_mode = 2
-theme_override_font_sizes/font_size = 20
+mouse_default_cursor_shape = 2
+theme_override_colors/font_color = Color(0.39, 0.28, 0.49, 1)
+theme_override_colors/font_hover_color = Color(0.39, 0.28, 0.49, 1)
+theme_override_colors/font_pressed_color = Color(0.39, 0.28, 0.49, 1)
+theme_override_font_sizes/font_size = 25
+theme_override_styles/normal = SubResource("SecondaryNormal")
+theme_override_styles/hover = SubResource("SecondaryHover")
+theme_override_styles/pressed = SubResource("SecondaryHover")
 text = "返回卧室"
-
-[node name="CardsDialog" type="AcceptDialog" parent="."]
-title = "卡牌一览"
-dialog_text = "首次进入牌局前，从每组随机出现的三张牌中选一张，组成 10 至 15 张的卡组。"
-ok_button_text = "知道了"
-
-[node name="RulesDialog" type="AcceptDialog" parent="."]
-title = "玩法说明"
-dialog_text = "每回合有 3 点能量。点击手牌，再点击高亮的卡槽出牌。普通卡槽每回合可使用一次，拥有「重复」的卡槽可以多次出牌。\n\n按空格结束回合，从第二回合起，每回合开始抽两张牌。牌库抽空时，将弃牌洗回牌库。\n\n将鼠标悬停在卡槽状态文字上可以查看效果和剩余回合。在延迟卡槽打出的牌会在下回合开始时结算两次。\n达到本场目标可提前交卷，第五回合结束时未达标则失败。通过考试后，下一场目标和敌方伤害会随通过场数提高。"
-ok_button_text = "知道了"

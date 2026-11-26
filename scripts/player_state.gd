@@ -171,6 +171,43 @@ func reset() -> void:
 	set_max_energy(DEFAULT_MAX_ENERGY, true)
 
 
+func set_debug_full_progress() -> void:
+	reset()
+	player_name = "default"
+	round_number = RoundCalendar.FINAL_EXAM_ROUND
+	bedroom_tutorial_seen = true
+	battle_tutorial_seen = true
+	school_intro_seen = true
+	middle_school_intro_seen = true
+	high_school_intro_seen = true
+	park_meeting_seen = true
+	yue_goldfish_seen = true
+	yue_farewell_seen = true
+	yue_final_promise_seen = true
+	_yue_story_cards_resolved = SocialCharacters.YueChapter.CONFESSION + 1
+	fushimi_pen_seen = true
+	fushimi_pen_card_resolved = true
+	fushimi_tutoring_seen = true
+	fushimi_bookshop_seen = true
+	fushimi_confession_seen = true
+	fushimi_final_promise_seen = true
+	shirakawa_first_story_seen = true
+	shirakawa_second_story_seen = true
+	shirakawa_third_story_seen = true
+	shirakawa_confession_seen = true
+	shirakawa_snow_seen = true
+	daoxiang_act = 3
+	daoxiang_last_age = RoundCalendar.HIGH_SCHOOL_AGE
+	for character: String in [SocialCharacters.YUE, SocialCharacters.FUSHIMI, SocialCharacters.SHIRAKAWA]:
+		character_affection[character] = MAX_AFFECTION
+	var all_cards: Array[int] = []
+	for card_id: int in CardCatalog.CARDS:
+		all_cards.append(card_id)
+	all_cards.sort()
+	finish_starter_deck(all_cards)
+	changed.emit()
+
+
 func make_snapshot() -> Dictionary:
 	return {
 		"player_name": player_name,

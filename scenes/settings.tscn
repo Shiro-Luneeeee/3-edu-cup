@@ -190,7 +190,7 @@ offset_bottom = 180.0
 mouse_filter = 2
 theme_override_colors/font_color = Color(0.29, 0.24, 0.28, 1)
 theme_override_font_sizes/font_size = 19
-text = "输入 /age x，直接进入 x 岁。\n角色名固定为 default。"
+text = "命令：/age x、/full、/debugmode\n调试模式：I 总览剧情，J 跳过牌局。"
 
 [node name="DebugInput" type="LineEdit" parent="PaperStack/MainPaper/Content"]
 visible = false
@@ -200,7 +200,7 @@ offset_top = 190.0
 offset_right = 412.0
 offset_bottom = 238.0
 theme_override_font_sizes/font_size = 20
-placeholder_text = "/age 10"
+placeholder_text = "输入调试命令"
 clear_button_enabled = true
 
 [node name="DebugRunButton" type="Button" parent="PaperStack/MainPaper/Content"]

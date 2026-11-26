@@ -122,12 +122,22 @@ func _ready() -> void:
 	draw_starting_hand()
 	build_interface()
 	var end_art := TextureRect.new()
-	end_art.texture = load("res://images/ui/end.png")
+	end_art.texture = load("res://images/ui/end_paper.png")
 	end_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	end_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	end_art.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	end_art.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	end_button.add_child(end_art)
+	var end_label := Label.new()
+	end_label.text = "交卷"
+	end_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	end_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	end_label.add_theme_color_override("font_color", Color("604374"))
+	end_label.add_theme_font_size_override("font_size", 27)
+	end_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	end_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	end_button.add_child(end_label)
+	end_button.tooltip_text = "已达到目标，可以提前交卷"
 	end_button.pivot_offset = end_button.size / 2.0
 	end_button.mouse_entered.connect(set_end_button_hover.bind(true))
 	end_button.mouse_exited.connect(set_end_button_hover.bind(false))
@@ -192,6 +202,8 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		match event.keycode:
 			KEY_J:
+				if not SaveManager.debug_mode_enabled:
+					return
 				get_viewport().set_input_as_handled()
 				if not is_final_exam:
 					start_next_round()
@@ -1417,9 +1429,7 @@ func set_end_button_hover(hovered: bool) -> void:
 		end_button_tween.kill()
 	end_button_tween = create_tween().set_parallel(true)
 	end_button_tween.tween_property(end_button, "scale", Vector2(1.05, 1.05) if hovered else Vector2.ONE, 0.16)
-	end_button_tween.tween_property(end_button, "self_modulate", Color(1.35, 1.25, 1.15) if hovered else Color.WHITE, 0.16)
-	var art: Control = end_button.get_child(0)
-	end_button_tween.tween_property(art, "modulate", Color(1.35, 1.25, 1.15) if hovered else Color.WHITE, 0.16)
+	end_button_tween.tween_property(end_button, "self_modulate", Color(1.08, 1.04, 1.08) if hovered else Color.WHITE, 0.16)
 
 func update_values() -> void:
 	for card: Control in hand_holder.get_children():

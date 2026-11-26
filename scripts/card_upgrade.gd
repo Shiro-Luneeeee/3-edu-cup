@@ -6,6 +6,8 @@ const BOOK_SIZE := Vector2(1670, 942)
 
 @onready var book: TextureRect = $BookBoard
 
+@onready var deck_panel: PanelContainer = $BookBoard/Margin/Content/Body/DeckPanel
+@onready var deck_scroll: ScrollContainer = $BookBoard/Margin/Content/Body/DeckPanel/DeckContent/Scroll
 @onready var cards: VBoxContainer = %Cards
 @onready var preview: CardFace = %Preview
 @onready var points: Label = %Points
@@ -18,11 +20,14 @@ const BOOK_SIZE := Vector2(1670, 942)
 
 var selected_index := 0
 var fields: Array[String] = []
+var preview_tween: Tween
 
 
 func _ready() -> void:
 	resized.connect(update_layout)
+	preview.resized.connect(update_preview_pivot)
 	update_layout()
+	update_preview_pivot()
 	style_book_ui()
 	operation.add_item("选择一个数值 +1", CardCatalog.Upgrade.INCREASE)
 	operation.add_item("选择一个数值 -1", CardCatalog.Upgrade.DECREASE)
@@ -77,6 +82,20 @@ func refresh_deck() -> void:
 	select_card(clampi(selected_index, 0, maxi(0, PlayerState.card_deck.size() - 1)))
 
 
+func _input(event: InputEvent) -> void:
+	if not event is InputEventMouseButton or not event.pressed:
+		return
+	if event.button_index != MOUSE_BUTTON_WHEEL_UP and event.button_index != MOUSE_BUTTON_WHEEL_DOWN:
+		return
+	if PlayerState.card_deck.is_empty() or not deck_panel.get_global_rect().has_point(event.position):
+		return
+	get_viewport().set_input_as_handled()
+	var direction := -1 if event.button_index == MOUSE_BUTTON_WHEEL_UP else 1
+	var next_index := clampi(selected_index + direction, 0, PlayerState.card_deck.size() - 1)
+	if next_index != selected_index:
+		select_card(next_index)
+
+
 func select_card(index: int) -> void:
 	selected_index = index
 	var has_card := not PlayerState.card_deck.is_empty()
@@ -90,6 +109,7 @@ func select_card(index: int) -> void:
 		return
 	for row in cards.get_child_count():
 		cards.get_child(row).set_pressed_no_signal(row == index)
+	deck_scroll.ensure_control_visible(cards.get_child(index))
 	var card_id := PlayerState.card_deck[index]
 	var base_id := PlayerState.card_base_id(card_id)
 	selected_card.text = CardCatalog.card_name(base_id)
@@ -103,6 +123,21 @@ func select_card(index: int) -> void:
 	if not fields.is_empty():
 		number.select(maxi(0, fields.find(previous_field)))
 	update_preview()
+	animate_preview()
+
+
+func update_preview_pivot() -> void:
+	preview.pivot_offset = preview.size * 0.5
+
+
+func animate_preview() -> void:
+	if preview_tween and preview_tween.is_running():
+		preview_tween.kill()
+	preview.scale = Vector2.ONE * 0.8
+	preview.modulate.a = 0.8
+	preview_tween = create_tween().set_parallel(true)
+	preview_tween.tween_property(preview, "scale", Vector2.ONE, 0.25).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	preview_tween.tween_property(preview, "modulate:a", 1.0, 0.25)
 
 
 func selected_field() -> String:

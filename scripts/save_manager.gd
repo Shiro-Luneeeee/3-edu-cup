@@ -20,6 +20,7 @@ var playlist_resume_index := 0
 var playlist_resume_position := 0.0
 var play_seconds := 0.0
 var active_slot := 0
+var debug_mode_enabled := false
 
 
 func _process(delta: float) -> void:
