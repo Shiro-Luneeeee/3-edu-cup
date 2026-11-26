@@ -72,6 +72,8 @@ func select_option(index: int) -> void:
 
 func describe_rewards(effects: Dictionary) -> String:
 	var rewards := effects.duplicate()
+	if effects.has("money"):
+		rewards["money"] = PlayerState.preview_money_change(int(effects["money"]))
 	var mental_gains := PlayerState.preview_mental_stat_gain(int(effects.get("intelligence", 0)), int(effects.get("emotional_intelligence", 0)))
 	if effects.has("intelligence"):
 		rewards["intelligence"] = mental_gains.x

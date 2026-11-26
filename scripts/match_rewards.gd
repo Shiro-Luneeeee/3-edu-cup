@@ -87,10 +87,10 @@ func show_rewards() -> void:
 		Reward.REMOVE: "删除卡组中的一张牌",
 		Reward.ADD: "从三张牌中选一张加入卡组",
 		Reward.COPY: "复制卡组中的一张牌",
-		Reward.MONEY: "获得 %d 金钱" % money_reward,
+		Reward.MONEY: "获得 %d 金钱" % PlayerState.preview_money_change(money_reward),
 		Reward.AFFECTION: "让一名角色获得至多 %d 点好感度" % PlayerState.social_affection_gain(AFFECTION_REWARD) if can_gain_affection else "角色好感度已满",
 		Reward.UPGRADE_POINTS: "获得 %d 点升级点" % UPGRADE_POINT_REWARD,
-		Reward.MAX_ENERGY: "精力上限 +%d" % MAX_ENERGY_REWARD,
+		Reward.MAX_ENERGY: "精力上限 +%d" % PlayerState.preview_max_energy_gain(MAX_ENERGY_REWARD),
 		Reward.MAX_HEALTH: "心态上限 +%d" % MAX_HEALTH_REWARD,
 		Reward.ENERGY_SUPPLY: "下一轮额外获得 %d 点精力" % ENERGY_SUPPLY_REWARD,
 	}
@@ -114,8 +114,8 @@ func choose_reward(reward: int) -> void:
 		Reward.REMOVE, Reward.ADD, Reward.COPY:
 			show_card_targets(reward)
 		Reward.MONEY:
-			PlayerState.money += money_reward
-			complete_reward("获得 %d 金钱" % money_reward)
+			var amount := PlayerState.apply_money_change(money_reward)
+			complete_reward("获得 %d 金钱" % amount)
 		Reward.AFFECTION:
 			var targets := affection_targets()
 			if targets.is_empty():
@@ -133,8 +133,7 @@ func choose_reward(reward: int) -> void:
 			PlayerState.upgrade_points += UPGRADE_POINT_REWARD
 			complete_reward("获得 %d 点升级点" % UPGRADE_POINT_REWARD)
 		Reward.MAX_ENERGY:
-			PlayerState.max_energy += MAX_ENERGY_REWARD
-			PlayerState.current_energy += MAX_ENERGY_REWARD
+			PlayerState.increase_base_max_energy(MAX_ENERGY_REWARD)
 			complete_reward("精力上限提升至 %d" % PlayerState.max_energy)
 		Reward.MAX_HEALTH:
 			PlayerState.max_health += MAX_HEALTH_REWARD

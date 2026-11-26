@@ -2,6 +2,10 @@ extends RefCounted
 
 const MALE_UNIFORM_ID := "clothing:male_school_uniform"
 const MALE_UNIFORM_STAT_BONUS := 10
+const SUIT_ID := "clothing:suit"
+const SUIT_MONEY_BONUS := 20
+const SPORTSWEAR_ID := "clothing:sportswear"
+const SPORTSWEAR_ENERGY_BONUS := 15
 
 const PRODUCTS := [
 	{"name": "红色头绳", "description": "一抹鲜亮的红，系住今天的好心情。", "category": 3, "image": "res://images/shop_items/shop-red-hair-ribbon.png", "price": 30, "effects": {"max_health": 2}},
@@ -46,6 +50,24 @@ const CLOTHING_PRODUCTS := [
 		"price": 200,
 		"repeatable": false,
 		"effects": {"mental_stat_efficiency_percent": MALE_UNIFORM_STAT_BONUS},
+	},
+	{
+		"id": SUIT_ID,
+		"name": "西装",
+		"description": "炭灰色双排扣西装，搭配白衬衫和墨绿色领带。购买后永久提高金钱获取效率。",
+		"image": "res://images/shop_items/shop-suit.png",
+		"price": 200,
+		"repeatable": false,
+		"effects": {"money_efficiency_percent": SUIT_MONEY_BONUS},
+	},
+	{
+		"id": SPORTSWEAR_ID,
+		"name": "运动服",
+		"description": "一件轻便的蓝色运动外套。穿着自在，活动起来也更有精神。",
+		"image": "res://images/shop_items/shop-sportswear.png",
+		"price": 150,
+		"repeatable": false,
+		"effects": {"max_energy_efficiency_percent": SPORTSWEAR_ENERGY_BONUS},
 	},
 ]
 

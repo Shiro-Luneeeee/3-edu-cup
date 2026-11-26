@@ -164,6 +164,12 @@ func close_story_preview_menu(previous_focus: Control) -> void:
 		previous_focus.grab_focus()
 
 func _input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
+		var scene := get_tree().current_scene
+		if scene != null and scene.scene_file_path not in ["res://scenes/card.tscn", BATTLE_TUTORIAL_SCENE]:
+			get_viewport().set_input_as_handled()
+			send_escape.call_deferred()
+			return
 	if SaveManager.debug_mode_enabled and not curtain.visible and not is_instance_valid(story_preview_menu) and not get_viewport().gui_get_focus_owner() is LineEdit and event is InputEventKey and event.pressed and not event.is_echo() and event.keycode == KEY_I:
 		get_viewport().set_input_as_handled()
 		open_story_preview_menu()
@@ -171,3 +177,11 @@ func _input(event: InputEvent) -> void:
 	var showing_cutscene := is_instance_valid(school_intro_panel) or is_instance_valid(event_panel)
 	if curtain.visible and (not showing_cutscene or event.is_action_pressed("ui_cancel")):
 		get_viewport().set_input_as_handled()
+
+
+func send_escape() -> void:
+	for pressed in [true, false]:
+		var escape_event := InputEventKey.new()
+		escape_event.keycode = KEY_ESCAPE
+		escape_event.pressed = pressed
+		Input.parse_input_event(escape_event)

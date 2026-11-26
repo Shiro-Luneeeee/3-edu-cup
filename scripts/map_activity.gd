@@ -167,7 +167,7 @@ func activity_hint_text(activity: Activity, available_round: int) -> String:
 	if activity.max_health_gain > 0:
 		effects.append("心态上限 +%d" % activity.max_health_gain)
 	if activity.money_change > 0:
-		effects.append("金钱 +%d" % activity.money_change)
+		effects.append("金钱 +%d" % PlayerState.preview_money_change(activity.money_change))
 	if activity.energy_change < 0:
 		effects.append("精力 %d" % activity.energy_change)
 	if activity.money_change < 0:

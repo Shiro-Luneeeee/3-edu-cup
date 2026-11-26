@@ -333,7 +333,7 @@ func resolve_attack(attack_id: int) -> void:
 			ExamDifficulty.Attack.HAND_DISCARD: discard_random_hand_card()
 			ExamDifficulty.Attack.SLOT_LOCK: block_random_slot()
 			ExamDifficulty.Attack.ENERGY_LOSS: energy = maxi(0, energy - 1)
-			ExamDifficulty.Attack.HAND_RETURN: return_random_hand_card_to_deck()
+			ExamDifficulty.Attack.HAND_RETURN: await return_random_hand_card_to_deck()
 	update_values()
 	var exit_tween := create_tween().set_parallel(true)
 	exit_tween.tween_property(art, "modulate:a", 0.0, 0.3)
@@ -351,11 +351,23 @@ func return_random_hand_card_to_deck() -> void:
 		return
 	var index := randi_range(0, hand.size() - 1)
 	deck.append(hand.pop_at(index))
-	var card := hand_holder.get_child(index)
-	hand_holder.remove_child(card)
-	card.queue_free()
+	var card: Control = hand_holder.get_child(index)
+	card.reparent(ui, true)
 	card_preview.hide()
 	rearrange_remaining_hand()
+	await animate_card_to_deck(card)
+
+func animate_card_to_deck(card: Control) -> void:
+	card.get_node("HoverArea").mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card.z_index = 56
+	var target := ui.size * Vector2(0.88, 0.25) - card.size * 0.5
+	var travel := create_tween().set_parallel(true).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+	travel.tween_property(card, "position", target, 0.42)
+	travel.tween_property(card, "rotation", deg_to_rad(-15), 0.42)
+	travel.tween_property(card, "scale", Vector2.ONE * 0.45, 0.42)
+	travel.tween_property(card, "modulate:a", 0.0, 0.18).set_delay(0.24)
+	await travel.finished
+	card.queue_free()
 
 func discard_hand_card(index: int, animate_layout: bool = true) -> int:
 	var card: Control = hand_holder.get_child(index)
@@ -416,8 +428,9 @@ func apply_hand_discard_effects(discarded: Array[int]) -> void:
 				progress += int(PlayerState.card_numbers(source)["discard_progress"])
 	update_values()
 
-func refill_draw_pile() -> bool:
-	if deck.is_empty():
+func prepare_draw() -> bool:
+	if deck.is_empty() and not discard_pile.is_empty():
+		# Played cards are already in discard_pile; played_discards only tracks their origin.
 		deck.assign(discard_pile)
 		discard_pile.clear()
 		played_discards.clear()
@@ -426,7 +439,7 @@ func refill_draw_pile() -> bool:
 
 func draw_cards(amount: int, zero_cost: bool = false) -> void:
 	for draw_index in amount:
-		if not refill_draw_pile():
+		if not prepare_draw():
 			return
 		var card_id: int = deck.pop_back()
 		give_drawn_card(make_card_free(card_id) if zero_cost else card_id)
@@ -585,7 +598,7 @@ func set_battle_card_face(face: CardFace, card_id: int) -> void:
 func draw_starting_hand() -> void:
 	hand.clear()
 	for card_index in STARTING_HAND_SIZE:
-		if not refill_draw_pile():
+		if not prepare_draw():
 			break
 		hand.append(deck.pop_back())
 
@@ -1100,7 +1113,7 @@ func apply_card_effect(card_id: int, slot: Control, multiplier: float) -> bool:
 			progress += int(values["progress"]) * multiplier
 			update_values()
 			for pick in int(values["pick"]):
-				if not refill_draw_pile():
+				if not prepare_draw():
 					break
 				var chosen := await request_card_choice(deck, false)
 				deck.erase(chosen)
@@ -1228,7 +1241,12 @@ func apply_card_effect(card_id: int, slot: Control, multiplier: float) -> bool:
 			if not candidates.is_empty():
 				var chosen := await request_card_choice(candidates, false, "选择一张花费至少为 %d 的牌，降至 0 费并置于卡组顶" % minimum_cost)
 				deck.erase(chosen)
-				deck.append(make_card_free(chosen))
+				var free_card := make_card_free(chosen)
+				deck.append(free_card)
+				var returning_card := create_card(free_card)
+				returning_card.position = (ui.size - returning_card.size) * 0.5
+				ui.add_child(returning_card)
+				await animate_card_to_deck(returning_card)
 		CardCatalog.SHIRAKAWA_PUPPY_CARD:
 			turn_end_progress_per_discard += int(values["turn_end_progress_per_card"]) * multiplier
 		CardCatalog.SHIRAKAWA_OSMANTHUS_CARD:

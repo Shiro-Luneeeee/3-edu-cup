@@ -313,6 +313,10 @@ func effect_text(effects: Dictionary) -> String:
 		parts.append("社交效率 +%d%%" % effects["social_efficiency_percent"])
 	if effects.has("mental_stat_efficiency_percent"):
 		parts.append("智商、情商获取效率 +%d%%" % effects["mental_stat_efficiency_percent"])
+	if effects.has("money_efficiency_percent"):
+		parts.append("金钱获取效率 +%d%%" % effects["money_efficiency_percent"])
+	if effects.has("max_energy_efficiency_percent"):
+		parts.append("精力上限 +%d%%（向下取整）" % effects["max_energy_efficiency_percent"])
 	return "、".join(parts)
 
 
@@ -462,12 +466,6 @@ func close_shop() -> void:
 		SceneFade.play_action(queue_free, -1.0)
 	else:
 		SceneFade.change_to(BEDROOM_SCENE, -1.0)
-
-
-func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
-		get_viewport().set_input_as_handled()
-		close_shop()
 
 
 func _unhandled_key_input(event: InputEvent) -> void:

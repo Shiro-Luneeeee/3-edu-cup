@@ -32,7 +32,9 @@ const MAX_AFFECTION := AFFECTION_PER_LEVEL * MAX_AFFECTION_LEVEL
 const FREE_CHAT_AFFECTION_GAIN := 2
 const FREE_CHAT_AFFECTION_ROUND_CAP := 10
 
-var max_energy := DEFAULT_MAX_ENERGY
+var max_energy: int:
+	get:
+		return max_energy_for_base(_base_max_energy)
 var current_energy := DEFAULT_MAX_ENERGY
 var round_energy_bonus := 0
 var next_round_energy_bonus := 0
@@ -93,6 +95,8 @@ var _last_event_id := ""
 var _pending_event_id := ""
 var _activity_available_rounds: Dictionary[String, int] = {}
 var _mental_stat_bonus_remainder := Vector2i.ZERO
+var _money_bonus_remainder := 0
+var _base_max_energy := DEFAULT_MAX_ENERGY
 var _card_upgrades: Dictionary[int, Dictionary] = {}
 var _next_upgraded_card_id := FIRST_UPGRADED_CARD_ID
 
@@ -151,6 +155,7 @@ func reset() -> void:
 	next_round_energy_bonus = 0
 	max_health = DEFAULT_MAX_HEALTH
 	money = DEFAULT_MONEY
+	_money_bonus_remainder = 0
 	owned_products.clear()
 	game_aesthetic_points = 0
 	game_play_counts.clear()
@@ -214,6 +219,7 @@ func make_snapshot() -> Dictionary:
 		"bedroom_tutorial_seen": bedroom_tutorial_seen,
 		"battle_tutorial_seen": battle_tutorial_seen,
 		"max_energy": max_energy,
+		"base_max_energy": _base_max_energy,
 		"current_energy": current_energy,
 		"round_energy_bonus": round_energy_bonus,
 		"next_round_energy_bonus": next_round_energy_bonus,
@@ -252,6 +258,7 @@ func make_snapshot() -> Dictionary:
 		"stat_curve_version": STAT_CURVE_VERSION,
 		"upgrade_points": upgrade_points,
 		"money": money,
+		"money_bonus_remainder": _money_bonus_remainder,
 		"owned_products": owned_products.duplicate(),
 		"game_aesthetic_points": game_aesthetic_points,
 		"game_play_counts": game_play_counts.duplicate(),
@@ -274,7 +281,11 @@ func make_snapshot() -> Dictionary:
 
 
 func restore_snapshot(data: Dictionary) -> void:
-	max_energy = maxi(1, int(data.get("max_energy", DEFAULT_MAX_ENERGY)))
+	owned_products.clear()
+	for product_id in data.get("owned_products", []):
+		if product_id is String and not owned_products.has(product_id):
+			owned_products.append(product_id)
+	_base_max_energy = maxi(1, int(data.get("base_max_energy", data.get("max_energy", DEFAULT_MAX_ENERGY))))
 	var saved_bonus := maxi(0, int(data.get("round_energy_bonus", 0)))
 	current_energy = clampi(int(data.get("current_energy", max_energy)), 0, max_energy + saved_bonus)
 	round_energy_bonus = maxi(0, current_energy - max_energy)
@@ -335,11 +346,8 @@ func restore_snapshot(data: Dictionary) -> void:
 				claimed_stat_levels[stat] = clampi(int(saved_levels[stat]), 0, stat_progress(stat).x)
 	upgrade_points = maxi(0, int(data.get("upgrade_points", 0)))
 	money = maxi(0, int(data.get("money", DEFAULT_MONEY)))
+	_money_bonus_remainder = clampi(int(data.get("money_bonus_remainder", 0)), 0, 99)
 	social_efficiency_percent = maxi(0, int(data.get("social_efficiency_percent", 0)))
-	owned_products.clear()
-	for product_id in data.get("owned_products", []):
-		if product_id is String and not owned_products.has(product_id):
-			owned_products.append(product_id)
 	var legacy_aesthetic_claimed := bool(data.get("game_aesthetic_reward_claimed", false))
 	game_aesthetic_rewards_claimed = maxi(0, int(data.get("game_aesthetic_rewards_claimed", int(legacy_aesthetic_claimed))))
 	# The old one-time reward kept its spent points on the full meter.
@@ -424,7 +432,7 @@ func advance_round() -> void:
 		if _activity_available_rounds[activity_id] <= round_number:
 			_activity_available_rounds.erase(activity_id)
 	var product_effects := ShopProducts.recurring_effects(owned_products)
-	money += ROUND_ALLOWANCE + exam_allowance_bonus + int(product_effects.get("money", 0))
+	apply_money_change(ROUND_ALLOWANCE + exam_allowance_bonus + int(product_effects.get("money", 0)))
 	add_mental_stat_experience(
 		StudyProgress.get_level(StudyProgress.Subject.MATH) + int(product_effects.get("intelligence", 0)),
 		StudyProgress.get_level(StudyProgress.Subject.CHINESE) + int(product_effects.get("emotional_intelligence", 0))
@@ -492,7 +500,7 @@ func try_resolve_round_event(option_index: int) -> bool:
 	if not round_event_shortage(effects).is_empty():
 		return false
 	_pending_event_id = ""
-	money += int(effects.get("money", 0))
+	apply_money_change(int(effects.get("money", 0)))
 	add_mental_stat_experience(int(effects.get("intelligence", 0)), int(effects.get("emotional_intelligence", 0)))
 	physical_strength += int(effects.get("physical_strength", 0))
 	upgrade_points += int(effects.get("upgrade_points", 0))
@@ -520,6 +528,27 @@ func mental_stat_bonus_units(intelligence_gain: int, emotional_gain: int) -> Vec
 		return Vector2i.ZERO
 	var positive_gains := Vector2i(maxi(0, intelligence_gain), maxi(0, emotional_gain))
 	return _mental_stat_bonus_remainder + positive_gains * ShopProducts.MALE_UNIFORM_STAT_BONUS
+
+
+func money_bonus_units(amount: int) -> int:
+	if amount <= 0 or not owned_products.has(ShopProducts.SUIT_ID):
+		return 0
+	return _money_bonus_remainder + amount * ShopProducts.SUIT_MONEY_BONUS
+
+
+@warning_ignore("integer_division")
+func preview_money_change(amount: int) -> int:
+	return amount + money_bonus_units(amount) / 100
+
+
+@warning_ignore("integer_division")
+func apply_money_change(amount: int) -> int:
+	var bonus := money_bonus_units(amount)
+	if amount > 0:
+		_money_bonus_remainder = bonus % 100
+	var change := amount + bonus / 100
+	money += change
+	return change
 
 
 func stat_experience_required(level: int) -> int:
@@ -645,7 +674,7 @@ func try_buy_product(product_id: String, price: int, repeatable: bool, effects: 
 	physical_strength = maxi(0, physical_strength + int(effects.get("physical_strength", 0)))
 	upgrade_points = maxi(0, upgrade_points + int(effects.get("upgrade_points", 0)))
 	social_efficiency_percent = maxi(0, social_efficiency_percent + int(effects.get("social_efficiency_percent", 0)))
-	max_energy = maxi(1, max_energy + int(effects.get("max_energy", 0)))
+	_base_max_energy = maxi(1, _base_max_energy + int(effects.get("max_energy", 0)))
 	max_health = maxi(DEFAULT_MAX_HEALTH, max_health + int(effects.get("max_health", 0)))
 	var energy_change := int(effects.get("current_energy", 0))
 	set_energy(current_energy + energy_change, energy_change > 0)
@@ -948,7 +977,7 @@ func record_game_play(game_id: String, price: int) -> Dictionary:
 	if reward_unlocked:
 		game_aesthetic_points -= target
 		game_aesthetic_rewards_claimed += 1
-		set_max_energy(max_energy + 2, true)
+		increase_base_max_energy(2, true)
 	else:
 		changed.emit()
 	return {"gain": gain, "reward_unlocked": reward_unlocked}
@@ -960,9 +989,26 @@ func set_energy(value: int, allow_overflow: bool = false) -> void:
 	changed.emit()
 
 
-func set_max_energy(value: int, refill: bool = false) -> void:
-	max_energy = maxi(1, value)
+func set_max_energy(base_value: int, refill: bool = false) -> void:
+	_base_max_energy = maxi(1, base_value)
 	set_energy(max_energy + round_energy_bonus if refill else current_energy)
+
+
+@warning_ignore("integer_division")
+func max_energy_for_base(base_value: int) -> int:
+	if owned_products.has(ShopProducts.SPORTSWEAR_ID):
+		return base_value + base_value * ShopProducts.SPORTSWEAR_ENERGY_BONUS / 100
+	return base_value
+
+
+func preview_max_energy_gain(base_gain: int) -> int:
+	return max_energy_for_base(maxi(1, _base_max_energy + base_gain)) - max_energy
+
+
+func increase_base_max_energy(amount: int, refill: bool = false) -> void:
+	var previous_max := max_energy
+	_base_max_energy = maxi(1, _base_max_energy + amount)
+	set_energy(max_energy + round_energy_bonus if refill else current_energy + max_energy - previous_max)
 
 
 func energy_text() -> String:
@@ -999,7 +1045,7 @@ func try_apply_map_activity(activity: MapActivity, companion: String = "") -> bo
 		return false
 	if activity.cooldown_rounds > 0 and not activity.cooldown_id.is_empty():
 		_activity_available_rounds[activity.cooldown_id] = round_number + activity.cooldown_rounds
-	money += activity.money_change
+	apply_money_change(activity.money_change)
 	physical_strength += activity.physical_gain
 	max_health += activity.max_health_gain
 	if activity.affection_gain > 0:

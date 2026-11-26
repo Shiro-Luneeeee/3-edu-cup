@@ -58,7 +58,7 @@ func build_interface() -> void:
 	aesthetic_bar.position = Vector2(198, 134)
 	aesthetic_bar.size = Vector2(380, 16)
 	aesthetic_bar.show_percentage = false
-	aesthetic_bar.tooltip_text = "每款游戏前 3 次完成时按价格积累审美，之后收益逐渐减少。每次积满后体力上限 +2 并回满，多出的积累结转。奖励门槛逐次提高，最高 2000 点。"
+	aesthetic_bar.tooltip_text = "每款游戏前 3 次完成时按价格积累审美，之后收益逐渐减少。每次积满后基础体力上限 +2 并回满，多出的积累结转。奖励门槛逐次提高，最高 2000 点。"
 	var meter_background := make_style(Color("f8e9dd"), Color("d5a8ad"), 8, 1)
 	meter_background.shadow_size = 0
 	aesthetic_bar.add_theme_stylebox_override("background", meter_background)
@@ -218,7 +218,9 @@ func update_information() -> void:
 	aesthetic_bar.max_value = PlayerState.game_aesthetic_target()
 	aesthetic_bar.value = PlayerState.game_aesthetic_points
 	aesthetic_amount_label.text = "%d / %d" % [PlayerState.game_aesthetic_points, PlayerState.game_aesthetic_target()]
-	aesthetic_reward_label.text = "第 %d 次奖励 · 体力上限 +2" % (PlayerState.game_aesthetic_rewards_claimed + 1)
+	aesthetic_reward_label.text = "第 %d 次奖励 · 体力上限 +%d" % [
+		PlayerState.game_aesthetic_rewards_claimed + 1, PlayerState.preview_max_energy_gain(2)
+	]
 	var completed_plays: int = PlayerState.game_play_counts.get(entry.id, 0)
 	aesthetic_detail_label.text = "第 %d 次完成 · 审美 +%d" % [completed_plays + 1, PlayerState.game_aesthetic_gain(entry.id, entry.price)]
 	var owned := PlayerState.owns_game(entry.id)
@@ -398,7 +400,7 @@ func show_aesthetic_reward() -> void:
 	var heading := make_label("✦  游戏审美积累已满  ✦", Vector2(34, 33), Vector2(580, 56), 32, Color("704978"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	letter.add_child(heading)
-	var message := make_label("每一次游玩，都留下新的眼光。\n体力上限增加 2 点，达到 %d，体力也已回满。" % PlayerState.max_energy, Vector2(45, 111), Vector2(558, 91), 23, Color("715584"))
+	var message := make_label("每一次游玩，都留下新的眼光。\n基础体力上限 +2，当前上限 %d，体力已回满。" % PlayerState.max_energy, Vector2(45, 111), Vector2(558, 91), 23, Color("715584"))
 	message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	letter.add_child(message)
 	var confirm := make_button("收好这份成长", Vector2(211, 232), Vector2(226, 52))
