@@ -21,6 +21,7 @@ const PROGRESS_TRACK_IN_TEXTURE := Rect2(390.0, 333.0, 1548.0, 129.0)
 const METER_TRACK_CENTER_Y := 79.0
 const MAX_HAND_SIZE := 9
 const CARD_SIZE := Vector2(142, 199)
+const HAND_HOME_OFFSET := Vector2(-355, -235)
 const BOARD_SIZE := Vector2(1152, 648)
 const SLOT_POSITIONS := [Vector2(183, 334), Vector2(369, 334), Vector2(510, 334), Vector2(658, 334), Vector2(800, 334)]
 const SLOT_SIZES := [Vector2(172, 180), Vector2(130, 180), Vector2(132, 180), Vector2(142, 180), Vector2(170, 180)]
@@ -88,7 +89,6 @@ var block_display_target := 0.0
 var progress_fill: Panel
 var progress_fill_tween: Tween
 var progress_track_width: float
-var hand_home_position := Vector2(-355, -235)
 var hand_move_tween: Tween
 
 @onready var match_music: AudioStreamPlayer = $MatchMusic
@@ -138,7 +138,6 @@ func _ready() -> void:
 	end_button.mouse_exited.connect(set_end_button_hover.bind(false))
 	end_button.pressed.connect(finish_game)
 	await get_tree().process_frame
-	hand_home_position = hand_holder.position
 	animate_starting_hand()
 	turn_value_label.text = "回合数：%d" % turn
 	update_values()
@@ -772,7 +771,7 @@ func create_energy_ui(parent: Control) -> void:
 func create_hand_ui(parent: Control) -> void:
 	hand_holder = Control.new()
 	hand_holder.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	hand_holder.position = hand_home_position
+	hand_holder.position = HAND_HOME_OFFSET
 	hand_holder.size = Vector2(710, 205)
 	hand_holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hand_holder.z_index = 2
@@ -1021,7 +1020,7 @@ func animate_slot_status(slot: Control, marker: Control, color: Color, pulse_cou
 
 func return_hand_to_player() -> void:
 	hand_move_tween = create_tween()
-	hand_move_tween.tween_property(hand_holder, "position", hand_home_position, 0.28).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	hand_move_tween.tween_method(set_hand_bottom_offset, hand_holder.offset_top, HAND_HOME_OFFSET.y, 0.28).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	await hand_move_tween.finished
 	for hand_card in hand_holder.get_children():
 		hand_card.get_node("HoverArea").mouse_filter = Control.MOUSE_FILTER_STOP
@@ -1030,10 +1029,13 @@ func move_hand_below_screen() -> void:
 	if hand_move_tween and hand_move_tween.is_running():
 		hand_move_tween.kill()
 	# Move far enough for the entire card, including its rotation, to leave the viewport.
-	var offscreen_y := get_viewport_rect().size.y + CARD_SIZE.y + 40.0
+	var offscreen_offset := CARD_SIZE.y + 40.0
 	hand_move_tween = create_tween()
-	hand_move_tween.tween_property(hand_holder, "global_position:y", offscreen_y, 0.28).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	hand_move_tween.tween_method(set_hand_bottom_offset, hand_holder.offset_top, offscreen_offset, 0.28).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	await hand_move_tween.finished
+
+func set_hand_bottom_offset(offset: float) -> void:
+	hand_holder.position.y = ui.size.y + offset
 
 func set_slots_selectable(enabled: bool) -> void:
 	for slot in slot_layer.get_children():
@@ -1089,7 +1091,7 @@ func use_selected_card(event: InputEvent, slot: Control) -> bool:
 
 func animate_card_play(card: Control, slot: Control) -> void:
 	# The hand is hidden during slot selection. Launch from its visible resting position.
-	var start := hand_home_position + card.position
+	var start := Vector2(ui.size.x * 0.5, ui.size.y) + HAND_HOME_OFFSET + card.position
 	var center := slot.global_position - ui.global_position + slot.size * 0.5
 	var destination := center - card.pivot_offset
 	var landing_scale := minf(slot.size.x / card.size.x, slot.size.y / card.size.y) * 0.88
@@ -1580,12 +1582,13 @@ func request_card_choice(cards: Array[int], from_hand: bool, prompt_text: String
 	title.text = "选择一张手牌弃置" if from_hand else "选择一张牌加入手牌"
 	if not prompt_text.is_empty():
 		title.text = prompt_text
-	title.size = Vector2(ui.size.x, 44.0)
-	title.position = Vector2(0.0, 16.0)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 28)
 	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	deck_choice_overlay.add_child(title)
+	title.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	title.offset_top = 16.0
+	title.offset_bottom = 60.0
 
 	var options: Array[int] = []
 	if from_hand:
@@ -1599,12 +1602,17 @@ func request_card_choice(cards: Array[int], from_hand: bool, prompt_text: String
 	var grid_width := card_size.x * 3.0 + 36.0
 	var scroll_width := grid_width + 40.0
 	var scroll := ScrollContainer.new()
-	scroll.position = Vector2((ui.size.x - scroll_width) / 2.0, 64.0)
-	scroll.size = Vector2(scroll_width, ui.size.y - 84.0)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	scroll.mouse_filter = Control.MOUSE_FILTER_STOP
 	deck_choice_overlay.add_child(scroll)
+	scroll.anchor_left = 0.5
+	scroll.anchor_right = 0.5
+	scroll.anchor_bottom = 1.0
+	scroll.offset_left = -scroll_width / 2.0
+	scroll.offset_right = scroll_width / 2.0
+	scroll.offset_top = 64.0
+	scroll.offset_bottom = -20.0
 
 	var grid := GridContainer.new()
 	grid.columns = 3

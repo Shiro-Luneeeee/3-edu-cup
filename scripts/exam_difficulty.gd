@@ -1,14 +1,17 @@
 extends RefCounted
 
 const FIRST_PROGRESS_TARGET := 100
-const PROGRESS_PER_WIN := 1
+const WINS_PER_PROGRESS_STEP := 5
+const PROGRESS_PER_STEP := 10
 const YEARS_PER_HEALTH_LOSS_BONUS := 6
 const GUARANTEED_NEGATIVE_HEALTH_RATIO := 0.2
 const RoundCalendar := preload("res://scripts/round_calendar.gd")
 
 
+@warning_ignore("integer_division")
 static func progress_target(passed_exams: int) -> int:
-	return FIRST_PROGRESS_TARGET + passed_exams * PROGRESS_PER_WIN
+	var completed_steps := passed_exams / WINS_PER_PROGRESS_STEP
+	return FIRST_PROGRESS_TARGET + completed_steps * PROGRESS_PER_STEP
 
 
 @warning_ignore("integer_division")

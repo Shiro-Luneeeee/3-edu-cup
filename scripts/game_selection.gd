@@ -182,9 +182,14 @@ func card_tint(depth: int) -> Color:
 
 
 func apply_selection() -> void:
-	for card_index in cards.size():
-		var depth := posmod(card_index - selected_index, cards.size())
+	var last_cover_index := 0
+	for card in cards:
+		last_cover_index = maxi(last_cover_index, card.get_index())
+	for depth in range(cards.size() - 1, -1, -1):
+		var card_index := (selected_index + depth) % cards.size()
 		var card := cards[card_index]
+		# Later siblings receive pointer input first, regardless of drawing depth.
+		stage.move_child(card, last_cover_index)
 		var cover_button: Button = card.get_node("CoverButton")
 		if card_index == selected_index:
 			cover_button.remove_from_group("soft_selection")
