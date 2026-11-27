@@ -6,8 +6,9 @@ const GAMES := [
 	preload("res://data/games/pale_myth_heart_sky.tres"),
 ]
 const FULL_GAIN_PLAYS := 3
-const REWARD_POINTS_STEP := 625
+const REWARD_POINTS_STEP := 325
 const MAX_REWARD_POINTS := 2000
+const MAX_ENERGY_REWARD := 5
 
 
 static func target_points(rewards_claimed: int) -> int:

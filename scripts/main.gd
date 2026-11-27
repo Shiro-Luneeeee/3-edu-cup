@@ -293,9 +293,10 @@ func draw_turn_negative_card() -> void:
 	var chance := ExamDifficulty.negative_draw_chance(health, max_health)
 	if chance <= 0.0 or (chance < 1.0 and randf() >= chance):
 		return
-	await give_negative_card(randi_range(Negative.ANXIETY, Negative.OVERDRAW))
+	await give_negative_card(Negative.values().pick_random())
 
 func give_negative_card(card_id: int) -> void:
+	var triggers_on_draw := CardCatalog.triggers_on_draw(card_id)
 	var reveal_layer := Control.new()
 	reveal_layer.name = "NegativeCardReveal"
 	reveal_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -334,7 +335,7 @@ func give_negative_card(card_id: int) -> void:
 	card.move_child(glow, 0)
 
 	var title := Label.new()
-	title.text = "负面牌 · 立即生效" if card_id == Negative.OVERDRAW else "抽到负面牌"
+	title.text = "负面牌 · 立即生效" if triggers_on_draw else "抽到负面牌"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.position.y = reveal_layer.size.y * 0.5 - card.size.y * 0.825 - 45.0
 	title.size.x = reveal_layer.size.x
@@ -359,10 +360,17 @@ func give_negative_card(card_id: int) -> void:
 	var finish := create_tween().set_parallel(true)
 	finish.tween_property(shade, "modulate:a", 0.0, 0.24)
 	finish.tween_property(title, "modulate:a", 0.0, 0.22)
-	if card_id == Negative.OVERDRAW:
-		block_random_slot()
+	if triggers_on_draw:
+		match card_id:
+			Negative.OVERDRAW:
+				block_random_slot()
+			Negative.EXAM_PRESSURE:
+				consume_health(-int(CardCatalog.numbers(card_id)["health_change"]), true)
+				animate_health_display()
 		finish.tween_property(card, "modulate:a", 0.0, 0.24)
 		await finish.finished
+		if card_id == Negative.EXAM_PRESSURE and health_display_tween and health_display_tween.is_running():
+			await health_display_tween.finished
 	else:
 		# Negative cards still take a place in a full hand.
 		var hand_index := hand.size()
@@ -1336,13 +1344,14 @@ func apply_card_effect(card_id: int, slot: Control, multiplier: float) -> bool:
 		CardCatalog.SHIRAKAWA_SNOW_CARD:
 			progress = maxf(progress, progress_target)
 			settle_game(true)
-		Negative.DISTRACTION:
+		Negative.ANXIETY, Negative.DISTRACTION, Negative.NOISE:
 			consume_health(-int(values["health_change"]) * multiplier, true)
 		Negative.TIME_SHORTAGE:
 			energy = maxi(0, energy + roundi(int(values["energy_gain"]) * multiplier))
 		Negative.RUSH:
 			progress += int(values["progress"]) * multiplier
 			block_random_slot()
+			consume_health(-int(values["health_change"]) * multiplier, true)
 	update_values()
 	return false
 

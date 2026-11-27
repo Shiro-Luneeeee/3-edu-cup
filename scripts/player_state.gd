@@ -944,7 +944,7 @@ func record_game_play(game_id: String, price: int) -> Dictionary:
 	if reward_unlocked:
 		game_aesthetic_points -= target
 		game_aesthetic_rewards_claimed += 1
-		increase_base_max_energy(2, true)
+		increase_base_max_energy(GameAesthetic.MAX_ENERGY_REWARD, true)
 	else:
 		changed.emit()
 	return {"gain": gain, "reward_unlocked": reward_unlocked}

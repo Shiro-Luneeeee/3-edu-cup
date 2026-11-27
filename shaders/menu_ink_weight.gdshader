@@ -12,6 +12,7 @@ uniform float color_flow_speed : hint_range(0.0, 0.2) = 0.055;
 uniform bool include_pink_glow = true;
 uniform float breath_scale = 0.0;
 uniform float breath_rise = 0.0; // Fraction of the texture height.
+uniform vec2 button_feedback = vec2(0.0); // Hover strength and press depth.
 
 varying float breath;
 
@@ -21,16 +22,18 @@ void vertex() {
 
 void fragment() {
 	// Sample around the texture center so the artwork and its halo move together.
-	vec2 ink_uv = (UV - vec2(0.5) + vec2(0.0, breath_rise * breath))
-		/ (1.0 + breath_scale * breath) + vec2(0.5);
+	float press_depth = button_feedback.y;
+	float ink_scale = (1.0 + breath_scale * breath) * (1.0 - 0.08 * press_depth);
+	vec2 ink_uv = (UV - vec2(0.5) + vec2(0.0, breath_rise * breath - 0.045 * press_depth))
+		/ ink_scale + vec2(0.5);
 	vec4 original = texture(TEXTURE, ink_uv);
-	vec2 step_size = TEXTURE_PIXEL_SIZE * spread_px;
+	vec2 step_size = TEXTURE_PIXEL_SIZE * (spread_px + 6.0 * button_feedback.x);
 	float nearby = 0.0;
 	nearby = max(nearby, texture(TEXTURE, ink_uv + vec2(step_size.x, 0.0)).a);
 	nearby = max(nearby, texture(TEXTURE, ink_uv - vec2(step_size.x, 0.0)).a);
 	nearby = max(nearby, texture(TEXTURE, ink_uv + vec2(0.0, step_size.y)).a);
 	nearby = max(nearby, texture(TEXTURE, ink_uv - vec2(0.0, step_size.y)).a);
-	float support = smoothstep(0.45, 0.95, nearby) * extra_opacity;
+	float support = smoothstep(0.45, 0.95, nearby) * mix(extra_opacity, 0.88, button_feedback.x);
 	float ink_alpha = original.a + (1.0 - original.a) * support;
 
 	// Weighted average produces a smooth halo without the stepped edges of dilation.

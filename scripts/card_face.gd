@@ -26,7 +26,7 @@ var edits: Control
 func set_card(card_id: int, preview_numbers: Dictionary = {}, battle_cost: int = -1) -> void:
 	base_id = PlayerState.card_base_id(card_id)
 	texture = CardCatalog.texture(base_id)
-	original_numbers = CardCatalog.numbers(base_id)
+	original_numbers = CardCatalog.artwork_numbers(base_id)
 	numbers = PlayerState.card_numbers(card_id) if preview_numbers.is_empty() else preview_numbers
 	cost_override = battle_cost
 	if (CardCatalog.is_negative(base_id) or numbers != original_numbers or cost_override >= 0) and edits == null:
@@ -96,7 +96,7 @@ func draw_negative_edits(origin: Vector2, art_scale: Vector2) -> void:
 	edits.draw_rect(Rect2(247, 82, 594, 112), paper)
 	edits.draw_string(DIGIT_FONT, Vector2(247, 170), CardCatalog.card_name(base_id), HORIZONTAL_ALIGNMENT_CENTER, 594, 86, ink)
 	edits.draw_circle(Vector2(146, 137), 51.0, ink, true, -1.0, true)
-	var cost_text := "自动" if base_id == CardCatalog.Negative.OVERDRAW else "0"
+	var cost_text := "自动" if CardCatalog.triggers_on_draw(base_id) else "0"
 	edits.draw_string(DIGIT_FONT, Vector2(95, 154), cost_text, HORIZONTAL_ALIGNMENT_CENTER, 102, 39 if cost_text == "自动" else 54, Color("fff4e6"))
 	edits.draw_rect(Rect2(57, 966, 924, 405), paper)
 	var lines: PackedStringArray = CardCatalog.NEGATIVE_DESCRIPTIONS[base_id].split("\n")

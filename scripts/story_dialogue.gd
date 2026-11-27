@@ -26,6 +26,8 @@ func _ready() -> void:
 	next_button.pressed.connect(advance)
 	next_button.add_to_group("silent_story_advance")
 	advance()
+	if is_visible_in_tree() and line_index < lines().size():
+		next_button.grab_focus()
 
 
 func lines() -> Array:
@@ -130,7 +132,12 @@ func _gui_input(event: InputEvent) -> void:
 		advance()
 
 
-func _unhandled_key_input(event: InputEvent) -> void:
-	if not event.is_echo() and (event.is_action_pressed("ui_accept") or event.is_action_pressed("ui_select")):
-		get_viewport().set_input_as_handled()
+func _input(event: InputEvent) -> void:
+	if not dialogue_box.is_visible_in_tree() or (SceneFade.curtain.visible and SceneFade.school_intro_panel != self):
+		return
+	if not event is InputEventKey or not (event.is_action("ui_accept") or event.is_action("ui_select")):
+		return
+	# Handle both halves so the focused button cannot also advance on key release.
+	get_viewport().set_input_as_handled()
+	if event.pressed and not event.is_echo():
 		advance()

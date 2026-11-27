@@ -1,6 +1,7 @@
 extends Control
 
 const GameEntry = preload("res://scripts/game_entry.gd")
+const GameAesthetic := preload("res://scripts/game_aesthetic.gd")
 const BEDROOM_SCENE := "res://scenes/bedroom.tscn"
 const STAGE_SIZE := Vector2(1152, 648)
 const GAMES = [
@@ -21,6 +22,7 @@ var selected_index := 0
 var transitioning := false
 var launching := false
 var cards: Array[Node2D] = []
+var cover_feedback_tweens: Dictionary[Control, Tween] = {}
 var paper: Panel
 var title_label: Label
 var description_label: RichTextLabel
@@ -58,7 +60,10 @@ func build_interface() -> void:
 	aesthetic_bar.position = Vector2(198, 134)
 	aesthetic_bar.size = Vector2(380, 16)
 	aesthetic_bar.show_percentage = false
-	aesthetic_bar.tooltip_text = "每款游戏前 3 次完成时按价格积累审美，之后收益逐渐减少。每次积满后基础体力上限 +2 并回满，多出的积累结转。奖励门槛逐次提高，最高 2000 点。"
+	aesthetic_bar.tooltip_text = "每款游戏前 %d 次完成时按价格积累审美，之后收益逐渐减少。奖励门槛从 %d 点起，每档再加 %d 点，最高 %d 点。每次积满后基础体力上限 +%d 并回满，多出的积累结转。" % [
+		GameAesthetic.FULL_GAIN_PLAYS, GameAesthetic.target_points(0), GameAesthetic.REWARD_POINTS_STEP,
+		GameAesthetic.MAX_REWARD_POINTS, GameAesthetic.MAX_ENERGY_REWARD,
+	]
 	var meter_background := make_style(Color("f8e9dd"), Color("d5a8ad"), 8, 1)
 	meter_background.shadow_size = 0
 	aesthetic_bar.add_theme_stylebox_override("background", meter_background)
@@ -139,34 +144,75 @@ func make_cover(index: int) -> Node2D:
 	card.flat = true
 	card.focus_mode = Control.FOCUS_NONE
 	card.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	card.add_theme_stylebox_override("normal", make_style(Color("eee1ee"), Color("f8d6ac"), 18, 3))
-	card.add_theme_stylebox_override("hover", make_style(Color("fff0e2"), Color("ffda98"), 18, 4))
-	card.add_theme_stylebox_override("pressed", make_style(Color("fff0e2"), Color("ffda98"), 18, 4))
+	var empty_style := StyleBoxEmpty.new()
+	card.add_theme_stylebox_override("hover", empty_style)
+	card.add_theme_stylebox_override("pressed", empty_style)
 	card.pressed.connect(on_cover_pressed.bind(index))
 	wrapper.add_child(card)
+	var face := Control.new()
+	face.name = "Face"
+	face.size = CARD_SIZE
+	face.pivot_offset = CARD_SIZE / 2.0
+	face.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card.add_child(face)
 	var art := TextureRect.new()
 	art.texture = GAMES[index].cover
-	art.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	card.add_child(art)
+	face.add_child(art)
+	art.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var spine := ColorRect.new()
 	spine.color = Color(0.23, 0.15, 0.34, 0.65)
 	spine.position = Vector2.ZERO
 	spine.size = Vector2(13, CARD_SIZE.y)
 	spine.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	card.add_child(spine)
+	face.add_child(spine)
 	var shade := ColorRect.new()
+	face.add_child(shade)
 	shade.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
 	shade.offset_top = -91
 	shade.color = Color(0.24, 0.16, 0.38, 0.76)
 	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	card.add_child(shade)
 	var label := make_label(GAMES[index].title, Vector2(21, 17), Vector2(330, 58), 30, Color("fff5e8"))
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.add_theme_color_override("font_outline_color", Color("fff5e8"))
 	shade.add_child(label)
+
+	var outline := Panel.new()
+	outline.name = "HoverOutline"
+	var outline_style := StyleBoxFlat.new()
+	outline_style.draw_center = false
+	outline_style.border_color = Color("ffda98")
+	outline_style.set_border_width_all(5)
+	outline_style.set_corner_radius_all(12)
+	outline.add_theme_stylebox_override("panel", outline_style)
+	outline.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	outline.modulate.a = 0.0
+	face.add_child(outline)
+	outline.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	card.mouse_entered.connect(animate_cover_feedback.bind(face, outline, label, true))
+	card.mouse_exited.connect(animate_cover_feedback.bind(face, outline, label, false))
+	card.button_down.connect(animate_cover_feedback.bind(face, outline, label, true, true))
+	card.button_up.connect(func() -> void: animate_cover_feedback(face, outline, label, card.is_hovered(), false, true))
 	return wrapper
+
+
+func animate_cover_feedback(face: Control, outline: Panel, label: Label, hovered: bool, pressed: bool = false, releasing: bool = false) -> void:
+	if cover_feedback_tweens.has(face):
+		cover_feedback_tweens[face].kill()
+	var duration := 0.17 if releasing else 0.10
+	label.add_theme_constant_override("outline_size", 2 if hovered else 0)
+	if pressed:
+		face.scale = Vector2.ONE * 0.98
+		face.position.y = 2.0
+	var tween := create_tween().set_parallel(true).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	var motion := Tween.TRANS_BACK if releasing else Tween.TRANS_QUAD
+	tween.tween_property(face, "scale", Vector2.ONE * (0.955 if pressed else 1.0), duration).set_trans(motion)
+	tween.tween_property(face, "position:y", 5.0 if pressed else 0.0, duration).set_trans(motion)
+	tween.tween_property(face, "modulate", Color("e9d9e4") if pressed else Color.WHITE, duration)
+	tween.tween_property(outline, "modulate:a", 0.62 if pressed else (1.0 if hovered else 0.0), duration)
+	cover_feedback_tweens[face] = tween
 
 
 func card_position(depth: int) -> Vector2:
@@ -224,7 +270,7 @@ func update_information() -> void:
 	aesthetic_bar.value = PlayerState.game_aesthetic_points
 	aesthetic_amount_label.text = "%d / %d" % [PlayerState.game_aesthetic_points, PlayerState.game_aesthetic_target()]
 	aesthetic_reward_label.text = "第 %d 次奖励 · 体力上限 +%d" % [
-		PlayerState.game_aesthetic_rewards_claimed + 1, PlayerState.preview_max_energy_gain(2)
+		PlayerState.game_aesthetic_rewards_claimed + 1, PlayerState.preview_max_energy_gain(GameAesthetic.MAX_ENERGY_REWARD)
 	]
 	var completed_plays: int = PlayerState.game_play_counts.get(entry.id, 0)
 	aesthetic_detail_label.text = "第 %d 次完成 · 审美 +%d" % [completed_plays + 1, PlayerState.game_aesthetic_gain(entry.id, entry.price)]
@@ -405,7 +451,9 @@ func show_aesthetic_reward() -> void:
 	var heading := make_label("✦  游戏审美积累已满  ✦", Vector2(34, 33), Vector2(580, 56), 32, Color("704978"))
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	letter.add_child(heading)
-	var message := make_label("每一次游玩，都留下新的眼光。\n基础体力上限 +2，当前上限 %d，体力已回满。" % PlayerState.max_energy, Vector2(45, 111), Vector2(558, 91), 23, Color("715584"))
+	var message := make_label("每一次游玩，都留下新的眼光。\n基础体力上限 +%d，当前上限 %d，体力已回满。" % [
+		GameAesthetic.MAX_ENERGY_REWARD, PlayerState.max_energy,
+	], Vector2(45, 111), Vector2(558, 91), 23, Color("715584"))
 	message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	letter.add_child(message)
 	var confirm := make_button("收好这份成长", Vector2(211, 232), Vector2(226, 52))

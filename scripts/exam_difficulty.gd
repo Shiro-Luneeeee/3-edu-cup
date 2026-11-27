@@ -3,7 +3,7 @@ extends RefCounted
 const FIRST_PROGRESS_TARGET := 100
 const WINS_PER_PROGRESS_STEP := 5
 const PROGRESS_PER_STEP := 10
-const YEARS_PER_HEALTH_LOSS_BONUS := 6
+const YEARS_PER_HEALTH_LOSS_BONUS := 3
 const GUARANTEED_NEGATIVE_HEALTH_RATIO := 0.2
 const RoundCalendar := preload("res://scripts/round_calendar.gd")
 

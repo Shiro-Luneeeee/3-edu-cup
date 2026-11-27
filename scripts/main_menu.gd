@@ -23,6 +23,7 @@ var ripple_data: Array[Vector4] = []
 var spawn_timer := 0.0
 var settings_overlay: Control
 var gallery_overlay: Control
+var button_feedback_tweens: Dictionary[TextureButton, Tween] = {}
 
 
 func _ready() -> void:
@@ -39,6 +40,14 @@ func _ready() -> void:
 	gallary_button.pressed.connect(open_gallery)
 	settings_button.pressed.connect(open_settings)
 	$MenuColumn/QuitButton.pressed.connect(func() -> void: get_tree().quit())
+	for button: TextureButton in $MenuColumn.get_children():
+		var ink := button.material.duplicate() as ShaderMaterial
+		ink.set_shader_parameter("button_feedback", Vector2.ZERO)
+		button.material = ink
+		button.mouse_entered.connect(animate_menu_button.bind(button, true))
+		button.mouse_exited.connect(animate_menu_button.bind(button, false))
+		button.button_down.connect(animate_menu_button.bind(button, true, true))
+		button.button_up.connect(func() -> void: animate_menu_button(button, button.is_hovered(), false, true))
 	for index in 5:
 		spawn_ripple(randf_range(0.0, RIPPLE_LIFETIME * 0.8))
 	spawn_timer = randf_range(0.12, 0.30)
@@ -50,6 +59,21 @@ func _ready() -> void:
 
 func _exit_tree() -> void:
 	SaveManager.release_scene_music(MAIN_MENU_SCENE)
+
+
+func animate_menu_button(button: TextureButton, hovered: bool, pressed: bool = false, releasing: bool = false) -> void:
+	if button_feedback_tweens.has(button):
+		button_feedback_tweens[button].kill()
+	var duration := 0.17 if releasing else 0.10
+	var ink := button.material as ShaderMaterial
+	var current: Vector2 = ink.get_shader_parameter("button_feedback")
+	if pressed:
+		current.y = 0.45
+		ink.set_shader_parameter("button_feedback", current)
+	var target := Vector2(1.0 if hovered else 0.0, 1.0 if pressed else 0.0)
+	var tween := create_tween().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_method(func(value: Vector2) -> void: ink.set_shader_parameter("button_feedback", value), current, target, duration)
+	button_feedback_tweens[button] = tween
 
 
 func start_new_game() -> void:

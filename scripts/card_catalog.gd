@@ -19,19 +19,21 @@ const SHIRAKAWA_FAVOR_CARD := 301
 const SHIRAKAWA_PUPPY_CARD := 302
 const SHIRAKAWA_OSMANTHUS_CARD := 303
 const SHIRAKAWA_SNOW_CARD := 304
-enum Negative { ANXIETY = 400, DISTRACTION, TIME_SHORTAGE, NOISE, RUSH, OVERDRAW }
+enum Negative { ANXIETY = 400, DISTRACTION, TIME_SHORTAGE, NOISE, RUSH, OVERDRAW, EXAM_PRESSURE }
 const NEGATIVE_ART := [
 	preload("res://images/attack/1.png"), preload("res://images/attack/2.png"),
 	preload("res://images/attack/4.png"), preload("res://images/attack/3.png"),
 	preload("res://images/attack/5.png"), preload("res://images/attack/6.png"),
+	preload("res://images/attack/5.png"),
 ]
 const NEGATIVE_DESCRIPTIONS := {
-	Negative.ANXIETY: "在手中：回合结束的\n心态消耗翻倍。",
+	Negative.ANXIETY: "在手中：回合末心态消耗翻倍。\n打出：扣 2 点心态。",
 	Negative.DISTRACTION: "在手中：回合开始少抽 1 张。\n打出：扣 4 点心态。",
 	Negative.TIME_SHORTAGE: "在手中：回合开始能量 −1。\n打出：扣 1 点能量。",
-	Negative.NOISE: "在手中：回合结束时\n随机弃掉 1 张可弃的手牌。",
-	Negative.RUSH: "无法弃置。\n打出：进度 +10，\n随机封锁 1 个卡槽。",
+	Negative.NOISE: "在手中：回合末随机弃掉\n1 张可弃的手牌。\n打出：扣 2 点心态。",
+	Negative.RUSH: "无法弃置。\n打出：进度 +10，\n随机封锁 1 个卡槽，\n扣 2 点心态。",
 	Negative.OVERDRAW: "抽到时立即生效，\n随机封锁 1 个卡槽。",
+	Negative.EXAM_PRESSURE: "抽到时立即扣 4 点心态。",
 }
 # Card numbers determine artwork and chapter order. The IDs above are stored in saves.
 const FUSHIMI_CARDS_BY_NUMBER := [
@@ -69,6 +71,7 @@ const CARDS := {
 	Negative.NOISE: ["噪音干扰", 0],
 	Negative.RUSH: ["赶工", 0],
 	Negative.OVERDRAW: ["透支", 0],
+	Negative.EXAM_PRESSURE: ["考场压力", 0],
 }
 enum Upgrade { INCREASE, DECREASE, BOOST_PROGRESS, BOOST_DEFENSE }
 
@@ -86,10 +89,10 @@ const NUMBER_NAMES := {
 	"progress_per_discard": "每次弃牌增加的进度",
 }
 const CARD_NUMBERS := {
-	0: {"draw": 1}, 1: {"progress": 3}, 2: {"block": 3}, 3: {"progress": 6},
+	0: {"draw": 1}, 1: {"progress": 6}, 2: {"block": 3}, 3: {"progress": 12},
 	4: {"heal": 4, "block": 3}, 5: {"duration": 2}, 6: {"health_change": -4, "progress": 24},
 	7: {"pick": 1, "progress": 13}, 8: {"heal": 4, "block": 3},
-	9: {"duration": 2, "progress": 36}, 10: {"heal": 2}, 11: {"progress": 6},
+	9: {"duration": 2, "progress": 36}, 10: {"heal": 2}, 11: {"progress": 12},
 	12: {"discard": 1, "draw": 2}, 13: {"progress": 12, "draw": 1, "discard": 1},
 	14: {"duration": 2}, 15: {"heal": 8, "draw": 1},
 	16: {"progress": 12, "draw": 1, "block": 3}, 17: {"block": 2},
@@ -112,12 +115,19 @@ const CARD_NUMBERS := {
 	SHIRAKAWA_PUPPY_CARD: {"turn_end_progress_per_card": 2},
 	SHIRAKAWA_OSMANTHUS_CARD: {"cost_reduction": 1},
 	SHIRAKAWA_SNOW_CARD: {},
-	Negative.ANXIETY: {},
+	Negative.ANXIETY: {"health_change": -2},
 	Negative.DISTRACTION: {"health_change": -4},
 	Negative.TIME_SHORTAGE: {"energy_gain": -1},
-	Negative.NOISE: {},
-	Negative.RUSH: {"progress": 10},
+	Negative.NOISE: {"health_change": -2},
+	Negative.RUSH: {"progress": 10, "health_change": -2},
 	Negative.OVERDRAW: {},
+	Negative.EXAM_PRESSURE: {"health_change": -4},
+}
+# These values are baked into the printed card images; card_face redraws changed base values over them.
+const ARTWORK_NUMBERS := {
+	1: {"progress": 3},
+	3: {"progress": 6},
+	11: {"progress": 6},
 }
 # Regions around Arabic numerals in the original effect text, in card texture pixels.
 const NUMBER_REGIONS := {
@@ -176,6 +186,10 @@ static func numbers(card_id: int) -> Dictionary:
 	return CARD_NUMBERS[card_id].duplicate()
 
 
+static func artwork_numbers(card_id: int) -> Dictionary:
+	return ARTWORK_NUMBERS.get(card_id, CARD_NUMBERS[card_id]).duplicate()
+
+
 static func number_regions(card_id: int) -> Dictionary:
 	return NUMBER_REGIONS.get(card_id, {})
 
@@ -225,7 +239,11 @@ static func texture(card_id: int) -> Texture2D:
 
 
 static func is_negative(card_id: int) -> bool:
-	return card_id >= Negative.ANXIETY and card_id <= Negative.OVERDRAW
+	return card_id >= Negative.ANXIETY and card_id <= Negative.EXAM_PRESSURE
+
+
+static func triggers_on_draw(card_id: int) -> bool:
+	return card_id in [Negative.OVERDRAW, Negative.EXAM_PRESSURE]
 
 
 static func yue_story_card(chapter_index: int) -> int:

@@ -14,6 +14,8 @@ var body := RichTextLabel.new()
 var name_input := LineEdit.new()
 var next_button := Button.new()
 var previous_button := Button.new()
+var darkness := ColorRect.new()
+var sunrise: Tween
 var page := 0
 var reveal := 0.0
 var leaving := false
@@ -75,15 +77,39 @@ func _ready() -> void:
 	music.volume_db = -10.0
 	add_child(music)
 	music.play()
-	var darkness := ColorRect.new()
 	darkness.color = Color.BLACK
 	darkness.mouse_filter = Control.MOUSE_FILTER_STOP
 	add_child(darkness)
 	darkness.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var sunrise := create_tween()
+	sunrise = create_tween()
 	sunrise.tween_interval(0.6)
 	sunrise.tween_property(darkness, "modulate:a", 0.0, 3.2).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	sunrise.tween_callback(func() -> void: darkness.queue_free(); opening = false)
+	sunrise.tween_callback(finish_opening)
+
+func finish_opening() -> void:
+	opening = false
+	darkness.hide()
+	darkness.queue_free()
+
+func _input(event: InputEvent) -> void:
+	if not is_visible_in_tree() or SceneFade.curtain.visible:
+		return
+	var advance_key := event is InputEventKey and (event.is_action("ui_accept") or event.is_action("ui_select"))
+	if opening:
+		var clicked: bool = event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed
+		if clicked or (advance_key and event.is_pressed() and not event.is_echo()):
+			get_viewport().set_input_as_handled()
+			sunrise.kill()
+			finish_opening()
+	elif advance_key and not name_input.has_focus() and not previous_button.has_focus():
+		get_viewport().set_input_as_handled()
+		if event.is_pressed() and not event.is_echo():
+			advance()
+
+func _gui_input(event: InputEvent) -> void:
+	if page < PAGES.size() - 1 and event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		accept_event()
+		advance()
 
 func layout_page() -> void:
 	var factor := minf(size.x / 1152.0, size.y / 648.0)
