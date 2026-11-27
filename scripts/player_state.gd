@@ -76,9 +76,6 @@ var owned_products: Array[String] = []
 var game_aesthetic_points := 0
 var game_play_counts: Dictionary[String, int] = {}
 var game_aesthetic_rewards_claimed := 0
-var daoxiang_act := 0
-var daoxiang_last_age := 0
-var daoxiang_reply := ""
 var card_deck: Array[int] = []
 var character_affection: Dictionary[String, int] = {}
 var social_chat_history: Dictionary = {}
@@ -160,9 +157,6 @@ func reset() -> void:
 	game_aesthetic_points = 0
 	game_play_counts.clear()
 	game_aesthetic_rewards_claimed = 0
-	daoxiang_act = 0
-	daoxiang_last_age = 0
-	daoxiang_reply = ""
 	card_deck.clear()
 	_card_upgrades.clear()
 	_next_upgraded_card_id = FIRST_UPGRADED_CARD_ID
@@ -201,8 +195,6 @@ func set_debug_full_progress() -> void:
 	shirakawa_third_story_seen = true
 	shirakawa_confession_seen = true
 	shirakawa_snow_seen = true
-	daoxiang_act = 3
-	daoxiang_last_age = RoundCalendar.HIGH_SCHOOL_AGE
 	for character: String in [SocialCharacters.YUE, SocialCharacters.FUSHIMI, SocialCharacters.SHIRAKAWA]:
 		character_affection[character] = MAX_AFFECTION
 	var all_cards: Array[int] = []
@@ -263,9 +255,6 @@ func make_snapshot() -> Dictionary:
 		"game_aesthetic_points": game_aesthetic_points,
 		"game_play_counts": game_play_counts.duplicate(),
 		"game_aesthetic_rewards_claimed": game_aesthetic_rewards_claimed,
-		"daoxiang_act": daoxiang_act,
-		"daoxiang_last_age": daoxiang_last_age,
-		"daoxiang_reply": daoxiang_reply,
 		"card_deck": card_deck.duplicate(),
 		"starter_deck_completed": has_starter_deck(),
 		"yue_story_cards_resolved": _yue_story_cards_resolved,
@@ -358,9 +347,6 @@ func restore_snapshot(data: Dictionary) -> void:
 		for game_id in saved_game_plays:
 			if game_id is String and GameAesthetic.contains_game(game_id):
 				game_play_counts[game_id] = clampi(int(saved_game_plays[game_id]), 0, 100000)
-	daoxiang_act = clampi(int(data.get("daoxiang_act", 0)), 0, 3)
-	daoxiang_last_age = maxi(0, int(data.get("daoxiang_last_age", 0)))
-	daoxiang_reply = str(data.get("daoxiang_reply", ""))
 	card_deck.clear()
 	_starter_deck_completed = bool(data.get("starter_deck_completed", false))
 	# A meeting completed in an older save has already passed its one-time offer.
@@ -448,21 +434,6 @@ func get_age_years() -> int:
 	return preload("res://scripts/round_calendar.gd").age(round_number)
 
 
-func available_daoxiang_act() -> int:
-	var age := get_age_years()
-	match daoxiang_act:
-		0: return 1 if age >= 6 and age <= 10 else 0
-		1: return 2 if age >= 15 else 0
-		2: return 3 if age >= 16 and age > daoxiang_last_age else 0
-		_: return 0
-
-
-func complete_daoxiang_act(act: int) -> void:
-	if act != available_daoxiang_act():
-		return
-	daoxiang_act = act
-	daoxiang_last_age = get_age_years()
-	changed.emit()
 func apply_next_round_energy_bonus() -> void:
 	if next_round_energy_bonus <= 0:
 		return
@@ -791,16 +762,12 @@ func try_buy_affection_gift(character: String, price: int, amount: int) -> int:
 
 func social_locations() -> Dictionary[String, String]:
 	var locations := SocialCharacters.locations_for_round(round_number, park_meeting_seen, yue_story_chapter(), fushimi_pen_seen)
-	if available_daoxiang_act() > 0:
-		locations[SocialCharacters.DAOXIANG] = SocialCharacters.PARK
 	if shirakawa_first_story_seen or shirakawa_story_available():
 		locations[SocialCharacters.SHIRAKAWA] = SocialCharacters.SCHOOL
 	return locations
 
 
 func has_character_story(character: String, location: String) -> bool:
-	if character == SocialCharacters.DAOXIANG:
-		return location == SocialCharacters.PARK and available_daoxiang_act() > 0
 	if character == SocialCharacters.FUSHIMI:
 		return location == SocialCharacters.SCHOOL and fushimi_story_chapter() != SocialCharacters.FushimiChapter.NONE
 	if character == SocialCharacters.SHIRAKAWA:

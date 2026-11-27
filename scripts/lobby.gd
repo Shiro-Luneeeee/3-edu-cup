@@ -24,8 +24,9 @@ func _ready() -> void:
 		subtitle.text = "光落在桌沿，下一页正等你写下。"
 		footer_note.text = "选中手牌，再落在桌上的卡槽。"
 	var target := ExamDifficulty.progress_target(PlayerState.passed_exams)
-	var damage_bonus := ExamDifficulty.damage_bonus(PlayerState.passed_exams)
-	match_info.text = "目标进度 %d  ·  初始心态 %d\n每回合能量 3  ·  对手伤害 +%d" % [target, PlayerState.max_health, damage_bonus]
+	var age_bonus := ExamDifficulty.turn_end_age_bonus(PlayerState.get_age_years())
+	var loss_text := "回合数" if age_bonus == 0 else "回合数 + %d" % age_bonus
+	match_info.text = "目标进度 %d  ·  初始心态 %d\n能量 3  ·  回合末扣心态（%s）" % [target, PlayerState.max_health, loss_text]
 	start_button.add_to_group("silent_match_start")
 	start_button.pressed.connect(start_match)
 	back_button.pressed.connect(SceneFade.change_to.bind(BEDROOM_SCENE, -1.0))

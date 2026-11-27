@@ -19,6 +19,20 @@ const SHIRAKAWA_FAVOR_CARD := 301
 const SHIRAKAWA_PUPPY_CARD := 302
 const SHIRAKAWA_OSMANTHUS_CARD := 303
 const SHIRAKAWA_SNOW_CARD := 304
+enum Negative { ANXIETY = 400, DISTRACTION, TIME_SHORTAGE, NOISE, RUSH, OVERDRAW }
+const NEGATIVE_ART := [
+	preload("res://images/attack/1.png"), preload("res://images/attack/2.png"),
+	preload("res://images/attack/4.png"), preload("res://images/attack/3.png"),
+	preload("res://images/attack/5.png"), preload("res://images/attack/6.png"),
+]
+const NEGATIVE_DESCRIPTIONS := {
+	Negative.ANXIETY: "在手中：回合结束的\n心态消耗翻倍。",
+	Negative.DISTRACTION: "在手中：回合开始少抽 1 张。\n打出：扣 4 点心态。",
+	Negative.TIME_SHORTAGE: "在手中：回合开始能量 −1。\n打出：扣 1 点能量。",
+	Negative.NOISE: "在手中：回合结束时\n随机弃掉 1 张可弃的手牌。",
+	Negative.RUSH: "无法弃置。\n打出：进度 +10，\n随机封锁 1 个卡槽。",
+	Negative.OVERDRAW: "抽到时立即生效，\n随机封锁 1 个卡槽。",
+}
 # Card numbers determine artwork and chapter order. The IDs above are stored in saves.
 const FUSHIMI_CARDS_BY_NUMBER := [
 	FUSHIMI_PEN_CARD, FUSHIMI_TUTORING_CARD, FUSHIMI_TOGETHER_CARD,
@@ -49,6 +63,12 @@ const CARDS := {
 	SHIRAKAWA_PUPPY_CARD: ["小毛球的约定", 2],
 	SHIRAKAWA_OSMANTHUS_CARD: ["不枯萎的桂花", 3],
 	SHIRAKAWA_SNOW_CARD: ["温暖的初雪", 15],
+	Negative.ANXIETY: ["焦虑", 0],
+	Negative.DISTRACTION: ["走神", 0],
+	Negative.TIME_SHORTAGE: ["时间不足", 0],
+	Negative.NOISE: ["噪音干扰", 0],
+	Negative.RUSH: ["赶工", 0],
+	Negative.OVERDRAW: ["透支", 0],
 }
 enum Upgrade { INCREASE, DECREASE, BOOST_PROGRESS, BOOST_DEFENSE }
 
@@ -92,6 +112,12 @@ const CARD_NUMBERS := {
 	SHIRAKAWA_PUPPY_CARD: {"turn_end_progress_per_card": 2},
 	SHIRAKAWA_OSMANTHUS_CARD: {"cost_reduction": 1},
 	SHIRAKAWA_SNOW_CARD: {},
+	Negative.ANXIETY: {},
+	Negative.DISTRACTION: {"health_change": -4},
+	Negative.TIME_SHORTAGE: {"energy_gain": -1},
+	Negative.NOISE: {},
+	Negative.RUSH: {"progress": 10},
+	Negative.OVERDRAW: {},
 }
 # Regions around Arabic numerals in the original effect text, in card texture pixels.
 const NUMBER_REGIONS := {
@@ -186,6 +212,8 @@ static func boosted_number(value: int) -> int:
 
 
 static func texture(card_id: int) -> Texture2D:
+	if is_negative(card_id):
+		return NEGATIVE_ART[card_id - Negative.ANXIETY]
 	if card_id >= SHIRAKAWA_GAME_CARD:
 		return load("%s/%d.png" % [SHIRAKAWA_DIRECTORY, card_id - SHIRAKAWA_GAME_CARD]) as Texture2D
 	if card_id >= FUSHIMI_PEN_CARD:
@@ -194,6 +222,10 @@ static func texture(card_id: int) -> Texture2D:
 	if card_id >= YUE_FIRST_CARD:
 		return load("%s/%d.png" % [YUE_DIRECTORY, card_id - YUE_FIRST_CARD]) as Texture2D
 	return load("%s/%d.png" % [DIRECTORY, card_id]) as Texture2D
+
+
+static func is_negative(card_id: int) -> bool:
+	return card_id >= Negative.ANXIETY and card_id <= Negative.OVERDRAW
 
 
 static func yue_story_card(chapter_index: int) -> int:
@@ -211,4 +243,4 @@ static func shirakawa_story_card(chapter_index: int) -> int:
 
 
 static func exhausts_on_play(card_id: int) -> bool:
-	return card_id == 11 or card_id == 26
+	return card_id == 11 or card_id == 26 or is_negative(card_id)

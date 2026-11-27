@@ -5,6 +5,7 @@ signal card_choice_made(choice: int)
 const LOBBY_SCENE := "res://scenes/lobby.tscn"
 const BEDROOM_SCENE := "res://scenes/bedroom.tscn"
 const CardCatalog := preload("res://scripts/card_catalog.gd")
+const Negative := CardCatalog.Negative
 const CardFace := preload("res://scripts/card_face.gd")
 const RoundCalendar := preload("res://scripts/round_calendar.gd")
 const ExamDifficulty := preload("res://scripts/exam_difficulty.gd")
@@ -70,7 +71,7 @@ var slot_layer: Control
 var selected_card: Control
 var deck_choice_overlay: Control
 var card_effect_resolving := false
-var resolving_attack := false
+var resolving_turn := false
 var showing_turn_banner := false
 var game_over := false
 var match_settled := false
@@ -99,17 +100,11 @@ var hand_move_tween: Tween
 @onready var end_button: Button = $HudLayer/UI/end
 @onready var progress_target := ExamDifficulty.progress_target(PlayerState.passed_exams)
 @onready var is_final_exam := RoundCalendar.is_final_exam(PlayerState.round_number)
-@onready var enemy_damage_bonus := ExamDifficulty.damage_bonus(PlayerState.passed_exams)
+@onready var turn_end_age_bonus := ExamDifficulty.turn_end_age_bonus(PlayerState.get_age_years())
 
 var health_texture := preload("res://images/金色月桂叶游戏生命条.png")
 var progress_texture := preload("res://images/米色网格便签进度条界面.png")
 var energy_texture := preload("res://images/复古纸张能量徽章图标.png")
-var attack_textures: Array[Texture2D] = [
-	preload("res://images/attack/1.png"), preload("res://images/attack/2.png"),
-	preload("res://images/attack/3.png"), preload("res://images/attack/4.png"),
-	preload("res://images/attack/5.png"), preload("res://images/attack/6.png"),
-]
-
 func _ready() -> void:
 	if not prepare_match():
 		return
@@ -189,7 +184,7 @@ func _exit_tree() -> void:
 		transition_music.queue_free()
 
 func _unhandled_key_input(event: InputEvent) -> void:
-	if game_over or card_effect_resolving or resolving_attack or showing_turn_banner:
+	if game_over or card_effect_resolving or resolving_turn or showing_turn_banner:
 		get_viewport().set_input_as_handled()
 		return
 	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_SPACE:
@@ -217,43 +212,59 @@ func _input(event: InputEvent) -> void:
 				else:
 					get_tree().change_scene_to_file(LOBBY_SCENE)
 				return
-	if game_over:
+	if game_over or resolving_turn:
 		return
 	if selected_card != null and event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
 		get_viewport().set_input_as_handled()
 		cancel_selected_card()
 
 func end_turn() -> void:
-	if game_over or card_effect_resolving or resolving_attack or showing_turn_banner:
+	if game_over or card_effect_resolving or resolving_turn or showing_turn_banner:
 		return
-	for card_id in end_turn_copies:
-		give_drawn_card(card_id)
-	end_turn_copies.clear()
-	progress += discard_pile.size() * turn_end_progress_per_discard
-	if turn >= FINAL_TURN:
-		settle_game(true)
-		return
-	resolving_attack = true
-	turn += 1
-	turn_value_label.text = "回合数：%d" % turn
-	energy = maxi(STARTING_ENERGY + starting_energy_bonus + next_turn_energy_change, 0)
-	next_turn_energy_change = 0
-	update_values()
-	reset_used_slots()
+	resolving_turn = true
 	if selected_card != null:
 		selected_card = null
 		set_slots_selectable(false)
 		rearrange_remaining_hand()
 		await return_hand_to_player()
+		if game_over:
+			return
+	for card_id in end_turn_copies:
+		give_drawn_card(card_id)
+	end_turn_copies.clear()
+	var health_loss := turn_end_health_loss()
+	for discard_index in held_negative_count(Negative.NOISE):
+		discard_random_hand_card()
+	progress += discard_pile.size() * turn_end_progress_per_discard
+	if health_loss > 0:
+		health = maxf(0.0, health - health_loss)
+		animate_health_display()
+		if health_display_tween and health_display_tween.is_running():
+			await health_display_tween.finished
+	if game_over:
+		return
+	if health <= 0.0 or turn >= FINAL_TURN:
+		settle_game(true)
+		return
+	turn += 1
+	turn_value_label.text = "回合数：%d" % turn
+	update_values()
+	reset_used_slots()
 	await show_turn_banner()
 	if game_over:
 		return
 	apply_next_turn_slot_locks()
+	await draw_turn_negative_card()
+	if game_over:
+		return
+	energy = maxi(STARTING_ENERGY + starting_energy_bonus + next_turn_energy_change - held_negative_count(Negative.TIME_SHORTAGE), 0)
+	next_turn_energy_change = 0
+	var draw_count := maxi(TURN_DRAW_COUNT - held_negative_count(Negative.DISTRACTION), 0)
+	update_values()
 	var finish_after_start := await resolve_delayed_plays()
 	if game_over:
 		return
-	await draw_cards(TURN_DRAW_COUNT)
-	await resolve_attack(randi_range(0, attack_textures.size() - 1))
+	await draw_cards(draw_count)
 	if game_over:
 		return
 	if health_display_tween and health_display_tween.is_running():
@@ -262,9 +273,118 @@ func end_turn() -> void:
 	update_values()
 	if health_display_tween and health_display_tween.is_running():
 		await health_display_tween.finished
-	resolving_attack = false
+	resolving_turn = false
 	if finish_after_start:
 		end_turn.call_deferred()
+
+func turn_end_health_loss() -> int:
+	var loss := turn + turn_end_age_bonus
+	for anxiety in held_negative_count(Negative.ANXIETY):
+		loss *= 2
+	return loss
+
+func held_negative_count(card_id: int) -> int:
+	var count := 0
+	for held_card in hand:
+		if source_card_id(held_card) == card_id:
+			count += 1
+	return count
+
+func draw_turn_negative_card() -> void:
+	var chance := ExamDifficulty.negative_draw_chance(health, max_health)
+	if chance <= 0.0 or (chance < 1.0 and randf() >= chance):
+		return
+	await give_negative_card(randi_range(Negative.ANXIETY, Negative.OVERDRAW))
+
+func give_negative_card(card_id: int) -> void:
+	var reveal_layer := Control.new()
+	reveal_layer.name = "NegativeCardReveal"
+	reveal_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	reveal_layer.z_index = 55
+	ui.add_child(reveal_layer)
+	reveal_layer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+
+	var shade := ColorRect.new()
+	shade.color = Color(0.14, 0.025, 0.045, 0.66)
+	shade.modulate.a = 0.0
+	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	reveal_layer.add_child(shade)
+	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+
+	var card := create_card(card_id)
+	var hover_area: Control = card.get_node("HoverArea")
+	hover_area.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	card.scale = Vector2.ONE * 0.8
+	card.modulate.a = 0.0
+	card.position = (reveal_layer.size - card.size) * 0.5
+	reveal_layer.add_child(card)
+
+	var glow := Panel.new()
+	var glow_style := StyleBoxFlat.new()
+	glow_style.bg_color = Color(0.8, 0.2, 0.32, 0.2)
+	glow_style.border_color = Color("f38d9b")
+	glow_style.set_border_width_all(2)
+	glow_style.set_corner_radius_all(7)
+	glow_style.shadow_color = Color(0.9, 0.16, 0.32, 0.85)
+	glow_style.shadow_size = 18
+	glow.add_theme_stylebox_override("panel", glow_style)
+	glow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	glow.position = Vector2(-3, -3)
+	glow.size = card.size + Vector2(6, 6)
+	card.add_child(glow)
+	card.move_child(glow, 0)
+
+	var title := Label.new()
+	title.text = "负面牌 · 立即生效" if card_id == Negative.OVERDRAW else "抽到负面牌"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.position.y = reveal_layer.size.y * 0.5 - card.size.y * 0.825 - 45.0
+	title.size.x = reveal_layer.size.x
+	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	title.modulate.a = 0.0
+	title.add_theme_font_size_override("font_size", 27)
+	title.add_theme_color_override("font_color", Color("ffe0e3"))
+	title.add_theme_color_override("font_outline_color", Color("4d111b"))
+	title.add_theme_constant_override("outline_size", 6)
+	reveal_layer.add_child(title)
+
+	var reveal := create_tween().set_parallel(true)
+	reveal.tween_property(shade, "modulate:a", 1.0, 0.22)
+	reveal.tween_property(title, "modulate:a", 1.0, 0.22)
+	reveal.tween_property(card, "modulate:a", 1.0, 0.2)
+	reveal.tween_property(card, "scale", Vector2.ONE * 1.65, 0.25).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	reveal.chain().tween_interval(0.43)
+	await reveal.finished
+	if game_over:
+		reveal_layer.queue_free()
+		return
+	var finish := create_tween().set_parallel(true)
+	finish.tween_property(shade, "modulate:a", 0.0, 0.24)
+	finish.tween_property(title, "modulate:a", 0.0, 0.22)
+	if card_id == Negative.OVERDRAW:
+		block_random_slot()
+		finish.tween_property(card, "modulate:a", 0.0, 0.24)
+		await finish.finished
+	else:
+		# Negative cards still take a place in a full hand.
+		var hand_index := hand.size()
+		var hand_count := hand_index + 1
+		var destination := hand_holder.get_global_transform() * get_fan_position(hand_index, hand_count)
+		finish.tween_property(card, "global_position", destination, 0.50).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+		finish.tween_property(card, "rotation", get_fan_rotation(hand_index, hand_count), 0.50)
+		finish.tween_property(card, "scale", Vector2.ONE, 0.50).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
+		finish.tween_property(glow, "modulate:a", 0.0, 0.18).set_delay(0.32)
+		for index in hand_index:
+			var held_card := hand_holder.get_child(index) as Control
+			finish.tween_property(held_card, "position", get_fan_position(index, hand_count), 0.40).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+			finish.tween_property(held_card, "rotation", get_fan_rotation(index, hand_count), 0.40)
+		await finish.finished
+		if not game_over:
+			card.reparent(hand_holder)
+			card.position = get_fan_position(hand_index, hand_count)
+			hover_area.mouse_filter = Control.MOUSE_FILTER_STOP
+			register_hand_card(card, card_id)
+			glow.queue_free()
+	reveal_layer.queue_free()
 
 func show_turn_banner() -> void:
 	showing_turn_banner = true
@@ -297,65 +417,17 @@ func show_turn_banner() -> void:
 	banner.queue_free()
 	showing_turn_banner = false
 
-func resolve_attack(attack_id: int) -> void:
-	var damage := ExamDifficulty.attack_damage(attack_id, enemy_damage_bonus)
-	var art := TextureRect.new()
-	art.texture = attack_textures[attack_id]
-	art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	art.size = Vector2(230, 322)
-	art.position = (ui.size - art.size) / 2.0
-	art.pivot_offset = art.size / 2.0
-	art.scale = Vector2(0.8, 0.8)
-	art.modulate.a = 0.0
-	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	art.z_index = 55
-	ui.add_child(art)
-	var base_damage: int = ExamDifficulty.BASE_ATTACK_DAMAGE[attack_id]
-	if damage > base_damage:
-		var caption := Label.new()
-		caption.text = "本场伤害 %d（基础 %d + %d）" % [damage, base_damage, damage - base_damage]
-		caption.position = Vector2(-40, art.size.y + 10)
-		caption.size = Vector2(310, 30)
-		caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		caption.add_theme_font_size_override("font_size", 21)
-		caption.add_theme_color_override("font_outline_color", Color("3c1720"))
-		caption.add_theme_constant_override("outline_size", 6)
-		art.add_child(caption)
-	var entrance := create_tween().set_parallel(true)
-	entrance.tween_property(art, "modulate:a", 1.0, 0.25)
-	entrance.tween_property(art, "scale", Vector2.ONE, 0.25)
-	await get_tree().create_timer(1.4).timeout
-	consume_health(damage)
-	if not game_over:
-		match attack_id:
-			ExamDifficulty.Attack.HAND_DISCARD: discard_random_hand_card()
-			ExamDifficulty.Attack.SLOT_LOCK: block_random_slot()
-			ExamDifficulty.Attack.ENERGY_LOSS: energy = maxi(0, energy - 1)
-			ExamDifficulty.Attack.HAND_RETURN: await return_random_hand_card_to_deck()
-	update_values()
-	var exit_tween := create_tween().set_parallel(true)
-	exit_tween.tween_property(art, "modulate:a", 0.0, 0.3)
-	exit_tween.tween_property(art, "scale", Vector2(0.8, 0.8), 0.3)
-	await exit_tween.finished
-	art.queue_free()
-
 func discard_random_hand_card() -> void:
-	if hand.is_empty():
-		return
-	apply_hand_discard_effects([discard_hand_card(randi_range(0, hand.size() - 1))])
+	var candidates := discardable_hand_indices()
+	if not candidates.is_empty():
+		apply_hand_discard_effects([discard_hand_card(candidates.pick_random())])
 
-func return_random_hand_card_to_deck() -> void:
-	if hand.is_empty():
-		return
-	var index := randi_range(0, hand.size() - 1)
-	deck.append(hand.pop_at(index))
-	var card: Control = hand_holder.get_child(index)
-	card.reparent(ui, true)
-	card_preview.hide()
-	rearrange_remaining_hand()
-	await animate_card_to_deck(card)
+func discardable_hand_indices() -> Array[int]:
+	var indices: Array[int] = []
+	for index in hand.size():
+		if source_card_id(hand[index]) != Negative.RUSH:
+			indices.append(index)
+	return indices
 
 func animate_card_to_deck(card: Control) -> void:
 	card.get_node("HoverArea").mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -374,7 +446,8 @@ func discard_hand_card(index: int, animate_layout: bool = true) -> int:
 	if card_preview.visible:
 		card_preview.hide()
 	var discarded_id: int = hand.pop_at(index)
-	discard_pile.append(discarded_id)
+	if not CardCatalog.is_negative(source_card_id(discarded_id)):
+		discard_pile.append(discarded_id)
 	card.get_node("HoverArea").mouse_filter = Control.MOUSE_FILTER_IGNORE
 	card.reparent(ui, true)
 	card.z_index = 45
@@ -397,8 +470,11 @@ func discard_hand_card(index: int, animate_layout: bool = true) -> int:
 
 func discard_all_hand_cards() -> int:
 	var discarded: Array[int] = []
-	for index in range(hand.size() - 1, -1, -1):
+	var candidates := discardable_hand_indices()
+	candidates.reverse()
+	for index in candidates:
 		discarded.append(discard_hand_card(index, false))
+	rearrange_remaining_hand()
 	apply_hand_discard_effects(discarded)
 	return discarded.size()
 
@@ -453,17 +529,13 @@ func give_drawn_card(drawn_card_id: int) -> void:
 	add_card_to_hand(drawn_card_id, true)
 
 func add_card_to_hand(card_id: int, animate_draw: bool = false) -> void:
-	hand.append(card_id)
 	var new_card := create_card(card_id)
-	new_card.set_meta("hand_index", hand.size() - 1)
-	new_card.set_meta("card_id", card_id)
-	new_card.z_index = hand.size() - 1
-	connect_card_interaction(new_card)
 	new_card.position = Vector2(760, -330) if animate_draw else Vector2(284, 190)
 	new_card.scale = Vector2(0.62, 0.62) if animate_draw else Vector2.ONE
 	new_card.rotation = deg_to_rad(-18.0) if animate_draw else 0.0
 	new_card.modulate.a = 0.75 if animate_draw else 0.0
 	hand_holder.add_child(new_card)
+	register_hand_card(new_card, card_id)
 
 	for card_index in hand_holder.get_child_count():
 		var card: Control = hand_holder.get_child(card_index)
@@ -477,6 +549,14 @@ func add_card_to_hand(card_id: int, animate_draw: bool = false) -> void:
 			tween.tween_property(card, "modulate:a", 1.0, 0.2)
 			if animate_draw:
 				tween.tween_property(card, "scale", Vector2.ONE, duration).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+func register_hand_card(card: Control, card_id: int) -> void:
+	var hand_index := hand.size()
+	hand.append(card_id)
+	card.set_meta("hand_index", hand_index)
+	card.set_meta("card_id", card_id)
+	card.z_index = hand_index
+	connect_card_interaction(card)
 
 func animate_discarded_draw(card_id: int) -> void:
 	var discarded_card := create_card(card_id)
@@ -509,11 +589,7 @@ func block_random_slot() -> void:
 	var slot: Control = available_slots.pick_random()
 	slot.set_meta("blocked", true)
 	refresh_slot_statuses(slot)
-	if selected_card != null:
-		if has_usable_slot():
-			set_slots_selectable(true)
-		else:
-			cancel_selected_card()
+	animate_slot_status(slot, slot.get_node("BlockMark"), SLOT_STATUS["blocked_until"][3])
 
 func has_usable_slot() -> bool:
 	for slot: Control in slot_layer.get_children():
@@ -856,7 +932,7 @@ void fragment() {
 	return material
 
 func select_card_from_hand(event: InputEvent, card: Control) -> void:
-	if game_over or showing_turn_banner or resolving_attack or card_effect_resolving or selected_card != null or not (event is InputEventMouseButton):
+	if game_over or showing_turn_banner or resolving_turn or card_effect_resolving or selected_card != null or not (event is InputEventMouseButton):
 		return
 	if event.button_index != MOUSE_BUTTON_LEFT or not event.pressed:
 		return
@@ -979,7 +1055,7 @@ func set_slots_selectable(enabled: bool) -> void:
 			glow.hide()
 
 func use_selected_card(event: InputEvent, slot: Control) -> bool:
-	if game_over or card_effect_resolving or resolving_attack or selected_card == null or not (event is InputEventMouseButton):
+	if game_over or card_effect_resolving or resolving_turn or selected_card == null or not (event is InputEventMouseButton):
 		return false
 	if event.button_index != MOUSE_BUTTON_LEFT or not event.pressed:
 		return false
@@ -1078,7 +1154,7 @@ func resolve_play(card_id: int, slot: Control, multiplier: float, repetitions: i
 			break
 		if promise_draw_cards.has(card_id):
 			await draw_cards(1)
-	if (not oath_applied or battle_card_cost(card_id) == 0) and not CardCatalog.exhausts_on_play(PlayerState.card_base_id(source_card_id(card_id))):
+	if not CardCatalog.exhausts_on_play(PlayerState.card_base_id(source_card_id(card_id))) and (not oath_applied or battle_card_cost(card_id) == 0):
 		discard_pile.append(card_id)
 		played_discards.append(card_id)
 	update_values()
@@ -1139,7 +1215,7 @@ func apply_card_effect(card_id: int, slot: Control, multiplier: float) -> bool:
 			progress += int(values["progress"]) * multiplier
 		12:
 			var requested := int(values["discard"])
-			if hand.size() >= requested:
+			if discardable_hand_indices().size() >= requested:
 				await choose_and_discard_cards(requested)
 				await draw_cards(roundi(int(values["draw"]) * multiplier))
 		13:
@@ -1258,6 +1334,13 @@ func apply_card_effect(card_id: int, slot: Control, multiplier: float) -> bool:
 		CardCatalog.SHIRAKAWA_SNOW_CARD:
 			progress = maxf(progress, progress_target)
 			settle_game(true)
+		Negative.DISTRACTION:
+			consume_health(-int(values["health_change"]) * multiplier, true)
+		Negative.TIME_SHORTAGE:
+			energy = maxi(0, energy + roundi(int(values["energy_gain"]) * multiplier))
+		Negative.RUSH:
+			progress += int(values["progress"]) * multiplier
+			block_random_slot()
 	update_values()
 	return false
 
@@ -1320,7 +1403,7 @@ func recover_played_cards(amount: int, maximum_cost: int = -1) -> void:
 func choose_and_discard_cards(amount: int) -> int:
 	var discarded: Array[int] = []
 	var total_cost := 0
-	for pick in mini(amount, hand.size()):
+	for pick in mini(amount, discardable_hand_indices().size()):
 		var index := await request_card_choice(hand, true)
 		total_cost += battle_card_cost(hand[index])
 		discarded.append(discard_hand_card(index))
@@ -1333,16 +1416,13 @@ func unblock_slot(slot: Control) -> void:
 	slot.set_meta("blocked_until", 0)
 	refresh_slot_statuses(slot)
 
-func consume_health(amount: float) -> void:
-	var absorbed := minf(block, maxf(amount, 0.0))
+func consume_health(amount: float, bypass_block: bool = false) -> void:
+	var damage := maxf(amount, 0.0)
+	var absorbed := 0.0 if bypass_block else minf(block, damage)
 	block -= absorbed
-	health = maxf(0.0, health - (maxf(amount, 0.0) - absorbed))
+	health = maxf(0.0, health - (damage - absorbed))
 	if health <= 0.0 and not game_over:
-		if is_final_exam:
-			finish_final_exam(false)
-		else:
-			game_over = true
-			show_game_over.call_deferred()
+		settle_game(true)
 
 func finish_final_exam(passed: bool) -> void:
 	game_over = true
@@ -1351,65 +1431,34 @@ func finish_final_exam(passed: bool) -> void:
 		SaveManager.save_active_slot()
 	get_tree().change_scene_to_file.call_deferred(SceneFade.FINAL_EXAM_ENDING_SCENE)
 
-func show_game_over(reason: String = "") -> void:
-	if health_display_tween and health_display_tween.is_running():
-		await health_display_tween.finished
-	var overlay := ColorRect.new()
-	overlay.name = "GameOverOverlay"
-	overlay.color = Color(0.04, 0.03, 0.05, 0.88)
-	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	overlay.z_index = 100
-	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-	ui.add_child(overlay)
-	var title := Label.new()
-	title.text = "游戏失败"
-	title.size = Vector2(400, 90)
-	title.position = (ui.size - title.size) / 2.0 + Vector2(0, -65)
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 54)
-	overlay.add_child(title)
-	if not reason.is_empty():
-		var detail := Label.new()
-		detail.text = reason
-		detail.size = Vector2(480, 32)
-		detail.position = (ui.size - detail.size) / 2.0
-		detail.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		detail.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		detail.add_theme_font_size_override("font_size", 22)
-		overlay.add_child(detail)
-	var restart := Button.new()
-	restart.text = "重新开始"
-	restart.size = Vector2(190, 54)
-	restart.position = (ui.size - restart.size) / 2.0 + Vector2(0, 48)
-	restart.add_theme_font_size_override("font_size", 24)
-	restart.pressed.connect(func(): get_tree().reload_current_scene())
-	overlay.add_child(restart)
-
 func finish_game() -> void:
-	if resolving_attack or showing_turn_banner or card_effect_resolving:
+	if resolving_turn or showing_turn_banner or card_effect_resolving:
 		return
 	settle_game(false)
 
 func settle_game(automatic: bool) -> void:
 	if game_over:
 		return
-	if is_final_exam:
-		if automatic or progress >= progress_target:
-			finish_final_exam(progress >= progress_target)
+	var passed := progress >= progress_target
+	if not automatic and not passed:
 		return
-	if progress < progress_target:
-		if automatic:
-			game_over = true
-			show_game_over("考试进度不足  %s / %d" % [format_value(progress), progress_target])
+	if is_final_exam:
+		finish_final_exam(passed)
 		return
 	game_over = true
 	match_settled = true
-	var allowance_bonus := PlayerState.record_exam_pass(progress, progress_target)
-	UiSounds.play_victory()
+	var reward_count := 0
+	var allowance_bonus := 0
+	if passed:
+		reward_count = 2 if progress >= progress_target * 1.5 else 1
+		allowance_bonus = PlayerState.record_exam_pass(progress, progress_target)
+		UiSounds.play_victory()
 	set_slots_selectable(false)
 	if card_preview != null:
 		card_preview.hide()
+	update_values()
+	if health <= 0.0 and health_display_tween and health_display_tween.is_running():
+		await health_display_tween.finished
 	if not automatic:
 		if end_button_tween and end_button_tween.is_running():
 			end_button_tween.kill()
@@ -1421,6 +1470,7 @@ func settle_game(automatic: bool) -> void:
 		return
 	end_button.hide()
 	match_rewards = MATCH_REWARDS_SCENE.instantiate() as MatchRewards
+	match_rewards.rewards_remaining = reward_count
 	match_rewards.summary = "进度 %s / %d    ·    心态 %s    ·    回合 %d    ·    下一轮回满精力" % [
 		format_value(progress), progress_target, format_value(health), turn,
 	]
@@ -1539,8 +1589,7 @@ func request_card_choice(cards: Array[int], from_hand: bool, prompt_text: String
 
 	var options: Array[int] = []
 	if from_hand:
-		for index in cards.size():
-			options.append(index)
+		options = discardable_hand_indices()
 	else:
 		for card_id in cards:
 			if not options.has(card_id):
@@ -1653,7 +1702,7 @@ func create_card_preview(parent: Control) -> void:
 	card_preview.add_child(detail_card)
 
 func show_card_preview(card: Control) -> void:
-	if game_over or card_effect_resolving or resolving_attack or selected_card != null or card.get_parent() != hand_holder:
+	if game_over or card_effect_resolving or resolving_turn or selected_card != null or card.get_parent() != hand_holder:
 		return
 	card.z_index = 10
 	var tween := create_tween().set_parallel(true)

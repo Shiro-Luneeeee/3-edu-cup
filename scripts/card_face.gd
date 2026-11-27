@@ -29,7 +29,7 @@ func set_card(card_id: int, preview_numbers: Dictionary = {}, battle_cost: int =
 	original_numbers = CardCatalog.numbers(base_id)
 	numbers = PlayerState.card_numbers(card_id) if preview_numbers.is_empty() else preview_numbers
 	cost_override = battle_cost
-	if (numbers != original_numbers or cost_override >= 0) and edits == null:
+	if (CardCatalog.is_negative(base_id) or numbers != original_numbers or cost_override >= 0) and edits == null:
 		edits = Control.new()
 		edits.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		edits.draw.connect(draw_edits)
@@ -41,7 +41,8 @@ func set_card(card_id: int, preview_numbers: Dictionary = {}, battle_cost: int =
 
 
 func draw_edits() -> void:
-	if numbers == original_numbers and cost_override < 0:
+	var is_negative := CardCatalog.is_negative(base_id)
+	if not is_negative and numbers == original_numbers and cost_override < 0:
 		return
 	var art_size := size
 	var is_fushimi := base_id >= CardCatalog.FUSHIMI_PEN_CARD
@@ -50,6 +51,9 @@ func draw_edits() -> void:
 		art_size = source_size * minf(size.x / source_size.x, size.y / source_size.y)
 	var origin := (size - art_size) * 0.5
 	var art_scale := art_size / source_size
+	if is_negative:
+		draw_negative_edits(origin, art_scale)
+		return
 	if cost_override >= 0:
 		var is_yue := base_id >= CardCatalog.YUE_FIRST_CARD
 		var cost_region := YUE_COST_REGION if is_yue else COST_REGION
@@ -83,6 +87,23 @@ func draw_edits() -> void:
 			elif field == "progress_per_discard":
 				digits = "+%d" % value
 		draw_digits(digits, Rect2(region), origin, art_scale, ink, DIGIT_FONT_SIZE)
+
+
+func draw_negative_edits(origin: Vector2, art_scale: Vector2) -> void:
+	var ink := Color("5d221e")
+	var paper := Color("fbd4bc")
+	edits.draw_set_transform(origin, 0.0, art_scale)
+	edits.draw_rect(Rect2(247, 82, 594, 112), paper)
+	edits.draw_string(DIGIT_FONT, Vector2(247, 170), CardCatalog.card_name(base_id), HORIZONTAL_ALIGNMENT_CENTER, 594, 86, ink)
+	edits.draw_circle(Vector2(146, 137), 51.0, ink, true, -1.0, true)
+	var cost_text := "自动" if base_id == CardCatalog.Negative.OVERDRAW else "0"
+	edits.draw_string(DIGIT_FONT, Vector2(95, 154), cost_text, HORIZONTAL_ALIGNMENT_CENTER, 102, 39 if cost_text == "自动" else 54, Color("fff4e6"))
+	edits.draw_rect(Rect2(57, 966, 924, 405), paper)
+	var lines: PackedStringArray = CardCatalog.NEGATIVE_DESCRIPTIONS[base_id].split("\n")
+	var baseline := 1179.0 - (lines.size() - 1) * 44.0
+	for line: String in lines:
+		edits.draw_string(DIGIT_FONT, Vector2(82, baseline), line, HORIZONTAL_ALIGNMENT_CENTER, 880, 66, ink)
+		baseline += 88.0
 
 
 func get_paper_patch(region: Rect2i) -> Texture2D:

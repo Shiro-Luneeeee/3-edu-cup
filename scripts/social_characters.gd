@@ -5,7 +5,6 @@ enum FushimiChapter { NONE = -1, PEN = 0, TUTORING = 1, BOOKSHOP = 2, CONFESSION
 
 const RoundCalendar := preload("res://scripts/round_calendar.gd")
 const YUE := "月侧阳奈里"
-const DAOXIANG := "稻香粽子"
 const FUSHIMI := "伏见宫夜姬"
 const SHIRAKAWA := "白川花雪"
 const PARK := "res://scenes/park.tscn"
@@ -30,7 +29,6 @@ const CHAT_ENERGY_COST := 5
 const CHAT_AFFECTION_GAIN := 10
 const AVATAR_PATHS := {
 	YUE: "res://images/character/yue_chibi.png",
-	DAOXIANG: "res://images/character/daoxiang_chibi.png",
 	FUSHIMI: "res://images/character/fushimi_chibi.png",
 	SHIRAKAWA: "res://images/character/shirakawa_chibi.png",
 }

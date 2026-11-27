@@ -1,12 +1,10 @@
 extends RefCounted
 
 const FIRST_PROGRESS_TARGET := 100
-const PROGRESS_PER_WIN := 2
-const WINS_PER_DAMAGE_BONUS := 6
-const MAX_DAMAGE_BONUS := 3
-enum Attack { DIRECT_HIT, HAND_DISCARD, SLOT_LOCK, ENERGY_LOSS, EXAM_ANXIETY, HAND_RETURN }
-
-const BASE_ATTACK_DAMAGE := [6, 4, 4, 4, 4, 4]
+const PROGRESS_PER_WIN := 1
+const YEARS_PER_HEALTH_LOSS_BONUS := 6
+const GUARANTEED_NEGATIVE_HEALTH_RATIO := 0.2
+const RoundCalendar := preload("res://scripts/round_calendar.gd")
 
 
 static func progress_target(passed_exams: int) -> int:
@@ -14,10 +12,10 @@ static func progress_target(passed_exams: int) -> int:
 
 
 @warning_ignore("integer_division")
-static func damage_bonus(passed_exams: int) -> int:
-	return mini(passed_exams / WINS_PER_DAMAGE_BONUS, MAX_DAMAGE_BONUS)
+static func turn_end_age_bonus(age: int) -> int:
+	return maxi(0, age - RoundCalendar.START_AGE) / YEARS_PER_HEALTH_LOSS_BONUS
 
 
-static func attack_damage(attack: int, bonus: int) -> int:
-	var base_damage: int = BASE_ATTACK_DAMAGE[attack]
-	return base_damage if attack in [Attack.EXAM_ANXIETY, Attack.HAND_RETURN] else base_damage + bonus
+static func negative_draw_chance(health: float, max_health: int) -> float:
+	var health_ratio := health / max_health
+	return clampf((1.0 - health_ratio) / (1.0 - GUARANTEED_NEGATIVE_HEALTH_RATIO), 0.0, 1.0)

@@ -17,7 +17,7 @@ const REWARD_ART := {
 	Reward.MONEY: preload("res://images/deck/4.png"),
 	Reward.AFFECTION: preload("res://images/deck/5.png"),
 	Reward.UPGRADE_POINTS: preload("res://images/deck/6.png"),
-	Reward.MAX_ENERGY: preload("res://images/deck/7.png"),
+	Reward.MAX_ENERGY: preload("res://images/deck/max-energy-reward.png"),
 	Reward.MAX_HEALTH: preload("res://images/deck/8.png"),
 	Reward.ENERGY_SUPPLY: preload("res://images/deck/9.png"),
 }
@@ -26,7 +26,7 @@ const CARD_ASPECT := 1.4
 const MONEY_REWARD := 30
 const AFFECTION_REWARD := 50
 const UPGRADE_POINT_REWARD := 50
-const MAX_ENERGY_REWARD := 2
+const MAX_ENERGY_REWARD := 5
 const MAX_HEALTH_REWARD := 2
 const ENERGY_SUPPLY_REWARD := 20
 
@@ -37,6 +37,7 @@ var fixed_offer: Array[int] = []
 var level_reward_stat := -1
 var requires_starter_deck := false
 var money_reward := MONEY_REWARD
+var rewards_remaining := 1
 var reward_claimed := false
 var pending_reward := Reward.NONE
 var reward_offer: Array[int] = []
@@ -56,11 +57,20 @@ func _ready() -> void:
 	summary_label.text = summary
 	summary_label.visible = not summary.is_empty()
 	next_button.text = continue_text
-	next_button.pressed.connect(func() -> void: continue_requested.emit())
+	next_button.pressed.connect(continue_settlement)
 	%LaterButton.pressed.connect(func() -> void: deferred_requested.emit())
 	skip_button.visible = level_reward_stat >= 0
 	skip_button.pressed.connect(skip_level_reward)
 	resized.connect(update_card_sizes)
+	if rewards_remaining == 0:
+		reward_claimed = true
+		prompt.text = "进度未达标，本场没有奖励。"
+		scroll.hide()
+		next_button.show()
+		next_button.grab_focus()
+		return
+	if rewards_remaining == 2:
+		prompt.text = "选择第 1 次奖励（共 2 次）"
 	show_rewards()
 	if requires_starter_deck:
 		prompt.text = "组好初始卡组后，即可领取智商升级奖励"
@@ -105,7 +115,7 @@ func show_rewards() -> void:
 
 
 func choose_reward(reward: int) -> void:
-	if requires_starter_deck or pending_reward != Reward.NONE or not reward_offer.has(reward):
+	if reward_claimed or requires_starter_deck or pending_reward != Reward.NONE or not reward_offer.has(reward):
 		return
 	if reward == Reward.REMOVE and PlayerState.card_deck.size() <= 1:
 		return
@@ -175,7 +185,7 @@ func affection_targets() -> Dictionary:
 
 
 func choose_character(character: String) -> void:
-	if reward_claimed or pending_reward != Reward.AFFECTION or not affection_targets().has(character):
+	if not scroll.visible or reward_claimed or pending_reward != Reward.AFFECTION or not affection_targets().has(character):
 		return
 	var gain := PlayerState.add_character_affection(character, AFFECTION_REWARD)
 	var level := PlayerState.affection_progress(character).x
@@ -183,7 +193,7 @@ func choose_character(character: String) -> void:
 
 
 func choose_target(card_id: int) -> void:
-	if reward_claimed or not target_cards.has(card_id):
+	if not scroll.visible or reward_claimed or not target_cards.has(card_id):
 		return
 	var card_name := CardCatalog.card_name(PlayerState.card_base_id(card_id))
 	match pending_reward:
@@ -199,7 +209,8 @@ func choose_target(card_id: int) -> void:
 
 
 func settle_reward() -> void:
-	reward_claimed = true
+	rewards_remaining -= 1
+	reward_claimed = rewards_remaining == 0
 	if level_reward_stat >= 0:
 		PlayerState.claimed_stat_levels[level_reward_stat] += 1
 	PlayerState.changed.emit()
@@ -220,9 +231,25 @@ func complete_reward(message: String) -> void:
 	scroll.hide()
 	claimed_art.texture = REWARD_ART[pending_reward]
 	claimed_art.get_parent().show()
+	next_button.text = continue_text if reward_claimed else "选择第 2 次奖励"
 	next_button.show()
 	next_button.grab_focus()
 	update_card_sizes()
+
+
+func continue_settlement() -> void:
+	if reward_claimed or requires_starter_deck:
+		continue_requested.emit()
+		return
+	if scroll.visible or pending_reward == Reward.NONE:
+		return
+	pending_reward = Reward.NONE
+	target_cards.clear()
+	claimed_art.get_parent().hide()
+	next_button.hide()
+	prompt.text = "选择第 2 次奖励（共 2 次）"
+	scroll.show()
+	show_rewards()
 
 
 func add_choice(texture: Texture2D, caption: String, action: Callable, card_id: int = -1) -> TextureButton:

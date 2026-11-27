@@ -2,26 +2,47 @@ extends "res://scripts/main.gd"
 
 signal effect_confirmed
 
-enum Step { OVERVIEW, PROGRESS, BLOCK, END_TURN, RESOLVING, RECOVER, COMPLETE }
+enum Step {
+	OVERVIEW, PROGRESS, BLOCK, BLOCK_DEMO, END_TURN,
+	NEGATIVE_DRAW, NORMAL_DRAW, PLAY_NEGATIVE, RECOVER,
+	SETTLEMENT, COMPLETE,
+}
 
 const PROGRESS_CARD := 3
 const BLOCK_CARD := 2
 const RECOVER_CARD := 4
-const PRACTICE_ATTACK := 0
 const PRACTICE_CARDS := {
 	Step.PROGRESS: PROGRESS_CARD,
 	Step.BLOCK: BLOCK_CARD,
+	Step.PLAY_NEGATIVE: Negative.DISTRACTION,
 	Step.RECOVER: RECOVER_CARD,
 }
 const LESSONS := [
-	["牌局练习", "正式考试最多五回合，进度达标即可交卷。五回合内未达标，或心态降到 0，考试就会失败。每回合有 3 点能量，用来支付卡牌左上角的费用。"],
-	["用卡牌推进进度", "「认真听讲」消耗 1 点能量，提供 6 点进度。先点击这张牌，再点击一个亮起的卡槽。"],
-	["用格挡保护心态", "「深呼吸」不消耗能量，提供 3 点格挡。打出它，准备抵挡下一次攻击。这个回合已经用过的普通卡槽不能再用。"],
-	["结束回合", "按空格或点击下方按钮。下一回合会恢复能量并抽两张牌，随后对手会攻击，先消耗格挡，再扣心态。"],
-	["对手即将攻击", "这次攻击有 6 点伤害，刚才的格挡会挡住 3 点。"],
-	["回复心态", "刚才少了 3 点心态。「课间休息」消耗 1 点能量，回复最多 4 点心态，并提供 3 点格挡。把它打出去试试。"],
-	["练习完成", "通过正式考试时，进度比目标多超过 20%，今后每轮收入 +1。超过 50% 则 +2，多场奖励可累加。练习数值会清空，接下来进入选牌。"],
+	["牌局练习", "用卡牌推进考试进度，同时留意左上角的心态。每回合基础能量为 3，卡牌左上角标着出牌费用。接下来用一局练习熟悉这些操作。"],
+	["用卡牌推进进度", "「认真听讲」花费 1 点能量，增加 6 点进度。先点击这张手牌，再点击一个亮起的卡槽。"],
+	["用格挡保护心态", "普通卡槽每回合只能用一次。找一个还空着的卡槽，打出 0 费的「深呼吸」，获得 3 点格挡。"],
+	["格挡怎样生效", "接下来模拟 6 点伤害。先消耗 3 点格挡，剩下的 3 点才会从心态扣除。"],
+	["结束回合会消耗心态", "按空格结束回合。第几回合结束就扣几点心态，10 岁起每回合额外扣 1 点，16 岁起额外扣 2 点。这项消耗会直接扣心态。练习的第 1 回合扣 1 点。"],
+	["先抽负面牌", "每回合开始先判定是否抽取一张负面牌。满心态时不会抽，心态越低越容易抽到，剩 20% 或更低时必抽。这次练习固定抽到「走神」。"],
+	["再抽普通牌", "负面牌已经入手，现在可以抽普通牌。抽牌时如果牌库空了，会先把弃牌洗回。"],
+	["打出负面牌", "把鼠标停在「走神」上可以查看卡面。选中它，再点击一个亮起的卡槽打出。"],
+	["回复心态", "现在试试「课间休息」。它花费 1 点能量，最多回复 4 点心态，并提供 3 点格挡。"],
+	["交卷与奖励", "进度达标后可以提前交卷。心态归零或第 5 回合结束也会结算，普通考试均可进入下一轮。\n低于目标无奖励，达标可选一次奖励，达到 150% 可选两次。精力上限奖励的基础加成是 5 点。"],
+	["练习完成", "游戏从 0 金钱开局，进入下一轮的基础收入是 10。考试进度超过目标的 120% 或 150% 时，今后每轮收入分别增加 1 或 2，可累加。\n练习中的牌、进度和心态会清空。接下来进入选牌。"],
 ]
+const STEP_ACTIONS := {
+	Step.OVERVIEW: "开始练习",
+	Step.BLOCK_DEMO: "播放模拟伤害",
+	Step.END_TURN: "结束回合",
+	Step.SETTLEMENT: "继续",
+	Step.COMPLETE: "进入选牌",
+}
+const CARD_EFFECT_HINTS := {
+	Step.PROGRESS: "留意上方的进度条。这张牌会把进度增加 6 点。",
+	Step.BLOCK: "左上角会显示你获得的 3 点格挡。",
+	Step.PLAY_NEGATIVE: "点击下方按钮，查看出牌后的变化。",
+	Step.RECOVER: "心态会回复 4 点，最高回到上限。蓝色部分显示这张牌额外提供的 3 点格挡。",
+}
 
 @onready var guide: Control = $GuideLayer/Guide
 @onready var dimmer: ColorRect = %Dimmer
@@ -50,7 +71,7 @@ func _ready() -> void:
 
 func prepare_match() -> bool:
 	progress_target = ExamDifficulty.FIRST_PROGRESS_TARGET
-	enemy_damage_bonus = 0
+	turn_end_age_bonus = 0
 	max_health = PlayerState.DEFAULT_MAX_HEALTH
 	health = float(max_health)
 	displayed_health = health
@@ -94,8 +115,9 @@ func use_selected_card(event: InputEvent, slot: Control) -> bool:
 		return played
 	match step:
 		Step.PROGRESS: show_step(Step.BLOCK)
-		Step.BLOCK: show_step(Step.END_TURN)
-		Step.RECOVER: show_step(Step.COMPLETE)
+		Step.BLOCK: show_step(Step.BLOCK_DEMO)
+		Step.PLAY_NEGATIVE: show_step(Step.RECOVER)
+		Step.RECOVER: show_step(Step.SETTLEMENT)
 	return true
 
 
@@ -105,12 +127,7 @@ func animate_card_play(card: Control, slot: Control) -> void:
 
 
 func apply_card_effect(card_id: int, slot: Control, multiplier: float) -> bool:
-	var explanation: String
-	match step:
-		Step.PROGRESS: explanation = "这张牌会增加 6 点进度。留意进度条的变化，达到目标后就能交卷。"
-		Step.BLOCK: explanation = "这张牌会增加 3 点格挡。受到攻击时，会先扣格挡，再扣心态。"
-		Step.RECOVER: explanation = "这张牌会回复心态，并提供 3 点格挡。心态最多回复到上限。"
-	await explain_effect(LESSONS[step][0], explanation, "查看效果")
+	await explain_effect(LESSONS[step][0], CARD_EFFECT_HINTS[step], "查看效果")
 	if leaving:
 		return false
 	var ends_turn := await super.apply_card_effect(card_id, slot, multiplier)
@@ -122,21 +139,34 @@ func apply_card_effect(card_id: int, slot: Control, multiplier: float) -> bool:
 
 
 func end_turn() -> void:
-	if step != Step.END_TURN or leaving or card_effect_resolving or resolving_attack or showing_turn_banner:
+	if step != Step.END_TURN or leaving or card_effect_resolving or resolving_turn or showing_turn_banner:
 		return
-	step = Step.RESOLVING
+	step = Step.NEGATIVE_DRAW
 	hide_guide()
 	await super.end_turn()
 	if not leaving:
-		show_step(Step.RECOVER)
+		show_step(Step.PLAY_NEGATIVE)
 
 
-func resolve_attack(_attack_id: int) -> void:
+func demonstrate_block() -> void:
+	hide_guide()
+	consume_health(6.0)
+	update_values()
+	if health_display_tween and health_display_tween.is_running():
+		await health_display_tween.finished
+	if not leaving:
+		show_step(Step.END_TURN)
+
+
+func draw_turn_negative_card() -> void:
+	await explain_effect(LESSONS[step][0], LESSONS[step][1], "抽负面牌")
 	if leaving:
 		return
-	await explain_effect(LESSONS[step][0], LESSONS[step][1], "播放攻击")
-	if not leaving:
-		await super.resolve_attack(PRACTICE_ATTACK)
+	await give_negative_card(Negative.DISTRACTION)
+	if leaving:
+		return
+	step = Step.NORMAL_DRAW
+	await explain_effect(LESSONS[step][0], LESSONS[step][1], "抽普通牌")
 
 
 func settle_game(_automatic: bool) -> void:
@@ -149,11 +179,8 @@ func show_step(next: Step) -> void:
 	guide_panel.show()
 	guide_title.text = LESSONS[step][0]
 	guide_body.text = LESSONS[step][1]
-	guide_action.visible = step == Step.OVERVIEW or step == Step.END_TURN or step == Step.COMPLETE
-	match step:
-		Step.OVERVIEW: guide_action.text = "开始练习"
-		Step.END_TURN: guide_action.text = "结束回合"
-		Step.COMPLETE: guide_action.text = "进入选牌"
+	guide_action.visible = STEP_ACTIONS.has(step)
+	guide_action.text = STEP_ACTIONS.get(step, "")
 	dimmer.show()
 	layout_guide()
 
@@ -188,7 +215,11 @@ func on_guide_action() -> void:
 		return
 	match step:
 		Step.OVERVIEW: show_step(Step.PROGRESS)
+		Step.BLOCK_DEMO:
+			if guide_panel.visible:
+				demonstrate_block()
 		Step.END_TURN: end_turn()
+		Step.SETTLEMENT: show_step(Step.COMPLETE)
 		Step.COMPLETE: finish_practice()
 
 
@@ -205,11 +236,12 @@ func finish_practice() -> void:
 
 
 func layout_guide() -> void:
-	var width := minf(450.0, maxf(0.0, guide.size.x - 40.0))
+	var beside_preview := step == Step.PLAY_NEGATIVE and guide.size.x >= 1000.0
+	var width := minf(390.0 if beside_preview else 450.0, maxf(0.0, guide.size.x - 40.0))
 	guide_panel.custom_minimum_size.x = width
 	guide_panel.size = Vector2(width, 0.0)
 	var x := (guide.size.x - width) * 0.5
-	if step == Step.RESOLVING and guide.size.x >= 1000.0:
+	if beside_preview:
 		x = 14.0
 	guide_panel.position = Vector2(x, clampf(guide.size.y * 0.22, 69.0, 142.0))
 
@@ -245,12 +277,12 @@ func lesson_target() -> Rect2:
 				var rect := slot.get_global_rect()
 				targets = targets.merge(rect) if targets.has_area() else rect
 		return targets
-	if waiting_for_effect or card_effect_resolving or step == Step.END_TURN:
+	if step in [Step.BLOCK_DEMO, Step.END_TURN, Step.NEGATIVE_DRAW] or (PRACTICE_CARDS.has(step) and (waiting_for_effect or card_effect_resolving)):
 		var meter := progress_fill if step == Step.PROGRESS else health_fill
 		return (meter.get_parent() as Control).get_global_rect()
-	if step == Step.OVERVIEW or step == Step.COMPLETE:
+	if step in [Step.OVERVIEW, Step.SETTLEMENT]:
 		return (progress_fill.get_parent() as Control).get_global_rect()
-	var card_id: int = PRACTICE_CARDS.get(step, -1)
+	var card_id: int = Negative.DISTRACTION if step == Step.NORMAL_DRAW else PRACTICE_CARDS.get(step, -1)
 	for card: Control in hand_holder.get_children():
 		if int(card.get_meta("card_id")) == card_id:
 			return card.get_global_rect()
