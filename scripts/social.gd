@@ -8,12 +8,17 @@ const SHIRAKAWA_PORTRAIT := preload("res://images/high_school_intro/shirakawa_so
 const PRESENTATION_SIZE := Vector2(1672.0, 941.0)
 const CHAT_SCENE := preload("res://scenes/social_chat.tscn")
 const NOTICE_SCENE := preload("res://scenes/model_notice.tscn")
+const StoryPreviewMenu := preload("res://scripts/story_preview_menu.gd")
+const StoryDialogue := preload("res://scripts/story_dialogue.gd")
 
 var selected_character := ""
 var chat_overlay: Control
 var socialize_button: Button
 var social_feedback: Label
 var notice_overlay: Control
+var replay_button: Button
+var replay_menu: PopupMenu
+var replay_story: StoryDialogue
 
 @onready var presentation: Control = %Presentation
 @onready var contacts: ItemList = get_node_or_null("%Contacts")
@@ -29,6 +34,14 @@ var notice_overlay: Control
 func _ready() -> void:
 	resized.connect(fit_presentation)
 	create_socialize_controls()
+	replay_button = chat_button.duplicate(0) as Button
+	replay_button.text = "重看剧情"
+	replay_button.hide()
+	replay_button.pressed.connect(open_story_replays)
+	details.add_child(replay_button)
+	replay_menu = PopupMenu.new()
+	replay_menu.id_pressed.connect(replay_chapter)
+	add_child(replay_menu)
 	PlayerState.changed.connect(refresh_details)
 	chat_button.text = "自由对话"
 	chat_button.pressed.connect(open_free_chat)
@@ -117,6 +130,7 @@ func show_contact(character: String) -> void:
 func refresh_details() -> void:
 	if selected_character.is_empty():
 		return
+	replay_button.visible = PlayerState.watched_character_chapters(selected_character).has(true)
 	var progress := PlayerState.affection_progress(selected_character)
 	var maxed := progress.x == PlayerState.MAX_AFFECTION_LEVEL
 	affection_bar.value = progress.y
@@ -129,6 +143,34 @@ func refresh_details() -> void:
 		social_feedback.text += "  ·  好感已满"
 	elif PlayerState.current_energy < cost:
 		social_feedback.text += "  ·  精力不足"
+
+
+func open_story_replays() -> void:
+	if is_instance_valid(chat_overlay) or is_instance_valid(replay_story) or SceneFade.curtain.visible:
+		return
+	replay_menu.clear()
+	var watched := PlayerState.watched_character_chapters(selected_character)
+	for section: Dictionary in StoryPreviewMenu.SECTIONS:
+		if section["label"] != selected_character:
+			continue
+		for index in watched.size():
+			if watched[index]:
+				replay_menu.add_item(section["chapters"][index]["title"], index)
+		break
+	if replay_menu.item_count > 0:
+		replay_menu.popup_centered()
+
+
+func replay_chapter(index: int) -> void:
+	for section: Dictionary in StoryPreviewMenu.SECTIONS:
+		if section["label"] != selected_character:
+			continue
+		var scene: PackedScene = section["chapters"][index]["scene"]
+		replay_story = scene.instantiate() as StoryDialogue
+		replay_story.preview_end_text = "返回社交  ›"
+		replay_story.completed.connect(replay_story.queue_free, CONNECT_ONE_SHOT)
+		add_child(replay_story)
+		return
 
 
 func socialize() -> void:
@@ -153,6 +195,9 @@ func close() -> void:
 func _unhandled_key_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel") and not event.is_echo():
 		get_viewport().set_input_as_handled()
+		if is_instance_valid(replay_story):
+			replay_story.queue_free()
+			return
 		if is_instance_valid(notice_overlay) and notice_overlay.visible:
 			notice_overlay.hide()
 			return

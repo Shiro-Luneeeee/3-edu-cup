@@ -51,6 +51,7 @@ antialiased = true
 polygon = PackedVector2Array(426, 449, 451, 385, 495, 355, 545, 324, 666, 311, 784, 285, 788, 254, 831, 231, 837, 184, 873, 184, 876, 224, 893, 241, 983, 247, 1042, 267, 1082, 303, 1170, 327, 1240, 351, 1286, 386, 1310, 417, 1300, 465, 1263, 500, 1167, 551, 1050, 606, 931, 650, 852, 659, 741, 624, 623, 585, 522, 542, 457, 509)
 script = ExtResource("3_location")
 destination_scene = ExtResource("6_school")
+social_location_id = "school"
 character_marker_position = Vector2(868, 172)
 
 [node name="Kiosk" type="Polygon2D" parent="Artwork/Locations"]
@@ -73,4 +74,5 @@ antialiased = true
 polygon = PackedVector2Array(829, 801, 855, 752, 916, 706, 1004, 658, 1088, 612, 1179, 558, 1275, 512, 1361, 508, 1430, 525, 1497, 554, 1557, 544, 1622, 560, 1671, 583, 1671, 720, 1622, 795, 1537, 854, 1452, 893, 1280, 933, 1055, 937, 936, 891, 872, 854)
 script = ExtResource("3_location")
 destination_scene = ExtResource("9_park")
+social_location_id = "park"
 character_marker_position = Vector2(1329, 615)

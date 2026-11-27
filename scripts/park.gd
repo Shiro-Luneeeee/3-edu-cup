@@ -39,7 +39,7 @@ func can_open_character(character: String) -> bool:
 
 func open_character(character: String) -> void:
 	var chapter := PlayerState.yue_story_chapter()
-	if not SocialCharacters.has_story(character, scene_file_path, chapter):
+	if not SocialCharacters.has_story(character, social_location_id, chapter):
 		super.open_character(character)
 		return
 	if can_open_character(character):

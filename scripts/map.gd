@@ -51,7 +51,7 @@ func refresh_character_markers() -> void:
 		group.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		group.add_theme_constant_override("separation", int(MARKER_GAP))
 		for character: String in placements:
-			if placements[character] != location.destination_scene.resource_path:
+			if placements[character] != location.social_location_id:
 				continue
 			var badge := CharacterBadge.new()
 			badge.configure(SocialCharacters.avatar(character), character, MARKER_SIZE, character in story_characters)

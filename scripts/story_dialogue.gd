@@ -21,6 +21,8 @@ var preview_end_text := ""
 
 
 func _ready() -> void:
+	# Inherited dialogue scenes can lose their root anchors during export.
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	resized.connect(place_portrait)
 	dialogue_box.item_rect_changed.connect(place_portrait)
 	next_button.pressed.connect(advance)

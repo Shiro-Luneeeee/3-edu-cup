@@ -96,7 +96,7 @@ const CARD_NUMBERS := {
 	12: {"discard": 1, "draw": 2}, 13: {"progress": 12, "draw": 1, "discard": 1},
 	14: {"duration": 2}, 15: {"heal": 8, "draw": 1},
 	16: {"progress": 12, "draw": 1, "block": 3}, 17: {"block": 2},
-	18: {"progress": 15, "draw": 2}, 19: {"health_set": 20}, 20: {"draw": 6},
+	18: {"progress": 20, "draw": 2}, 19: {"health_set": 20}, 20: {"draw": 6},
 	21: {"energy_gain": 3, "next_energy_change": -1}, 22: {"starting_energy_gain": 1},
 	23: {"next_energy_gain": 5, "duration": 2}, 24: {}, 25: {"draw": 1},
 	26: {"energy_gain": 2}, 27: {"health_per_hand": -1, "draw": 3},

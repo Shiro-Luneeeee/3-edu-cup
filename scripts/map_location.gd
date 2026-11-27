@@ -4,6 +4,7 @@ const CORNER_TRIM := 18.0
 const CORNER_SEGMENTS := 6
 
 @export var destination_scene: PackedScene
+@export var social_location_id := ""
 @export var character_marker_position := Vector2.ZERO
 
 var outline := Line2D.new()

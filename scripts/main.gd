@@ -236,7 +236,9 @@ func end_turn() -> void:
 		discard_random_hand_card()
 	progress += discard_pile.size() * turn_end_progress_per_discard
 	if health_loss > 0:
-		health = maxf(0.0, health - health_loss)
+		var absorbed := minf(block, health_loss)
+		block -= absorbed
+		health = maxf(0.0, health - (health_loss - absorbed))
 		animate_health_display()
 		if health_display_tween and health_display_tween.is_running():
 			await health_display_tween.finished
@@ -1205,7 +1207,6 @@ func apply_card_effect(card_id: int, slot: Control, multiplier: float) -> bool:
 				deck.erase(chosen)
 				give_drawn_card(chosen)
 				await get_tree().create_timer(0.6).timeout
-			return true
 		8:
 			unblock_slot(slot)
 			health = minf(max_health, health + int(values["heal"]) * multiplier)

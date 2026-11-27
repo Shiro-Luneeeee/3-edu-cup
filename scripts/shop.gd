@@ -285,9 +285,11 @@ func select_product(index: int) -> void:
 	var effect_label := make_catalog_label(effect_description, Vector2(28, 511), Vector2(420, 58), 19, Color("674b86"))
 	effect_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	preview_layer.add_child(effect_label)
+	if clothing_only:
+		layout_clothing_copy(title, description, effect_label)
 	var cost_label := make_catalog_label("花费：%d 金" % product["price"], Vector2(28, 573), Vector2(220, 36), 21, Color("946b53"))
 	preview_layer.add_child(cost_label)
-	purchase_message = make_catalog_label("", Vector2(28, 609), Vector2(250, 42), 16, Color("a65166"))
+	purchase_message = make_catalog_label("", Vector2(28, 607), Vector2(244, 33), 16, Color("a65166"))
 	purchase_message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	preview_layer.add_child(purchase_message)
 	purchase_button = Button.new()
@@ -301,6 +303,21 @@ func select_product(index: int) -> void:
 	purchase_button.pressed.connect(buy_selected_product)
 	preview_layer.add_child(purchase_button)
 	update_purchase_display()
+
+
+func layout_clothing_copy(title: Label, description: Label, effect: Label) -> void:
+	var scroll := ScrollContainer.new()
+	scroll.position = Vector2(28, 307)
+	scroll.size = Vector2(411, 252)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	preview_layer.add_child(scroll)
+
+	var copy := VBoxContainer.new()
+	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	copy.add_theme_constant_override("separation", 12)
+	scroll.add_child(copy)
+	for label in [title, description, effect]:
+		label.reparent(copy, false)
 
 
 func effect_text(effects: Dictionary) -> String:

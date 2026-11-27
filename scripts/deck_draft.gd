@@ -1,6 +1,7 @@
 extends Control
 
 const CardCatalog := preload("res://scripts/card_catalog.gd")
+const CardFace := preload("res://scripts/card_face.gd")
 const ButtonMotion := preload("res://scripts/phone_app_icon.gd")
 const MATCH_SCENE := "res://scenes/card.tscn"
 const LOBBY_SCENE := "res://scenes/lobby.tscn"
@@ -38,9 +39,9 @@ func show_offer() -> void:
 		button.focus_mode = Control.FOCUS_NONE
 		button.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 		button.set_meta("card_id", card_id)
-		var art := TextureRect.new()
+		var art := CardFace.new()
 		art.name = "Art"
-		art.texture = CardCatalog.texture(card_id)
+		art.set_card(card_id, CardCatalog.numbers(card_id))
 		art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		art.mouse_filter = Control.MOUSE_FILTER_IGNORE

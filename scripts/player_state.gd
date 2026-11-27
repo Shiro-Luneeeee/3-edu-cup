@@ -736,6 +736,20 @@ func add_story_card(card_id: int) -> void:
 		card_deck.append(card_id)
 
 
+func watched_character_chapters(character: String) -> Array[bool]:
+	match character:
+		SocialCharacters.YUE:
+			return [park_meeting_seen, yue_goldfish_seen, yue_farewell_seen,
+				romantic_partner == SocialCharacters.YUE, yue_final_promise_seen]
+		SocialCharacters.FUSHIMI:
+			return [fushimi_pen_seen, fushimi_tutoring_seen, fushimi_bookshop_seen,
+				fushimi_confession_seen, fushimi_final_promise_seen]
+		SocialCharacters.SHIRAKAWA:
+			return [shirakawa_first_story_seen, shirakawa_second_story_seen, shirakawa_third_story_seen,
+				shirakawa_confession_seen, shirakawa_snow_seen]
+	return []
+
+
 func known_social_characters() -> Array[String]:
 	var known := SocialCharacters.known_characters(park_meeting_seen, fushimi_pen_seen)
 	if shirakawa_first_story_seen:

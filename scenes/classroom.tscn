@@ -6,6 +6,7 @@
 
 [node name="Classroom" instance=ExtResource("1_destination")]
 script = ExtResource("3_classroom")
+social_location_id = "school"
 
 [node name="Background" parent="." index="0"]
 texture = ExtResource("2_background")

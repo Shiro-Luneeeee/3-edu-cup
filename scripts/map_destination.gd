@@ -8,6 +8,7 @@ const StoryDialogue := preload("res://scripts/story_dialogue.gd")
 const STORY_CARD_OFFER_SCENE := preload("res://scenes/story_card_offer.tscn")
 const StoryCardOffer := preload("res://scripts/story_card_offer.gd")
 
+@export var social_location_id := ""
 @onready var visitors: HBoxContainer = $Visitors
 
 var visitor_ids: Array[String] = []
@@ -27,9 +28,9 @@ func refresh_visitors() -> void:
 	var stories: Array[String] = []
 	var locations := PlayerState.social_locations()
 	for character: String in locations:
-		if locations[character] == scene_file_path:
+		if locations[character] == social_location_id:
 			here.append(character)
-			if PlayerState.has_character_story(character, scene_file_path):
+			if PlayerState.has_character_story(character, social_location_id):
 				stories.append(character)
 	if here == visitor_ids and stories == visitor_stories:
 		return

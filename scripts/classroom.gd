@@ -17,7 +17,7 @@ const FUSHIMI_STORIES := {
 
 
 func open_character(character: String) -> void:
-	if not PlayerState.has_character_story(character, scene_file_path):
+	if not PlayerState.has_character_story(character, social_location_id):
 		super.open_character(character)
 		return
 	if not can_open_character(character):
