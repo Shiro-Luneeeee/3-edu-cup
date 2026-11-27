@@ -8,12 +8,15 @@ const SAVE_DIRECTORY := "user://saves"
 const RELEASE_SAVE_DIRECTORY := "user://release_saves"
 const SAVE_PAGE_SCENE := "res://scenes/save_page.tscn"
 const MAIN_MENU_SCENE := "res://scenes/main_menu.tscn"
+const BEDROOM_SCENE := "res://scenes/bedroom.tscn"
 
 var page_mode := PageMode.LOAD
 var carried_music: AudioStreamPlayer
 var music_origin_scene := ""
 var keep_music_for_scene_change := false
-var scene_playlist: Array[AudioStreamMP3] = []
+var scene_playlist: Array[AudioStream] = []
+var bedroom_playlist_order: Array[AudioStream] = []
+var shuffle_all_next_bedroom := false
 var playlist_index := 0
 var playlist_resume_scene := ""
 var playlist_resume_index := 0
@@ -21,6 +24,7 @@ var playlist_resume_position := 0.0
 var play_seconds := 0.0
 var active_slot := 0
 var debug_mode_enabled := false
+var debug_session_active := false
 
 
 func _process(delta: float) -> void:
@@ -32,6 +36,8 @@ func _process(delta: float) -> void:
 func start_new_game() -> void:
 	play_seconds = 0.0
 	active_slot = 0
+	if not debug_mode_enabled:
+		debug_session_active = false
 	reset_playlist_resume()
 
 
@@ -43,6 +49,7 @@ func reset_playlist_resume() -> void:
 	music_origin_scene = ""
 	keep_music_for_scene_change = false
 	scene_playlist.clear()
+	bedroom_playlist_order.clear()
 	playlist_index = 0
 	playlist_resume_scene = ""
 	playlist_resume_index = 0
@@ -97,8 +104,21 @@ func use_scene_playlist(scene_path: String, scene_music: AudioStreamPlayer, trac
 		carried_music.queue_free()
 	scene_playlist.clear()
 	for track in tracks:
-		if track is AudioStreamMP3:
+		if track is AudioStreamMP3 or track is AudioStreamWAV:
 			scene_playlist.append(track)
+	if scene_path == BEDROOM_SCENE:
+		if shuffle_all_next_bedroom:
+			scene_playlist.shuffle()
+			playlist_resume_scene = ""
+			shuffle_all_next_bedroom = false
+		elif playlist_resume_scene == scene_path and bedroom_playlist_order.size() == scene_playlist.size():
+			scene_playlist.assign(bedroom_playlist_order)
+		elif scene_playlist.size() > 1:
+			var remaining := scene_playlist.slice(1)
+			remaining.shuffle()
+			scene_playlist.resize(1)
+			scene_playlist.append_array(remaining)
+		bedroom_playlist_order.assign(scene_playlist)
 	playlist_index = clampi(playlist_resume_index, 0, maxi(0, scene_playlist.size() - 1)) if playlist_resume_scene == scene_path else 0
 	var resume_position := playlist_resume_position if playlist_resume_scene == scene_path else 0.0
 	scene_music.reparent(self)
@@ -112,8 +132,11 @@ func use_scene_playlist(scene_path: String, scene_music: AudioStreamPlayer, trac
 func _play_scene_playlist_track(from_position: float = 0.0) -> void:
 	if not is_instance_valid(carried_music) or scene_playlist.is_empty():
 		return
-	var track := scene_playlist[playlist_index].duplicate() as AudioStreamMP3
-	track.loop = false
+	var track := scene_playlist[playlist_index].duplicate() as AudioStream
+	if track is AudioStreamMP3:
+		(track as AudioStreamMP3).loop = false
+	elif track is AudioStreamWAV:
+		(track as AudioStreamWAV).loop_mode = AudioStreamWAV.LOOP_DISABLED
 	carried_music.stream = track
 	carried_music.play(from_position)
 
@@ -123,6 +146,18 @@ func _advance_scene_playlist() -> void:
 		return
 	playlist_index = (playlist_index + 1) % scene_playlist.size()
 	_play_scene_playlist_track()
+
+
+func randomize_bedroom_playlist() -> void:
+	if music_origin_scene == BEDROOM_SCENE and not scene_playlist.is_empty():
+		scene_playlist.shuffle()
+		bedroom_playlist_order.assign(scene_playlist)
+		playlist_index = 0
+		_play_scene_playlist_track()
+	else:
+		shuffle_all_next_bedroom = true
+		bedroom_playlist_order.clear()
+		playlist_resume_scene = ""
 
 
 func release_scene_music(scene_path: String) -> void:
@@ -175,7 +210,7 @@ func read_slot(slot: int) -> Dictionary:
 
 
 func save_slot(slot: int) -> bool:
-	if not is_valid_slot(slot):
+	if debug_session_active or not is_valid_slot(slot):
 		return false
 	var directory_error := DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(save_directory()))
 	if directory_error != OK:
@@ -213,7 +248,7 @@ func save_slot(slot: int) -> bool:
 
 
 func save_active_slot() -> bool:
-	return active_slot == 0 or save_slot(active_slot)
+	return debug_session_active or active_slot == 0 or save_slot(active_slot)
 
 
 func load_slot(slot: int) -> bool:
@@ -221,6 +256,8 @@ func load_slot(slot: int) -> bool:
 	if data.is_empty():
 		return false
 	reset_playlist_resume()
+	debug_mode_enabled = false
+	debug_session_active = false
 	PlayerState.restore_snapshot(data["player"])
 	StudyProgress.restore_snapshot(data["study"])
 	play_seconds = maxf(0.0, float(data.get("play_seconds", 0)))

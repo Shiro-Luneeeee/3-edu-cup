@@ -19,7 +19,7 @@ var pending_slot := 0
 func _ready() -> void:
 	var saving := SaveManager.page_mode == SaveManager.PageMode.SAVE_AND_EXIT
 	title_label.text = "秋日存档" if saving else "继续旅程"
-	subtitle_label.text = "选择一页，留住此刻。" if saving else "从写下的那一页继续。"
+	subtitle_label.text = ("调试命令仅本次运行有效，当前进度不能存档。" if SaveManager.debug_session_active else "选择一页，留住此刻。") if saving else "从写下的那一页继续。"
 	back_button.text = "返回卧室" if saving else "返回主界面"
 	skip_button.visible = saving
 	back_button.pressed.connect(go_back)
@@ -50,7 +50,7 @@ func refresh_slot(slot: int) -> void:
 		heading.text = "存档 %02d · 空白" % slot
 		details.text = "等待写下第一段旅程"
 		action.text = "存入" if saving else "无存档"
-		action.disabled = not saving
+		action.disabled = not saving or SaveManager.debug_session_active
 		delete.hide()
 	else:
 		var player: Dictionary = data["player"]
@@ -66,7 +66,7 @@ func refresh_slot(slot: int) -> void:
 			heading.text += " · 已结局"
 		details.text = "玩家：%s\n游玩时长：%s\n存档时间：%s" % [player_name, SaveManager.play_time_text(data), str(data.get("saved_local", "未知"))]
 		action.text = "覆盖存档" if saving else ("回看结局" if ended else "继续游戏")
-		action.disabled = false
+		action.disabled = saving and SaveManager.debug_session_active
 		delete.show()
 
 
@@ -110,7 +110,7 @@ func save_and_exit(slot: int) -> void:
 	if SaveManager.save_slot(slot):
 		SceneFade.change_to(MAIN_MENU_SCENE)
 	else:
-		show_notice("保存失败，请检查存档目录是否可写。")
+		show_notice("调试命令仅本次运行有效，当前进度不能存档。" if SaveManager.debug_session_active else "保存失败，请检查存档目录是否可写。")
 
 
 func go_back(with_sound: bool = true) -> void:

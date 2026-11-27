@@ -1,0 +1,24 @@
+[remap]
+
+importer="wav"
+type="AudioStreamWAV"
+uid="uid://d15hmfyccjdfu"
+path="res://.godot/imported/derelict - 我可以把你比作夏日吗.wav-95567ce799e6fad342e9a88cfd99e12d.sample"
+
+[deps]
+
+source_file="res://audio/music/derelict - 我可以把你比作夏日吗.wav"
+dest_files=["res://.godot/imported/derelict - 我可以把你比作夏日吗.wav-95567ce799e6fad342e9a88cfd99e12d.sample"]
+
+[params]
+
+force/8_bit=false
+force/mono=false
+force/max_rate=false
+force/max_rate_hz=44100
+edit/trim=false
+edit/normalize=false
+edit/loop_mode=0
+edit/loop_begin=0
+edit/loop_end=-1
+compress/mode=2

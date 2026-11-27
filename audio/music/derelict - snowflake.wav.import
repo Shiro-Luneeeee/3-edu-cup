@@ -1,0 +1,24 @@
+[remap]
+
+importer="wav"
+type="AudioStreamWAV"
+uid="uid://dmujwkwx1x005"
+path="res://.godot/imported/derelict - snowflake.wav-ace7c00af807293d93bc5b8e8c2d8037.sample"
+
+[deps]
+
+source_file="res://audio/music/derelict - snowflake.wav"
+dest_files=["res://.godot/imported/derelict - snowflake.wav-ace7c00af807293d93bc5b8e8c2d8037.sample"]
+
+[params]
+
+force/8_bit=false
+force/mono=false
+force/max_rate=false
+force/max_rate_hz=44100
+edit/trim=false
+edit/normalize=false
+edit/loop_mode=0
+edit/loop_begin=0
+edit/loop_end=-1
+compress/mode=2

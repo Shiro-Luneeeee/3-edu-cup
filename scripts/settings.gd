@@ -165,7 +165,18 @@ func execute_debug_command() -> void:
 	var command := debug_input.text.strip_edges()
 	if command == "/debugmode":
 		SaveManager.debug_mode_enabled = true
+		SaveManager.debug_session_active = true
 		debug_feedback.text = "调试模式已开启：I 总览剧情，J 跳过牌局。"
+		return
+	if command == "/randomplaylist":
+		SaveManager.randomize_bedroom_playlist()
+		debug_feedback.text = "卧室歌单已全部随机打乱。"
+		return
+	if command == "/coins 9999":
+		PlayerState.money = 9999
+		SaveManager.debug_session_active = true
+		PlayerState.changed.emit()
+		debug_feedback.text = "当前金币已设为 9999。"
 		return
 	if command == "/full":
 		if SceneFade.curtain.visible:
@@ -173,12 +184,13 @@ func execute_debug_command() -> void:
 		StudyProgress.reset()
 		SaveManager.start_new_game()
 		PlayerState.set_debug_full_progress()
+		SaveManager.debug_session_active = true
 		SceneFade.change_to("res://scenes/bedroom.tscn")
 		return
 	var age_pattern := RegEx.create_from_string("^/age\\s+([0-9]+)$")
 	var matched := age_pattern.search(command)
 	if matched == null:
-		debug_feedback.text = "命令：/age 10、/full、/debugmode"
+		debug_feedback.text = "可用命令见上方提示。"
 		return
 	var age := int(matched.get_string(1))
 	if age < RoundCalendar.START_AGE or age > 99:
@@ -189,6 +201,7 @@ func execute_debug_command() -> void:
 	PlayerState.reset()
 	StudyProgress.reset()
 	SaveManager.start_new_game()
+	SaveManager.debug_session_active = true
 	PlayerState.player_name = "default"
 	PlayerState.round_number = RoundCalendar.first_round_at_age(age)
 	PlayerState.school_intro_seen = age >= RoundCalendar.SCHOOL_AGE

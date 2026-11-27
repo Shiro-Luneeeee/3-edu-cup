@@ -22,6 +22,17 @@ const BEDROOM_PLAYLIST := [
 	preload("res://audio/music/Mateus Asato - MA.mp3"),
 	preload("res://audio/music/birth_cryin.mp3"),
 	preload("res://audio/music/Mateus Asato - too nerdy for pop, too pop for nerds.mp3"),
+	preload("res://audio/music/derelict,shiroluneee - untitled.wav"),
+	preload("res://audio/music/derelict,shiroluneee - how to decide.wav"),
+	preload("res://audio/music/derelict,shiroluneee - dawn.wav"),
+	preload("res://audio/music/derelict,shiroluneee - bad dream.wav"),
+	preload("res://audio/music/derelict,shiroluneee - 2012.wav"),
+	preload("res://audio/music/derelict - 我可以把你比作夏日吗.wav"),
+	preload("res://audio/music/derelict - song in summer and winter.wav"),
+	preload("res://audio/music/derelict - snowflake.wav"),
+	preload("res://audio/music/derelict - daydream.wav"),
+	preload("res://audio/music/derelict - but those memories are now peering me.wav"),
+	preload("res://audio/music/derelict,shiroluneee - swing.wav"),
 ]
 const RoundCalendar := preload("res://scripts/round_calendar.gd")
 const ROUND_BOARD_WIDTH := 136.0
@@ -139,7 +150,10 @@ func update_player_display() -> void:
 	social_app.tooltip_text = "社交"
 
 func open_shop() -> void:
-	SceneFade.change_to(SHOP_SCENE)
+	if SceneFade.curtain.visible:
+		return
+	SaveManager.keep_scene_music_on_exit()
+	SceneFade.change_to(SHOP_SCENE, 1.0, 0, false)
 
 
 func open_game_selection() -> void:

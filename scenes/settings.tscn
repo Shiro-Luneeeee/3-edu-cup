@@ -186,11 +186,11 @@ layout_mode = 0
 offset_left = 28.0
 offset_top = 125.0
 offset_right = 412.0
-offset_bottom = 180.0
+offset_bottom = 188.0
 mouse_filter = 2
 theme_override_colors/font_color = Color(0.29, 0.24, 0.28, 1)
-theme_override_font_sizes/font_size = 19
-text = "命令：/age x、/full、/debugmode\n调试模式：I 总览剧情，J 跳过牌局。"
+theme_override_font_sizes/font_size = 16
+text = "命令：/age x、/full\n/coins 9999、/debugmode\n/randomplaylist"
 
 [node name="DebugInput" type="LineEdit" parent="PaperStack/MainPaper/Content"]
 visible = false
